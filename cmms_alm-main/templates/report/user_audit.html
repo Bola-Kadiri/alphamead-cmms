@@ -1,0 +1,78 @@
+{% extends 'partials/base.html' %} {% load static %} {% block content %}
+
+
+
+  <!--------Main Content------------>
+  <main id="main" class="main">
+
+    <!-------User Audit Heading----------->
+
+  <div class="assets-container">
+    <div class="userAudit-heading">
+        <h3>User audit Report</h3>
+        <button>
+          <i class="fa-solid fa-check"></i>
+          Generate
+        </button>
+      </div>
+  
+      <div class="userAudit-content">
+        <div class="userAudit-main">
+          <div class="userAudit_main-heading">
+            <h3></h3>
+            <h3 data-bs-toggle="collapse" data-bs-target="#userAudit-collapse">Click to collapse</h3>
+            <i class="fa-solid fa-chevron-left"></i>
+          </div>
+          <div id="userAudit-collapse" class="collapse">
+            <hr>
+              <div class="userAudit_main-content">
+                <h4>USER AUDIT REPORT</h4>
+                <form action="" class="userAudit-form">
+  
+                  <div class="userAudit-input">
+                    <label for="userAudit-user">User</label>
+                    <select name="userAudit-user" id="userAudit-user" placeholder="--Select--">
+                      <option value="selected">Selected</option>
+                    </select>
+                  </div>
+  
+                  <div class="userAudit-input">
+                    <label for="userAudit-start">Start date</label>
+                    <input type="date" name="userAudit-user" id="userAudit-user">
+                  </div>
+  
+                  <div class="userAudit-input">
+                    <label for="userAudit-end">End date</label>
+                    <input type="date" name="userAudit-end" id="userAudit-end">
+                  </div>
+  
+                </form>
+              </div>
+  
+              <div class="userAudit_main-content">
+                <h4>MODULES</h4>
+                <form action="" class="userAudit-form">
+  
+                  <div class="userAudit-input">
+                    <input list="userAudit-modules" name="userAudit-modules" placeholder="Select modules">
+                    <datalist id="userAudit-modules">
+                      <option value="Authentication">
+                      <option value="Work Request">
+                      <option value="Work Order">
+                      <option value="Payment Requisition">
+                      <option value="PPM Setting">
+                    </datalist>
+                  </div>
+  
+                </form>
+              </div>
+          </div>
+        </div>
+      </div>
+  </div>
+
+    
+  </main>
+  
+
+{% endblock content %}

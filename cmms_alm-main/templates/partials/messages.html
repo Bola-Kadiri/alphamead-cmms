@@ -1,0 +1,130 @@
+<style>
+  /* Container for alerts */
+  .my-alert-container {
+    position: fixed;
+    top: 1rem;
+    right: 1rem;
+    z-index: 1050;
+    width: 320px;
+    max-width: 100%;
+  }
+
+  /* Base alert styling */
+  .my-alert {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+
+    padding: 1rem 1.5rem;
+    margin-bottom: 0.75rem;
+
+    border-radius: 8px;
+    font-family: 'Arial', sans-serif;
+    font-size: 0.95rem;
+    font-weight: 500;
+
+    box-shadow: 0px 5px 15px rgba(0, 0, 0, 0.2);
+    opacity: 1;
+    transition: opacity 0.5s ease-in-out;
+  }
+
+  /* Close button styles */
+  .my-alert-close {
+    background: none;
+    border: none;
+    font-size: 1.5rem;
+    line-height: 1;
+    cursor: pointer;
+    color: inherit;
+    transition: transform 0.2s ease-in-out;
+  }
+
+  .my-alert-close:hover {
+    transform: scale(1.1);
+  }
+
+  /* Success alert */
+  .my-alert-success {
+    background-color: #d1e7dd;
+    border-left: 5px solid #198754;
+    color: #0f5132;
+  }
+
+  /* Error alert */
+  .my-alert-error {
+    background-color: #f8d7da;
+    border-left: 5px solid #dc3545;
+    color: #842029;
+  }
+
+  /* Info alert */
+  .my-alert-info {
+    background-color: #cff4fc;
+    border-left: 5px solid #0dcaf0;
+    color: #055160;
+  }
+
+  /* Warning alert */
+  .my-alert-warning {
+    background-color: #fff3cd;
+    border-left: 5px solid #ffc107;
+    color: #664d03;
+  }
+
+  /* Debug alert */
+  .my-alert-debug {
+    background-color: #e2e3e5;
+    border-left: 5px solid #6c757d;
+    color: #41464b;
+  }
+
+  /* Fade-out effect */
+  .fade-out {
+    opacity: 0 !important;
+  }
+</style>
+
+{% if messages %}
+  <div class="my-alert-container">
+    {% for message in messages %}
+      <div 
+        class="my-alert my-alert-{{ message.tags }}"
+        role="alert"
+      >
+        <span class="my-alert-text">
+          {{ message }}
+        </span>
+        <button 
+          type="button"
+          class="my-alert-close"
+          aria-label="Close"
+        >
+          &times;
+        </button>
+      </div>
+    {% endfor %}
+  </div>
+{% endif %}
+
+<script>
+document.addEventListener("DOMContentLoaded", function() {
+  // Grab all alert elements
+  const alerts = document.querySelectorAll(".my-alert");
+
+  // Loop through each alert
+  alerts.forEach(alert => {
+    // 1) Auto-dismiss after 3 seconds
+    setTimeout(() => {
+      alert.classList.add("fade-out");
+      setTimeout(() => alert.style.display = "none", 5000);
+    }, 3000);
+
+    // 2) Close immediately when clicked
+    alert.querySelector(".my-alert-close").addEventListener("click", () => {
+      alert.classList.add("fade-out");
+      setTimeout(() => alert.style.display = "none", 3000);
+    });
+  });
+});
+</script>

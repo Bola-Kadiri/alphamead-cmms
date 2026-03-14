@@ -1,0 +1,99 @@
+{% extends 'partials/base.html' %} {% load static %} {% block content %}
+
+
+
+  <!--------Main Content------------>
+  <main id="main" class="main">
+
+    <!------User Facility Heading---------->
+   <div class="assets-container">
+    <div class="userFacility-heading">
+        <i class="fa-solid fa-sliders filter-icon" data-bs-toggle="tooltip" data-bs-placement="top" title="Filter"></i>
+        <span>
+          <i class="fa-solid fa-magnifying-glass" onclick="searchTable()"></i>
+          <input type="search" id="searchInput" placeholder="Search user facility report...">
+        </span>
+        <h3><a href="">User facility report</a></h3>
+      </div>
+  
+      <!----------User Facility Body------------------>
+      <div class="userFacility-body">
+        <div class="userFacility-body_heading">
+          <div class="left-heading">
+            <i class="fa-solid fa-arrow-up-right-from-square export-icon" data-bs-toggle="tooltip" data-bs-placement="top" title="Export"></i>
+          </div>
+  
+          <div class="right-heading">
+            <label for="userFacility-rows" class="label">No of rows</label><br>
+            <select name="userFacility-rows" id="userFacility-rows" class="form-select" onchange="updateRows()">
+              <option value="2">2</option>
+              <option value="3">3</option>
+              <option value="5">5</option>
+              <option value="10">10</option>
+            </select>
+          </div>
+        </div>
+        
+        <!-------User Facility Table------------->
+        <div class="userFacility_table-container">
+          <table class="userFacility-table" id="userFacility-table">
+            <thead>
+              <tr>
+                <th># <i class="ri-arrow-up-down-fill"></i></th>
+                <th>First name</th>
+                <th>Last name</th>
+                <th>Email</th>
+                <th>Login count</th>
+                <th>Work request count</th>
+                <th>Visitor pass count</th>
+                <th>Item request count</th>
+              </tr>  
+            </thead>
+  
+            <tbody id="userFacility-body"></tbody>
+          </table>
+        </div>
+  
+        <div class="pager">
+  
+          <div class="pager-details">
+            <h3>Showing 1 - 10 of 5853</h3>
+          </div>
+  
+          <ul class="pagination pagination-sm justify-content-end">
+            <li class="page-item"><a class="page-link active" href="#">1</a></li>
+            <li class="page-item"><a class="page-link" href="#">2</a></li>
+            <li class="page-item"><a class="page-link" href="#">3</a></li>
+            <li class="page-item"><a class="page-link" href="#">4</a></li>
+            <li class="page-item"><a class="page-link" href="#">5</a></li>
+            <li class="page-item"><a class="page-link" href="#">6</a></li>
+            <li class="page-item"><a class="page-link" href="#">7</a></li>
+            <li class="page-item"><a class="page-link" href="#">8</a></li>
+            <li class="page-item"><a class="page-link" href="#">9</a></li>
+            <li class="page-item"><a class="page-link" href="#">10</a></li>
+            <li class="page-item"><a class="page-link" href="#">11</a></li>
+            <li class="page-item"><a class="page-link" href="#">12</a></li>
+            <li class="page-item"><a class="page-link" href="#">13</a></li>
+            <li class="page-item"><a class="page-link" href="#">14</a></li>
+            <li class="page-item"><a class="page-link" href="#">15</a></li>
+            <li class="page-item"><a class="page-link" href="#">16</a></li>
+            <li class="page-item"><a class="page-link" href="#">17</a></li>
+            <li class="page-item">
+              <a class="page-link" href="#" aria-label="Next">
+                <span aria-hidden="true">&raquo;</span>
+              </a>
+            </li>
+          </ul>
+        </div>
+      </div>
+  
+      <!---------Loader----------->
+  
+      <div class="loader" id="loader">
+        <div class="spinner"></div>
+      </div>
+   </div>
+  </main>
+  
+
+{% endblock content %}

@@ -1,0 +1,113 @@
+{% extends 'partials/base.html' %} {% load static %} {% block content %}
+
+
+      
+    <main id="main" class="main">
+        <!------Request for Occupant Heading---------->
+        <div class="assets-container">
+          <div class="occupant-heading">
+            <div class="occupant-heading_text">
+              <i class="fa-solid fa-sliders filter-icon" data-bs-toggle="tooltip" data-bs-placement="top" title="Filter"></i>
+              <span>
+                <i class="fa-solid fa-magnifying-glass" onclick="searchTable()"></i>
+                <input type="search" id="searchInput" placeholder="Search occupants...">
+              </span>
+              <h3><a href="">Occupant</a></h3>
+            </div>
+            <div class="occupant-heading_icons">
+              <i class="fa-solid fa-list" data-bs-toggle="tooltip" data-bs-placement="bottom" title="List view"></i>
+              <i class="fa-solid fa-table-cells" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Table view"></i>
+            </div>
+          </div>
+        
+          <div class="empty-div"></div>
+        
+          <!--------Occupant Main Content------------------->
+          <div class="occupant-main_content">
+            <div class="occupant-sidebar">
+              <h5>Occupant</h5>
+              <div class="occupant-sidebar_controls">
+                <i class="fa-solid fa-arrow-up-right-from-square export-icon" data-bs-toggle="tooltip" data-bs-placement="top" title="Export"></i>
+              </div>
+  
+              <div class="occupant-sidebar_contents"></div>
+              <div class="occupant-sidebar_loadMore">
+                <div id="occupantCount" class="occupant-count"></div>
+                <button id="loadMoreBtn">Load More</button>
+              </div>
+            </div>
+            <i class="fa-solid fa-bars occupant-sidebarBtn"></i>
+  
+            <!----------Occupant Main Body-------------->
+            <div class="occupant-main_body">
+              <div class="default-image" id="default-image">
+                <img src="./assets/img/in-empty-details-icon.svg" alt="">
+                <h3>All occupants are sleeping!</h3>
+                <p>Click on them</p>
+              </div>
+              <div class="occupant-body_content">
+                <div class="occupant-type">
+                  <div class="occupant-type_header">
+                    <h4>Detail</h4>
+                    <h5 data-bs-toggle="collapse" data-bs-target="#occupant-detail">Click to collapse</h5>
+                    <i class="fa-solid fa-chevron-left"></i>
+                  </div>
+                  <div id="occupant-detail">
+                    <hr>
+                    <h6>About</h6>
+                      <div class="occupant-type_details">
+                        <div class="occupant-details">
+                          <h4>Name</h4>
+                          <p id="name" style="font-size: 12px;"></p>
+                        </div>
+  
+                        <div class="occupant-details">
+                          <h4>Email</h4>
+                          <p id="email"></p>
+                        </div>
+  
+                        <div class="occupant-details">
+                          <h4>Phone</h4>
+                          <p id="phone"></p>
+                        </div>
+  
+                        <div class="occupant-details">
+                          <h4>Client</h4>
+                          <p id="client"></p>
+                        </div>
+  
+                        <div class="occupant-details">
+                          <h4>Customer ID</h4>
+                          <p id="customer"></p>
+                        </div>
+  
+                        <div class="occupant-details">
+                          <h4>Apartment/Room</h4>
+                          <p id="apartment"></p>
+                        </div>
+  
+                        <div class="occupant-details">
+                          <h4>Contract no</h4>
+                          <p id="contract"></p>
+                        </div>
+  
+                        <div class="occupant-details">
+                          <h4>Occupied from</h4>
+                          <p id="occupiedFrom"></p>
+                        </div>
+  
+                        <div class="occupant-details">
+                          <h4>Occupied to</h4>
+                          <p id="occupiedTo"></p>
+                        </div>
+                      </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </main>
+
+
+{% endblock content %}

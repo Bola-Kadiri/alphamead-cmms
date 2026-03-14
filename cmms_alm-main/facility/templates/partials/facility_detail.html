@@ -1,0 +1,78 @@
+<div id="facility-main-body">
+  <div class="facility-main_content">
+    <div class="facility-header d-flex justify-content-between align-items-center p-3 bg-light rounded shadow-sm mb-4">
+      <div>
+        <h4 class="mb-1">{{ facility.name }} ({{ facility.code }})</h4>
+        <p class="text-muted mb-0">{{ facility.type }} Facility</p>
+      </div>
+      <div>
+        <span class="badge {% if facility.status == 'Active' %} bg-success {% else %} bg-danger {% endif %} p-2">{{ facility.status }}</span>
+      </div>
+    </div>
+
+    <div class="card mb-4">
+      <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+        <h5 class="mb-0">Facility Details</h5>
+
+      </div>
+      <div class="card-body">
+        <div class="row">
+          <div class="col-md-6 mb-3">
+            <label class="fw-bold">Contact Name:</label>
+            <p>{{ facility.contact_name|default:"Not specified" }}</p>
+          </div>
+          <div class="col-md-6 mb-3">
+            <label class="fw-bold">Email:</label>
+            <p>{{ facility.email|default:"Not specified" }}</p>
+          </div>
+          <div class="col-md-6 mb-3">
+            <label class="fw-bold">Phone:</label>
+            <p>{{ facility.phone|default:"Not specified" }}</p>
+          </div>
+          <div class="col-md-6 mb-3">
+            <label class="fw-bold">Facility Officer:</label>
+            <p>{{ facility.facility_officer|default:"Not assigned" }}</p>
+          </div>
+          <div class="col-md-6 mb-3">
+            <label class="fw-bold">Store:</label>
+            <p>{{ facility.store|default:"Not assigned" }}</p>
+          </div>
+          <div class="col-md-6 mb-3">
+            <label class="fw-bold">Non-Procurement Limit:</label>
+            <p>{% if facility.non_procurement_limit %}${{ facility.non_procurement_limit }}{% else %}Not specified{% endif %}</p>
+          </div>
+          <div class="col-md-6 mb-3">
+            <label class="fw-bold">SQM:</label>
+            <p>{% if facility.no_of_sqm %}{{ facility.no_of_sqm }} m²{% else %}Not specified{% endif %}</p>
+          </div>
+          <div class="col-md-6 mb-3">
+            <label class="fw-bold">Address:</label>
+            <p>{{ facility.address|default:"Not specified" }}</p>
+          </div>
+        </div>
+
+        <div class="row mt-3">
+          <div class="col-md-12">
+            <h6 class="mb-3">Facility Settings</h6>
+            <div class="d-flex flex-wrap gap-3">
+              <span class="badge {% if facility.common_area %} bg-success {% else %} bg-secondary {% endif %} p-2">
+                {% if facility.common_area %}Common Area{% else %}Not Common Area{% endif %}
+              </span>
+              <span class="badge {% if facility.approval_required_for_imprest %} bg-info {% else %} bg-secondary {% endif %} p-2">
+                {% if facility.approval_required_for_imprest %}Approval Required for Imprest{% else %}No Imprest Approval Required{% endif %}
+              </span>
+              <span class="badge {% if facility.available_for_lease %} bg-primary {% else %} bg-secondary {% endif %} p-2">
+                {% if facility.available_for_lease %}Available for Lease{% else %}Not Available for Lease{% endif %}
+              </span>
+              <span class="badge {% if facility.remit_lease_payment %} bg-warning {% else %} bg-secondary {% endif %} p-2">
+                {% if facility.remit_lease_payment %}Remit Lease Payment{% else %}No Lease Payment Remittance{% endif %}
+              </span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+
+  </div>
+</div>

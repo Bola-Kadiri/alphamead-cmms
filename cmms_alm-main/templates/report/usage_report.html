@@ -1,0 +1,52 @@
+{% extends 'partials/base.html' %} {% load static %} {% block content %}
+
+
+  <!--------Main Content------------>
+  <main id="main" class="main">
+
+    <!------Usuage Report Heading--------->
+
+    <div class="assets-container">
+        <div class="usage-heading">
+            <h3>Usage report</h3>
+            <button>
+              <i class="fa-solid fa-check"></i>
+              Generate
+            </button>
+          </div>
+      
+          <div class="usage-content">
+            <div class="usage-main">
+              <div class="usage-main-heading">
+                <h3></h3>
+                <h3 data-bs-toggle="collapse" data-bs-target="#usage-collapse">Click to collapse</h3>
+                <i class="fa-solid fa-chevron-left"></i>
+              </div>
+              <div id="usage-collapse" class="collapse">
+                <hr>
+                  <div class="usage_main-content">
+                      <h4>USAGE REPORT</h4>
+                      <form action="" class="usage-form">
+      
+                      <div class="usage-input">
+                          <label for="usage-start">Start date</label>
+                          <input type="date" name="usage-start" id="usage-start">
+                      </div>
+      
+                      <div class="usage-input">
+                          <label for="usage-end">End date</label>
+                          <input type="date" name="usage-end" id="usage-end">
+                      </div>
+      
+                      </form>
+                  </div>
+              </div>
+            </div>
+          </div>
+    </div>
+
+    
+  </main>
+  
+
+{% endblock content %}

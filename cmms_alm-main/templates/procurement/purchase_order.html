@@ -1,0 +1,519 @@
+{% extends 'partials/base.html' %} {% load static %} {% block content %}
+
+
+
+        <main id="main" class="main">
+            <!------Purchase Order Heading---------->
+            <div class="assets-container">
+                <div class="purchase-heading">
+                    <div class="purchase-heading_text">
+                        <i class="fa-solid fa-sliders filter-icon" data-bs-toggle="tooltip" data-bs-placement="top" title="Filter"></i>
+                        <span>
+                            <i class="fa-solid fa-magnifying-glass" onclick="searchTable()"></i>
+                            <input type="search" id="searchInput" placeholder="Search purchase orders...">
+                        </span>
+                        <h3><a href="">Purchase orders</a></h3>
+                    </div>
+                    <div class="purchase-heading_icons">
+                        <i class="fa-solid fa-list" data-bs-toggle="tooltip" data-bs-placement="bottom" title="List view"></i>
+                        <i class="fa-solid fa-table-cells" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Table view"></i>
+                    </div>
+                </div>
+            
+                <div class="empty-div"></div>
+            
+                <!--------Purchase Order Main Content------------------->
+                <div class="purchase-main_content">
+                    <div class="purchase-sidebar">
+                        <h5>Purchase order</h5>
+                        <div class="purchase-sidebar_controls">
+                            <button>
+                                <i class="fa-solid fa-plus"></i>
+                                <span id="load-button" data-bs-toggle="modal" data-bs-target="#ExtralargeModal">New</span>
+                            </button>
+                            <i class="fa-solid fa-arrow-up-right-from-square export-icon" data-bs-toggle="tooltip" data-bs-placement="top" title="Export"></i>
+                        </div>
+
+                        <div class="purchase-sidebar_contents"></div>
+                        <div class="purchase-sidebar_loadMore">
+                            <div id="purchaseCount" class="purchase-count"></div>
+                            <button id="loadMoreBtn">Load More</button>
+                        </div>
+                    </div>
+                    <i class="fa-solid fa-bars purchase-sidebarBtn"></i>
+
+                    <!----------Purchase Order Main Body-------------->
+                    <div class="purchase-main_body">
+                        <div class="default-image" id="default-image">
+                            <img src="{% static 'assets/img/in-empty-details-icon.svg' %}" alt="">
+                            <h3>Your purchase orders are sleeping!</h3>
+                            <p>Click on them</p>
+                        </div>
+                        <div class="purchase-body_content">
+                            <div class="purchase-type">
+                                <div class="purchase-type_header">
+                                    <h4>Detail</h4>
+                                    <h5 data-bs-toggle="collapse" data-bs-target="#purchase-detail">Click to collapse</h5>
+                                    <i class="fa-solid fa-chevron-left"></i>
+                                </div>
+                                <div id="purchase-detail">
+                                    <hr>
+                                    <h6>About</h6>
+                                    <div class="purchase-type_details">
+                                        <div class="purchase-details">
+                                            <h4>Number</h4>
+                                            <p id="number"></p>
+                                        </div>
+
+                                        <div class="purchase-details">
+                                            <h4>Date</h4>
+                                            <p id="date"></p>
+                                        </div>
+
+                                        <div class="purchase-details">
+                                            <h4>Type</h4>
+                                            <p id="type"></p>
+                                        </div>
+
+                                        <div class="purchase-details">
+                                            <h4>Facility/Location</h4>
+                                            <p id="facility"></p>
+                                        </div>
+
+                                        <div class="purchase-details">
+                                            <h4>Requested date</h4>
+                                            <p id="request-date"></p>
+                                        </div>
+
+                                        <div class="purchase-details">
+                                            <h4>Requested by</h4>
+                                            <p id="requester"></p>
+                                        </div>
+                                    </div>
+
+                                    <h6>Vendor & Shipment</h6>
+                                    <div class="purchase-type_details">
+                                        <div class="purchase-details">
+                                            <h4>Vendor</h4>
+                                            <p id="vendor"></p>
+                                        </div>
+
+                                        <div class="purchase-details">
+                                            <h4>Expected delivery date</h4>
+                                            <p id="expect"></p>
+                                        </div>
+                                    </div>
+
+                                    <h6>Other details</h6>
+                                    <div class="purchase-type_details">
+                                        <div class="purchase-details">
+                                            <h4>Status</h4>
+                                            <p id="status"></p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="purchase-type">
+                                <div class="purchase-type_header">
+                                    <h4>Items <i>(1)</i></h4>
+                                    <h5 data-bs-toggle="collapse" data-bs-target="#purchase-item">Click to collapse</h5>
+                                    <i class="fa-solid fa-chevron-left"></i>
+                                </div>
+                                <div id="purchase-item">
+                                    <hr>
+                                    <div class="purchase-item_header">
+                                        <span>
+                                            <h4>Currency</h4>
+                                            <p style="padding-left: 1rem;">NGN</p>
+                                        </span>
+
+                                        <span>
+                                           <input type="checkbox" name="" id="">
+                                           <label for="">Add VAT</label>
+                                        </span>
+                                    </div>
+                                    <div class="purchase-item_table">
+                                        <table class="purchase-table">
+                                            <thead>
+                                                <tr>
+                                                    <th>#</th>
+                                                    <th>Description</th>
+                                                    <th>Sub category</th>
+                                                    <th>Model</th>
+                                                    <th>Quantity</th>
+                                                    <th>Unit price</th>
+                                                    <th>Amount</th>
+                                                </tr>
+                                            </thead>
+
+                                            <tbody>
+                                                <tr>
+                                                    <td>1</td>
+                                                    <td>Purchase of machine spare parts</td>
+                                                    <td></td>
+                                                    <td></td>
+                                                    <td>1</td>
+                                                    <td>104,500</td>
+                                                    <td>104,500</td>
+                                                </tr>
+                                            </tbody>
+                                        </table>
+                                        <div class="payment-total">
+                                            <div class="payment-total-name">
+                                              <h3>Total <i class="fa-solid fa-angles-right"></i></h3>
+                                            </div>
+
+                                            <div class="payment-total-quantity">
+                                                <p>Qty</p>
+                                                <h3>1</h3>
+                                            </div>
+                                
+                                            <div class="payment-total-quantity">
+                                              <p>Amount</p>
+                                              <h3>NGN 104,500</h3>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="purchase-type">
+                                <div class="purchase-type_header">
+                                  <h4>Approval <i>(2)</i></h4>
+                                  <h5 data-bs-toggle="collapse" data-bs-target="#purchase-approval">Click to collapse</h5>
+                                  <i class="fa-solid fa-chevron-left"></i>
+                                </div>
+                                <div id="purchase-approval">
+                                  <hr>
+                                  <div class="purchase-item_table">
+                                    <table class="purchase-table">
+                                      <thead>
+                                        <tr>
+                                          <th>#</th>
+                                          <th>Submitted by</th>
+                                          <th>Request to</th>
+                                          <th>Request</th>
+                                          <th>Approved</th>
+                                          <th>Decline</th>
+                                          <th>Duration</th>
+                                          <th>Comment</th>
+                                        </tr>
+                                      </thead>
+                  
+                                      <tbody>
+                                        <tr>
+                                          <td>1</td>
+                                          <td>Olamilekan Ajose</td>
+                                          <td>Adeshina Olagunju</td>
+                                          <td></td>
+                                          <td>No</td>
+                                          <td>No</td>
+                                          <td>5min</td>
+                                          <td></td>
+                                        </tr> 
+                  
+                                        <tr>
+                                          <td>2</td>
+                                          <td>Olamilekan Ajose</td>
+                                          <td>Martins Emoghene</td>
+                                          <td></td>
+                                          <td>No</td>
+                                          <td>No</td>
+                                          <td></td>
+                                          <td></td>
+                                        </tr> 
+                                      </tbody>
+                                    </table>
+                                  </div>
+                                </div>
+                            </div>
+
+                            <div class="purchase-type">
+                                <div class="purchase-type_header">
+                                    <h4>Comment <i>(0)</i></h4>
+                                    <h5 data-bs-toggle="collapse" data-bs-target="#purchase-comment">Click to collapse</h5>
+                                    <i class="fa-solid fa-chevron-left"></i>
+                                </div>
+                                <div id="purchase-comment">
+                                    <hr>
+                                    <div class="purchase-item">
+                                        <div class="purchase-modal_image">
+                                            <img src="./assets/img/movement-history.svg" alt="">
+                                            <p>Not been keeping track.</p>
+                                            <p>Leave a comment</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="purchase-type">
+                                <div class="purchase-type_header">
+                                    <h4>File attachments <i>(0)</i></h4>
+                                    <h5 data-bs-toggle="collapse" data-bs-target="#purchase-file">Click to collapse</h5>
+                                    <i class="fa-solid fa-chevron-left"></i>
+                                </div>
+                                <div id="purchase-file">
+                                    <hr>
+                                    <div class="purchase-item">
+                                        <div class="purchase-modal_image">
+                                            <img src="./assets/img/movement-history.svg" alt="">
+                                            <p>No strings attached.</p>
+                                            <p>Attach something</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="purchase-type">
+                                <div class="purchase-type_header">
+                                    <h4>Goods received note <i>(0)</i></h4>
+                                    <h5 data-bs-toggle="collapse" data-bs-target="#purchase-good">Click to collapse</h5>
+                                    <i class="fa-solid fa-chevron-left"></i>
+                                </div>
+                                <div id="purchase-good">
+                                    <hr>
+                                    <div class="purchase-item">
+                                        <p>Goods received notes will be shown there</p>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="purchase-type">
+                                <div class="purchase-type_header">
+                                    <h4>History <i>(1)</i></h4>
+                                    <h5 data-bs-toggle="collapse" data-bs-target="#purchase-history">Click to collapse</h5>
+                                    <i class="fa-solid fa-chevron-left"></i>
+                                </div>
+                                <div id="purchase-history">
+                                    <hr>
+                                    <div class="purchase-item_table">
+                                        <table class="purchase-table">
+                                            <thead>
+                                                <tr>
+                                                    <th>Date</th>
+                                                    <th>Time</th>
+                                                    <th>User</th>
+                                                    <th>Action</th>
+                                                    <th>Detail</th>
+                                                </tr>
+                                            </thead>
+
+                                            <tbody>
+                                                <tr>
+                                                    <td>13/09/2024</td>
+                                                    <td>03:23 PM</td>
+                                                    <td>Martins Emoghene</td>
+                                                    <td>FIRST CREATED</td>
+                                                    <td>FIRST CREATED (From Request #0005701 approval)</td>
+                                                </tr>
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!----------Modal for a new purchase order----------->
+            <div class="modal fade" id="ExtralargeModal" tabindex="-1">
+                <div class="modal-dialog modal-xl">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                                <h5 class="modal-title">New purchase order</h5>
+                            <div class="modal-buttons">
+                                <button>
+                                    <i class="fa-solid fa-check" style="margin-right: 1rem;"></i>
+                                    Done
+                                </button>
+                                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                            </div>
+                        </div>
+
+                        <div class="modal-body">
+                            <div class="modal-content">
+                                <div class="modal-content_header" onmouseover="showIcons()" onmouseout="hideIcons()">
+                                    <h4>Detail</h4>
+                                    <h5 data-bs-toggle="collapse" data-bs-target="#purchase_modal-detail">Click to collapse</h5>
+                                    <i class="fa-solid fa-chevron-left arrow" onmouseover="showIcons()" onmouseout="hideIcons()"></i>
+                                </div>
+
+                                <div id="purchase_modal-detail">
+                                    <hr>
+                                    <div class="modal-content_body">
+                                        <h5>Details</h5>
+                                        <form action="">
+                                            <div class="purchase-content_container">
+                                                <div class="purchase-content_input">
+                                                    <label for="purchase_input-type">Type</label><br>
+                                                    <select name="purchase_input-type" id="purchase_input-type">
+                                                        <option value="select">Select</option>
+                                                    </select>
+                                                </div>
+
+                                                <div class="purchase-content_input">
+                                                    <label for="purchase_input-facility">Facility/Location</label><br>
+                                                    <select name="purchase_input-facility" id="purchase_input-facility">
+                                                        <option value="select">Select</option>
+                                                    </select>
+                                                </div>
+
+                                                <div class="purchase-content_input">
+                                                    <label for="purchase_input-department">Department</label><br>
+                                                    <select name="purchase_input-department" id="purchase_input-department">
+                                                        <option value="select">Select</option>
+                                                    </select>
+                                                </div>
+
+                                                <div class="purchase-content_input">
+                                                    <label for="purchase_input-date">Requested date</label><br>
+                                                    <input type="date" name="purchase_input-date" id="purchase_input-date">
+                                                </div>
+
+                                                <div class="purchase-content_input">
+                                                    <label for="purchase_input-requester">Requested by</label><br>
+                                                    <input type="text" name="purchase_input-requester" id="purchase_input-requester">
+                                                </div>
+                                            </div>
+                                        </form>
+
+                                        <h5>Vendor & Shipment</h5>
+                                        <form action="">
+                                            <div class="purchase-content_container">
+                                                <div class="purchase-content_input">
+                                                    <label for="purchase_input-vendor">Vendor</label><br>
+                                                    <select name="purchase_input-vendor" id="purchase_input-vendor">
+                                                        <option value="select">Select</option>
+                                                    </select>
+                                                </div>
+
+                                                <div class="purchase-content_input">
+                                                    <label for="purchase_input-contact">Contact name</label><br>
+                                                    <select name="purchase_input-contact" id="purchase_input-contact">
+                                                        <option value="select">Select</option>
+                                                    </select>
+                                                </div>
+
+                                                <div class="purchase-content_input">
+                                                    <label for="purchase_input-expect">Expected delivery date</label><br>
+                                                    <input type="date" name="purchase_input-expect" id="purchase_input-expect">
+                                                </div>
+
+                                                <div class="purchase-content_description flex-basis">
+                                                    <label for="purchase_input-ship">Ship to</label><br>
+                                                    <input type="text" name="purchase_input-ship" id="purchase_input-ship">
+                                                </div>
+                                            </div>
+                                        </form>
+
+                                        <h5>Other details</h5>
+                                        <form action="">
+                                            <div class="purchase-content_container">
+                                                <div class="purchase-content_description flex-basis">
+                                                    <label for="purchase_input-term">Terms and conditions</label><br>
+                                                    <input type="text" name="purchase_input-term" id="purchase_input-term">
+                                                </div>
+
+                                                <div class="purchase-content_input">
+                                                    <label for="purchase_input-status">Status</label><br>
+                                                    <select name="purchase_input-status" id="purchase_input-status">
+                                                        <option value="select">Select</option>
+                                                    </select>
+                                                </div>
+                                            </div>
+                                        </form>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="modal-content item-modal">
+                                <div class="modal-content_header" onmouseover="showIcons()" onmouseout="hideIcons()">
+                                    <h4>Items <i>(0)</i></h4>
+                                    <h5 data-bs-toggle="collapse" data-bs-target="#purchase_modal-item">Click to collapse</h5>
+                                    <i class="fa-solid fa-chevron-left arrow" onmouseover="showIcons()" onmouseout="hideIcons()"></i>
+                                </div>
+
+                                <div class="item-modal_body collapse" id="purchase_modal-item">
+                                    <div class="itemRequest-modal_add">
+                                        <button>
+                                            <i class="fa-solid fa-plus"></i>
+                                            <span>Add Items</span>
+                                        </button>
+                                    </div>
+                                    <div class="itemRequest-modal_image">
+                                        <img src="./assets/img/movement-history.svg" alt="">
+                                        <p>Nothing found here. Add some items</p>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="modal-content item-modal">
+                                <div class="modal-content_header" onmouseover="showIcons()" onmouseout="hideIcons()">
+                                    <h4>Approval <i>(0)</i></h4>
+                                    <h5 data-bs-toggle="collapse" data-bs-target="#purchase_modal-approval">Click to collapse</h5>
+                                    <i class="fa-solid fa-chevron-left arrow" onmouseover="showIcons()" onmouseout="hideIcons()"></i>
+                                </div>
+
+                                <div class="item-modal_body collapse" id="purchase_modal-approval">
+                                    <div class="itemRequest-modal_add">
+                                        <input type="radio" name="" id="">
+                                        <label for="" style="font-size: 13px;">Request approval</label>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="modal-content item-modal">
+                                <div class="modal-content_header" onmouseover="showIcons()" onmouseout="hideIcons()">
+                                    <h4>Comment <i>(0)</i></h4>
+                                    <h5 data-bs-toggle="collapse" data-bs-target="#purchase_modal-comment">Click to collapse</h5>
+                                    <i class="fa-solid fa-chevron-left arrow" onmouseover="showIcons()" onmouseout="hideIcons()"></i>
+                                </div>
+
+                                <div class="item-modal_body collapse" id="purchase_modal-comment">
+                                    <div class="itemRequest-modal_add">
+                                        <button>
+                                            <i class="fa-solid fa-comment"></i>
+                                            <span>Leave a comment</span>
+                                        </button>
+                                    </div>
+                                    <div class="itemRequest-modal_image">
+                                        <img src="./assets/img/movement-history.svg" alt="">
+                                        <p>Not been keeping track!</p>
+                                        <p>Leave a comment.</p>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="modal-content item-modal">
+                                <div class="modal-content_header" onmouseover="showIcons()" onmouseout="hideIcons()">
+                                    <h4>File attachments <i>(0)</i></h4>
+                                    <h5 data-bs-toggle="collapse" data-bs-target="#purchase_modal-file">Click to collapse</h5>
+                                    <i class="fa-solid fa-chevron-left arrow" onmouseover="showIcons()" onmouseout="hideIcons()"></i>
+                                </div>
+
+                                <div class="item-modal_body collapse" id="purchase_modal-file">
+                                    <div class="itemRequest-modal_add">
+                                        <button>
+                                            <i class="fa-solid fa-plus"></i>
+                                            <span>Add file</span>
+                                        </button>
+                                    </div>
+                                    <div class="itemRequest-modal_image">
+                                        <img src="./assets/img/movement-history.svg" alt="">
+                                        <p>No string attached!</p>
+                                        <p>Attach something</p>
+                                    </div>
+                                </div>
+
+                            </div>
+                        </div>   
+                    </div>
+                </div>
+            </div>
+        </main>
+
+
+
+{% endblock content %}

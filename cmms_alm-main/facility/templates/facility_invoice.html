@@ -1,0 +1,364 @@
+{% extends 'partials/base.html' %} {% load static %} {% block content %}
+
+        <main id="main" class="main">
+            <!------Facility Invoice Heading---------->
+            <div class="assets-container">
+                <div class="invoice-heading">
+                    <div class="invoice-heading_text">
+                        <i class="fa-solid fa-sliders filter-icon" data-bs-toggle="tooltip" data-bs-placement="top" title="Filter"></i>
+                        <span>
+                            <i class="fa-solid fa-magnifying-glass" onclick="searchTable()"></i>
+                            <input type="search" id="searchInput" placeholder="Search invoices...">
+                        </span>
+                        <h3><a href="">Invoice</a></h3>
+                    </div>
+                    <div class="invoice-heading_icons">
+                        <i class="fa-solid fa-list" data-bs-toggle="tooltip" data-bs-placement="bottom" title="List view"></i>
+                        <i class="fa-solid fa-table-cells" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Table view"></i>
+                    </div>
+                </div>
+            
+                <div class="empty-div"></div>
+            
+                <!--------Facility Invoice Main Content------------------->
+                <div class="invoice-main_content">
+                    <div class="invoice-sidebar">
+                        <h5>Invoice</h5>
+                        <div class="invoice-sidebar_controls">
+                            <button>
+                                <i class="fa-solid fa-plus"></i>
+                                <span id="load-button" data-bs-toggle="modal" data-bs-target="#ExtralargeModal">New</span>
+                            </button>
+                            <i class="fa-solid fa-arrow-up-right-from-square export-icon" data-bs-toggle="tooltip" data-bs-placement="top" title="Export"></i>
+                        </div>
+
+                        <div class="invoice-sidebar_contents">
+                            <div class="transfer-sidebar_image">
+                                <img src="{% static 'assets/img/in-empty-filter-icon.svg' %}" alt="">
+                                <h3>OMG!</h3>
+                                <p>No invoice found! You are sure it's in here?</p>
+                            </div>
+                        </div>
+                        <div class="invoice-sidebar_loadMore">
+                            <div id="invoiceCount" class="invoice-count"></div>
+                            <button id="loadMoreBtn">Load More</button>
+                        </div>
+                    </div>
+                    <i class="fa-solid fa-bars invoice-sidebarBtn"></i>
+
+                    <!----------Facility Invoice Main Body-------------->
+                    <div class="invoice-main_body">
+                        <div class="default-image" id="default-image">
+                            <img src="{% static 'assets/img/in-empty-details-icon.svg' %}" alt="">
+                            <h3>Your invoices are sleeping!</h3>
+                            <p>Click on them</p>
+                        </div>
+                        <div class="invoice-body_content">
+                            <div class="invoice-type">
+                                <div class="invoice-type_header">
+                                    <h4>Detail</h4>
+                                    <h5 data-bs-toggle="collapse" data-bs-target="#invoice-detail">Click to collapse</h5>
+                                    <i class="fa-solid fa-chevron-left"></i>
+                                </div>
+                                <div id="invoice-detail">
+                                    <hr>
+                                    <h6>About</h6>
+                                    <div class="invoice-type_details">
+                                        <div class="invoice-details">
+                                            <h4>Number</h4>
+                                            <p id="number"></p>
+                                        </div>
+
+                                        <div class="invoice-details">
+                                            <h4>Purchase order</h4>
+                                            <p id="order"></p>
+                                        </div>
+
+                                        <div class="invoice-details">
+                                            <h4>Vendor</h4>
+                                            <p id="vendor"></p>
+                                        </div>
+
+                                        <div class="invoice-details">
+                                            <h4>Received at</h4>
+                                            <p id="receiver"></p>
+                                        </div>
+
+                                        <div class="invoice-details">
+                                            <h4>Facility/Location Store</h4>
+                                            <p id="facility"></p>
+                                        </div>
+
+                                        <div class="invoice-details">
+                                            <h4>Requested by</h4>
+                                            <p id="requester"></p>
+                                        </div>
+
+                                        <div class="invoice-details">
+                                            <h4>Requested date</h4>
+                                            <p id="date"></p>
+                                        </div>
+
+                                        <div class="invoice-details">
+                                            <h4>Requested time</h4>
+                                            <p id="time"></p>
+                                        </div>
+
+                                        <div class="invoice-details">
+                                            <h4>Approved</h4>
+                                            <p id="approve"></p>
+                                        </div>
+
+                                        <div class="invoice-details">
+                                            <h4>Status</h4>
+                                            <p id="status"></p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="invoice-type">
+                                <div class="invoice-type_header">
+                                    <h4>Items <i>(1)</i></h4>
+                                    <h5 data-bs-toggle="collapse" data-bs-target="#invoice-item">Click to collapse</h5>
+                                    <i class="fa-solid fa-chevron-left"></i>
+                                </div>
+                                <div id="invoice-item">
+                                    <hr>
+                                    <div class="invoice-item_table">
+                                        <table class="invoice-table">
+                                            <thead>
+                                                <tr>
+                                                    <th>#</th>
+                                                    <th>LPO Item</th>
+                                                    <th>Sub category</th>
+                                                    <th>Model</th>
+                                                    <th>Specification</th>
+                                                    <th>Serial No(s)</th>
+                                                    <th>Quantity received</th>
+                                                    <th>Unit price</th>
+                                                    <th>Amount</th>
+                                                    <th>Checked</th>
+                                                    <th>Rejected</th>
+                                                </tr>
+                                            </thead>
+
+                                            <tbody>
+                                                <tr>
+                                                    <td>1</td>
+                                                    <td>#0 - Test Item</td>
+                                                    <td>AVR</td>
+                                                    <td>3phase Auto AC Voltage Stabiliser (30KVA) Terrace Villa's</td>
+                                                    <td></td>
+                                                    <td></td>
+                                                    <td>1</td>
+                                                    <td></td>
+                                                    <td></td>
+                                                    <td></td>
+                                                    <td>No</td>
+                                                </tr>
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="invoice-type">
+                                <div class="invoice-type_header">
+                                  <h4>Approval <i>(0)</i></h4>
+                                  <h5 data-bs-toggle="collapse" data-bs-target="#invoice-approval">Click to collapse</h5>
+                                  <i class="fa-solid fa-chevron-left"></i>
+                                </div>
+                                <div id="invoice-approval">
+                                  <hr>
+                                  <div class="invoice-item">
+                                    <div class="invoice-modal_image">
+                                        <img src="./assets/img/movement-history.svg" alt="">
+                                        <p>No approvals requested.</p>
+                                        <p>Request approval</p>
+                                    </div>
+                                </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!----------Modal for a new facility invoice----------->
+            <div class="modal fade" id="ExtralargeModal" tabindex="-1">
+                <div class="modal-dialog modal-xl">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                                <h5 class="modal-title">New invoice</h5>
+                            <div class="modal-buttons">
+                                <button>
+                                    <i class="fa-solid fa-check" style="margin-right: 1rem;"></i>
+                                    Done
+                                </button>
+                                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                            </div>
+                        </div>
+
+                        <div class="modal-body">
+                            <div class="modal-content">
+                                <div class="modal-content_header" onmouseover="showIcons()" onmouseout="hideIcons()">
+                                    <h4>Detail</h4>
+                                    <h5 data-bs-toggle="collapse" data-bs-target="#invoice_modal-detail">Click to collapse</h5>
+                                    <i class="fa-solid fa-chevron-left arrow" onmouseover="showIcons()" onmouseout="hideIcons()"></i>
+                                </div>
+
+                                <div id="invoice_modal-detail">
+                                    <hr>
+                                    <div class="modal-content_body">
+                                        <h5>Details</h5>
+                                        <form action="">
+                                            <div class="invoice-content_container">
+                                                <div class="invoice-content_input">
+                                                    <label for="invoice_input-type">Type</label><br>
+                                                    <select name="invoice_input-type" id="invoice_input-type">
+                                                        <option value="select">Select</option>
+                                                    </select>
+                                                </div>
+
+                                                <div class="invoice-content_input">
+                                                    <label for="invoice_input-facility">Facility/Location</label><br>
+                                                    <select name="invoice_input-facility" id="invoice_input-facility">
+                                                        <option value="select">Select</option>
+                                                    </select>
+                                                </div>
+
+                                                <div class="invoice-content_input">
+                                                    <label for="invoice_input-room">Apartment/Room</label><br>
+                                                    <select name="invoice_input-room" id="invoice_input-room">
+                                                        <option value="select">Select</option>
+                                                    </select>
+                                                </div>
+
+                                                <div class="invoice-content_input">
+                                                    <label for="invoice_input-client">Client</label><br>
+                                                    <input type="text" name="invoice_input-client" id="invoice_input-client">
+                                                </div>
+
+                                                <div class="invoice-content_input">
+                                                    <label for="invoice_input-vat">Vat no</label><br>
+                                                    <input type="text" name="invoice_input-vat" id="invoice_input-vat">
+                                                </div>
+
+                                                <div class="invoice-content_input">
+                                                    <label for="invoice_input-tin">TIN no</label><br>
+                                                    <input type="text" name="invoice_input-tin" id="invoice_input-tin">
+                                                </div>
+
+                                                <div class="invoice-content_input">
+                                                    <label for="invoice_input-purchase">Purchase order no</label><br>
+                                                    <input type="text" name="invoice_input-purchase" id="invoice_input-purchase">
+                                                </div>
+
+                                                <div class="invoice-content_input">
+                                                    <label for="invoice_input-payment">Payment terms</label><br>
+                                                    <input type="text" name="invoice_input-payment" id="invoice_input-payment">
+                                                </div>
+
+                                                <div class="invoice-content_input">
+                                                    <label for="invoice_input-bank">Bank account/currency</label><br>
+                                                    <select name="invoice_input-bank" id="invoice_input-bank">
+                                                        <option value="select">Select</option>
+                                                    </select>
+                                                </div>
+
+                                                <div class="invoice-content_input">
+                                                    <label for="invoice_input-date">Expected payment date</label><br>
+                                                    <input type="date" name="invoice_input-date" id="invoice_input-date">
+                                                </div>
+
+                                                <div class="invoice-content_input">
+                                                    <label for="invoice_input-template">Template</label><br>
+                                                    <select name="invoice_input-template" id="invoice_input-template">
+                                                        <option value="select">Select</option>
+                                                    </select>
+                                                </div>
+
+                                                <div class="invoice-content_input">
+                                                    <label for="invoice_input-status">Status</label><br>
+                                                    <select name="invoice_input-status" id="invoice_input-status">
+                                                        <option value="select">Select</option>
+                                                    </select>
+                                                </div>
+
+                                                <div class="invoice-content_description flex-basis">
+                                                    <label for="invoice_input-details">Payment details</label><br>
+                                                    <input type="text" name="invoice_input-details" id="invoice_input-details">
+                                                </div>
+
+                                                <div class="invoice-content_description flex-basis">
+                                                    <label for="invoice_input-address">Client address</label><br>
+                                                    <input type="text" name="invoice_input-address" id="invoice_input-address">
+                                                </div>
+                                            </div>
+                                        </form>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="modal-content item-modal">
+                                <div class="modal-content_header" onmouseover="showIcons()" onmouseout="hideIcons()">
+                                    <h4>Items <i>(0)</i></h4>
+                                    <h5 data-bs-toggle="collapse" data-bs-target="#invoice_modal-item">Click to collapse</h5>
+                                    <i class="fa-solid fa-chevron-left arrow" onmouseover="showIcons()" onmouseout="hideIcons()"></i>
+                                </div>
+
+                                <div class="item-modal_body collapse" id="invoice_modal-item">
+                                    <div class="itemRequest-modal_add">
+                                        <button>
+                                            <i class="fa-solid fa-plus"></i>
+                                            <span>Add Items</span>
+                                        </button>
+                                    </div>
+                                    <div class="itemRequest-modal_image">
+                                        <img src="./assets/img/movement-history.svg" alt="">
+                                        <p>Nothing found here. Add some items</p>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="modal-content item-modal">
+                                <div class="modal-content_header" onmouseover="showIcons()" onmouseout="hideIcons()">
+                                    <h4>Payments <i>(0)</i></h4>
+                                    <h5 data-bs-toggle="collapse" data-bs-target="#invoice_modal-payment">Click to collapse</h5>
+                                    <i class="fa-solid fa-chevron-left arrow" onmouseover="showIcons()" onmouseout="hideIcons()"></i>
+                                </div>
+
+                                <div class="item-modal_body collapse" id="invoice_modal-payment">
+                                    <div class="itemRequest-modal_add">
+                                        <h6 style="font-weight: 800;">Withholding tax</h6>
+                                        <div class="invoice-content_input">
+                                            <select name="invoice_input-tax" id="invoice_input-tax">
+                                                <option value="N/A">N/A</option>
+                                                <option value="5%">5%</option>
+                                                <option value="10%">10%</option>
+                                            </select>
+                                        </div>
+                                        <div class="itemRequest-modal_add">
+                                            <button>
+                                                <i class="fa-solid fa-plus"></i>
+                                                <span>Add payment</span>
+                                            </button>
+                                        </div>
+                                    </div>
+                                    <div class="itemRequest-modal_image">
+                                        <img src="./assets/img/movement-history.svg" alt="">
+                                        <p>No string attached!</p>
+                                        <p>Attach something</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>   
+                    </div>
+                </div>
+            </div>
+        </main>
+
+
+
+{% endblock content %}

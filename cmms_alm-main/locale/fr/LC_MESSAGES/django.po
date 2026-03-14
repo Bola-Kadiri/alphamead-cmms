@@ -1,0 +1,1051 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) YEAR THE PACKAGE'S COPYRIGHT HOLDER
+# This file is distributed under the same license as the PACKAGE package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: PACKAGE VERSION\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2025-06-29 12:47+0100\n"
+"PO-Revision-Date: 2025-06-29 13:02+0100\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: French <fr@li.org>\n"
+"Language: fr\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=2; plural=(n > 1);\n"
+
+#: .\accounts\models\category.py:15
+msgid "Create work order"
+msgstr "Créer un ordre de travail"
+
+#: .\accounts\models\category.py:16
+msgid "Close work request"
+msgstr "Clôturer une demande de travail"
+
+#: .\accounts\models\category.py:64 .\language.py:16
+msgid "Category"
+msgstr "Catégorie"
+
+#: .\accounts\models\category.py:65 .\language.py:17
+msgid "Categories"
+msgstr "Catégories"
+
+#: .\accounts\models\category.py:78
+msgid "Category to which the subcategory belongs."
+msgstr "Catégorie à laquelle appartient la sous-catégorie."
+
+#: .\accounts\models\category.py:88
+msgid "Description of the subcategory."
+msgstr "Description de la sous-catégorie."
+
+#: .\accounts\models\category.py:93
+msgid "Whether to exclude costing limit for this subcategory."
+msgstr "S'il faut exclure la limite de coût pour cette sous-catégorie."
+
+#: .\accounts\models\category.py:98 .\accounts\models\contact.py:33
+#: .\accounts\models\users.py:78
+#: .\facility\models\facility_apartment_type.py:11
+msgid "Active"
+msgstr "Actif"
+
+#: .\accounts\models\category.py:98 .\accounts\models\contact.py:33
+#: .\accounts\models\users.py:79
+#: .\facility\models\facility_apartment_type.py:12
+msgid "Inactive"
+msgstr "Inactif"
+
+#: .\accounts\models\category.py:100
+msgid "Status of the subcategory."
+msgstr "Statut de la sous-catégorie."
+
+#: .\accounts\models\category.py:105
+msgid "SubCategory"
+msgstr "Sous-catégorie"
+
+#: .\accounts\models\category.py:106
+msgid "Sub Category"
+msgstr "Sous-catégorie"
+
+#: .\accounts\models\clients.py:19 .\accounts\models\vendors.py:98
+msgid "Individual"
+msgstr "Individu"
+
+#: .\accounts\models\clients.py:20 .\accounts\models\vendors.py:99
+msgid "Company"
+msgstr "Entreprise"
+
+#: .\accounts\models\measurement.py:11
+msgid "Area"
+msgstr "Surface"
+
+#: .\accounts\models\measurement.py:12
+msgid "Packing"
+msgstr "Emballage"
+
+#: .\accounts\models\measurement.py:13
+msgid "Piece"
+msgstr "Pièce"
+
+#: .\accounts\models\measurement.py:14
+msgid "Time"
+msgstr "Temps"
+
+#: .\accounts\models\measurement.py:15
+msgid "Volume"
+msgstr "Volume"
+
+#: .\accounts\models\measurement.py:16
+msgid "Weight"
+msgstr "Poids"
+
+#: .\accounts\models\measurement.py:17 .\accounts\models\users.py:85
+#: .\facility\models\facility_invoice.py:27
+msgid "Other"
+msgstr "Autre"
+
+#: .\accounts\models\measurement.py:23
+msgid "Unique code for the unit of measurement."
+msgstr "Code unique pour l'unité de mesure."
+
+#: .\accounts\models\measurement.py:28
+msgid "Description of the unit of measurement."
+msgstr "Description de l'unité de mesure."
+
+#: .\accounts\models\measurement.py:34
+msgid "Symbol representing the unit of measurement."
+msgstr "Symbole représentant l'unité de mesure."
+
+#: .\accounts\models\measurement.py:40
+msgid "Type of the unit of measurement."
+msgstr "Type d'unité de mesure."
+
+#: .\accounts\models\personnels.py:30
+msgid "Unique identifier for the personnel."
+msgstr "Identifiant unique pour le personnel."
+
+#: .\accounts\models\personnels.py:36 .\accounts\models\users.py:114
+msgid "Unique slugified identifier for the user."
+msgstr "Identifiant unique sous forme de slug pour l'utilisateur."
+
+#: .\accounts\models\personnels.py:43
+msgid "The facility the personnel is assigned to."
+msgstr "L'installation à laquelle le personnel est affecté."
+
+#: .\accounts\models\personnels.py:49
+msgid "Email address of the personnel."
+msgstr "Adresse e-mail du personnel."
+
+#: .\accounts\models\personnels.py:55
+msgid "Contact phone number of the personnel."
+msgstr "Numéro de téléphone de contact du personnel."
+
+#: .\accounts\models\personnels.py:62
+msgid "Profile picture of the personnel."
+msgstr "Photo de profil du personnel."
+
+#: .\accounts\models\personnels.py:69
+msgid "Indicates if the user has access to all wos categories."
+msgstr "Indique si l'utilisateur a accès à toutes les catégories d'ordres de travail."
+
+#: .\accounts\models\personnels.py:76
+msgid "Work Order categories the user is assigned to."
+msgstr "Catégories d'ordres de travail affectées à l'utilisateur."
+
+#: .\accounts\models\users.py:22
+msgid "Users must have an email address"
+msgstr "Les utilisateurs doivent avoir une adresse e-mail"
+
+#: .\accounts\models\users.py:24
+msgid "Users must have a password"
+msgstr "Les utilisateurs doivent avoir un mot de passe"
+
+#: .\accounts\models\users.py:66
+msgid "Super Admin"
+msgstr "Super administrateur"
+
+#: .\accounts\models\users.py:67
+msgid "Facility Admin"
+msgstr "Administrateur d'installation"
+
+#: .\accounts\models\users.py:68
+msgid "Facility Procurement"
+msgstr "Approvisionnement d'installation"
+
+#: .\accounts\models\users.py:69
+msgid "Facility Manager"
+msgstr "Gestionnaire d'installation"
+
+#: .\accounts\models\users.py:70
+msgid "Facility Officer"
+msgstr "Agent d'installation"
+
+#: .\accounts\models\users.py:71
+msgid "Facility Auditor"
+msgstr "Auditeur d'installation"
+
+#: .\accounts\models\users.py:72
+msgid "Facility Account"
+msgstr "Compte d'installation"
+
+#: .\accounts\models\users.py:73
+msgid "Facility Store"
+msgstr "Magasin d'installation"
+
+#: .\accounts\models\users.py:74
+msgid "Facility View"
+msgstr "Vue d'installation"
+
+#: .\accounts\models\users.py:83
+msgid "Male"
+msgstr "Homme"
+
+#: .\accounts\models\users.py:84
+msgid "Female"
+msgstr "Femme"
+
+#: .\accounts\models\users.py:97
+msgid "Unique ID for the user."
+msgstr "Identifiant unique pour l'utilisateur."
+
+#: .\accounts\models\users.py:102
+msgid "First name of the user."
+msgstr "Prénom de l'utilisateur."
+
+#: .\accounts\models\users.py:107
+msgid "Last name of the user."
+msgstr "Nom de famille de l'utilisateur."
+
+#: .\accounts\models\users.py:121
+msgid "Type of user."
+msgstr "Type d'utilisateur."
+
+#: .\accounts\models\users.py:127
+msgid "Email address of the user."
+msgstr "Adresse e-mail de l'utilisateur."
+
+#: .\accounts\models\users.py:133
+msgid "Phone number of the user."
+msgstr "Numéro de téléphone de l'utilisateur."
+
+#: .\accounts\models\users.py:139
+msgid "Designation of the user."
+msgstr "Désignation de l'utilisateur."
+
+#: .\accounts\models\users.py:147
+msgid "Supervisor of the user."
+msgstr "Superviseur de l'utilisateur."
+
+#: .\accounts\models\users.py:152
+msgid "Date of birth of the user."
+msgstr "Date de naissance de l'utilisateur."
+
+#: .\accounts\models\users.py:159
+msgid "Gender of the user."
+msgstr "Genre de l'utilisateur."
+
+#: .\accounts\models\users.py:165
+msgid "Nationality of the user."
+msgstr "Nationalité de l'utilisateur."
+
+#: .\accounts\models\users.py:171
+msgid "Passport number of the user."
+msgstr "Numéro de passeport de l'utilisateur."
+
+#: .\accounts\models\users.py:177
+msgid "Address of the user."
+msgstr "Adresse de l'utilisateur."
+
+#: .\accounts\models\users.py:184
+msgid "Status of the user."
+msgstr "Statut de l'utilisateur."
+
+#: .\accounts\models\users.py:192
+msgid "Profile of the user"
+msgstr "Profil de l'utilisateur"
+
+#: .\accounts\models\users.py:209
+msgid "Approval limit for the user."
+msgstr "Limite d'approbation pour l'utilisateur."
+
+#: .\accounts\models\users.py:215
+msgid "Date and time the user joined."
+msgstr "Date et heure d'inscription de l'utilisateur."
+
+#: .\accounts\models\users.py:220
+msgid "Last login date and time."
+msgstr "Date et heure de la dernière connexion."
+
+#: .\accounts\models\users.py:225
+msgid "Indicates if the user is verified."
+msgstr "Indique si l'utilisateur est vérifié."
+
+#: .\accounts\models\users.py:230
+msgid "Indicates if the user is blocked."
+msgstr "Indique si l'utilisateur est bloqué."
+
+#: .\accounts\models\users.py:235
+msgid "Indicates if the user account is active."
+msgstr "Indique si le compte de l'utilisateur est actif."
+
+#: .\accounts\models\users.py:240
+msgid "Indicates if the user is a staff member."
+msgstr "Indique si l'utilisateur est un membre du personnel."
+
+#: .\accounts\models\users.py:245
+msgid "Indicates if the user is an admin."
+msgstr "Indique si l'utilisateur est un administrateur."
+
+#: .\accounts\models\users.py:250
+msgid "Indicates if the user is a superuser."
+msgstr "Indique si l'utilisateur est un super-utilisateur."
+
+#: .\accounts\models\users.py:257
+msgid "Indicates if the user has access to all facilities."
+msgstr "Indique si l'utilisateur a accès à toutes les installations."
+
+#: .\accounts\models\users.py:263
+msgid "Facilities the user is assigned to."
+msgstr "Installations auxquelles l'utilisateur est affecté."
+
+#: .\accounts\models\users.py:269
+msgid "Indicates if the user has access to all flats."
+msgstr "Indique si l'utilisateur a accès à tous les appartements."
+
+#: .\accounts\models\users.py:275
+msgid "Flats the user is assigned to."
+msgstr "Appartements auxquels l'utilisateur est affecté."
+
+#: .\accounts\models\users.py:281
+msgid "Indicates if the user has access to all apartments."
+msgstr "Indique si l'utilisateur a accès à tous les appartements."
+
+#: .\accounts\models\users.py:288
+msgid "Apartments the user is assigned to."
+msgstr "Appartements auxquels l'utilisateur est affecté."
+
+#: .\accounts\models\users.py:293
+msgid "Indicates if the user has access to all departments."
+msgstr "Indique si l'utilisateur a accès à tous les départements."
+
+#: .\accounts\models\users.py:310
+msgid "Indicates if the user has access to all assets categories."
+msgstr "Indique si l'utilisateur a accès à toutes les catégories d'actifs."
+
+#: .\accounts\models\users.py:317
+msgid "Asset categories the user is assigned to."
+msgstr "Catégories d'actifs auxquelles l'utilisateur est affecté."
+
+#: .\accounts\models\users.py:322
+msgid "Indicates if the user has access to all warehouses."
+msgstr "Indique si l'utilisateur a accès à tous les entrepôts."
+
+#: .\accounts\models\users.py:329
+msgid "Warehouses the user is assigned to."
+msgstr "Entrepôts auxquels l'utilisateur est affecté."
+
+#: .\accounts\models\users.py:336
+msgid "Departments the user is assigned to."
+msgstr "Départements auxquels l'utilisateur est affecté."
+
+#: .\accounts\models\users.py:341
+msgid "Indicates if the user has access to all clients."
+msgstr "Indique si l'utilisateur a accès à tous les clients."
+
+#: .\accounts\models\users.py:348
+msgid "Clients the user is assigned to."
+msgstr "Clients auxquels l'utilisateur est affecté."
+
+#: .\accounts\models\vendors.py:16
+msgid "Contact's first name."
+msgstr "Prénom du contact."
+
+#: .\accounts\models\vendors.py:20
+msgid "Contact's last name."
+msgstr "Nom de famille du contact."
+
+#: .\accounts\models\vendors.py:24
+msgid "Contact's phone number."
+msgstr "Numéro de téléphone du contact."
+
+#: .\accounts\models\vendors.py:28
+msgid "Contact's email address."
+msgstr "Adresse e-mail du contact."
+
+#: .\accounts\models\vendors.py:45
+msgid "Document file."
+msgstr "Fichier de document."
+
+#: .\accounts\models\vendors.py:49
+msgid "Description of the document."
+msgstr "Description du document."
+
+#: .\accounts\models\vendors.py:67
+msgid "Contract number."
+msgstr "Numéro de contrat."
+
+#: .\accounts\models\vendors.py:71
+msgid "Start date of the contract."
+msgstr "Date de début du contrat."
+
+#: .\accounts\models\vendors.py:75
+msgid "End date of the contract."
+msgstr "Date de fin du contrat."
+
+#: .\accounts\models\vendors.py:79
+msgid "Access to all facilities."
+msgstr "Accès à toutes les installations."
+
+#: .\accounts\models\vendors.py:84
+msgid "Attachment file."
+msgstr "Fichier joint."
+
+#: .\accounts\models\vendors.py:103
+msgid "Nigerian Naira"
+msgstr "Naira nigérian"
+
+#: .\accounts\models\vendors.py:104
+msgid "US Dollar"
+msgstr "Dollar américain"
+
+#: .\accounts\models\vendors.py:105
+msgid "Euro"
+msgstr "Euro"
+
+#: .\accounts\models\vendors.py:106
+msgid "British Pound"
+msgstr "Livre sterling"
+
+#: .\accounts\models\vendors.py:110
+msgid "Vendor's name."
+msgstr "Nom du fournisseur."
+
+#: .\accounts\models\vendors.py:111
+msgid "Type of vendor."
+msgstr "Type de fournisseur."
+
+#: .\accounts\models\vendors.py:115
+msgid "Vendor's phone number."
+msgstr "Numéro de téléphone du fournisseur."
+
+#: .\accounts\models\vendors.py:116
+msgid "Vendor's email address."
+msgstr "Adresse e-mail du fournisseur."
+
+#: .\accounts\models\vendors.py:119
+msgid "Bank account name."
+msgstr "Nom du compte bancaire."
+
+#: .\accounts\models\vendors.py:120
+msgid "Bank name."
+msgstr "Nom de la banque."
+
+#: .\accounts\models\vendors.py:121
+msgid "Bank account number."
+msgstr "Numéro de compte bancaire."
+
+#: .\accounts\models\vendors.py:122
+msgid "Account currency."
+msgstr "Devise du compte."
+
+#: .\asset_inventory\models\assets.py:17
+msgid "Facility where the asset is located."
+msgstr "Installation où se trouve l'actif."
+
+#: .\asset_inventory\models\assets.py:24
+msgid "Zone where the asset is located."
+msgstr "Zone où se trouve l'actif."
+
+#: .\asset_inventory\models\assets.py:31
+msgid "Building where the asset is located."
+msgstr "Bâtiment où se trouve l'actif."
+
+#: .\asset_inventory\models\assets.py:38
+msgid "Subsystem where the asset is located."
+msgstr "Sous-système où se trouve l'actif."
+
+#: .\asset_inventory\models\assets.py:42
+msgid "Name of the asset."
+msgstr "Nom de l'actif."
+
+#: .\asset_inventory\models\assets.py:47
+msgid "Asset"
+msgstr "Actif"
+
+#: .\asset_inventory\models\assets.py:48
+msgid "Consumable"
+msgstr "Consommable"
+
+#: .\asset_inventory\models\assets.py:51
+msgid "Type of the asset item."
+msgstr "Type d'élément de l'actif."
+
+#: .\asset_inventory\models\assets.py:58
+msgid "Category of the asset."
+msgstr "Catégorie de l'actif."
+
+#: .\asset_inventory\models\assets.py:65
+msgid "Subcategory of the asset."
+msgstr "Sous-catégorie de l'actif."
+
+#: .\asset_inventory\models\assets.py:70
+msgid "Used"
+msgstr "Utilisé"
+
+#: .\asset_inventory\models\assets.py:71
+msgid "Brand New"
+msgstr "Neuf"
+
+#: .\asset_inventory\models\assets.py:74
+msgid "Condition of the asset."
+msgstr "État de l'actif."
+
+#: .\asset_inventory\models\assets.py:79
+msgid "Date when the asset was purchased."
+msgstr "Date d'achat de l'actif."
+
+#: .\asset_inventory\models\assets.py:85
+msgid "Amount for which the asset was purchased."
+msgstr "Montant pour lequel l'actif a été acheté."
+
+#: .\asset_inventory\models\assets.py:91
+msgid "Unique serial number of the asset."
+msgstr "Numéro de série unique de l'actif."
+
+#: .\asset_inventory\models\assets.py:96
+msgid "Unique asset tag identifier."
+msgstr "Identifiant unique de l'étiquette d'actif."
+
+#: .\asset_inventory\models\assets.py:101
+msgid "Expected lifespan of the asset (e.g., '5 years')."
+msgstr "Durée de vie attendue de l'actif (par exemple, '5 ans')."
+
+#: .\asset_inventory\models\assets.py:105
+msgid "Details of the OEM warranty."
+msgstr "Détails de la garantie du fabricant."
+
+#: .\asset_inventory\models\assets_category.py:12
+msgid "Unique code for the asset category."
+msgstr "Code unique pour la catégorie d'actifs."
+
+#: .\asset_inventory\models\assets_category.py:17
+msgid "Title of the asset category."
+msgstr "Titre de la catégorie d'actifs."
+
+#: .\asset_inventory\models\assets_category.py:22
+msgid "Detailed description of the asset category."
+msgstr "Description détaillée de la catégorie d'actifs."
+
+#: .\asset_inventory\models\assets_category.py:36
+msgid "Unique code for the asset subcategory."
+msgstr "Code unique pour la sous-catégorie d'actifs."
+
+#: .\asset_inventory\models\assets_category.py:41
+msgid "Title of the asset subcategory."
+msgstr "Titre de la sous-catégorie d'actifs."
+
+#: .\asset_inventory\models\assets_category.py:46
+msgid "Detailed description of the asset subcategory."
+msgstr "Description détaillée de la sous-catégorie d'actifs."
+
+#: .\asset_inventory\models\assets_category.py:53
+msgid "The asset category this subcategory belongs to."
+msgstr "La catégorie d'actifs à laquelle appartient cette sous-catégorie."
+
+#: .\asset_inventory\models\inventory.py:10
+#: .\asset_inventory\models\inventory.py:68
+msgid "Available"
+msgstr "Disponible"
+
+#: .\asset_inventory\models\inventory.py:11
+#: .\asset_inventory\models\inventory.py:123
+msgid "Low Stock"
+msgstr "Stock faible"
+
+#: .\asset_inventory\models\inventory.py:12
+#: .\asset_inventory\models\inventory.py:121
+msgid "Out of Stock"
+msgstr "Rupture de stock"
+
+#: .\asset_inventory\models\inventory.py:13
+msgid "Discontinued"
+msgstr "Discontinué"
+
+#: .\asset_inventory\models\inventory.py:49
+msgid "Current quantity in stock"
+msgstr "Quantité actuelle en stock"
+
+#: .\asset_inventory\models\inventory.py:55
+msgid "Unit price in NGN"
+msgstr "Prix unitaire en NGN"
+
+#: .\asset_inventory\models\inventory.py:104
+msgid "Quantity cannot be negative"
+msgstr "La quantité ne peut pas être négative"
+
+#: .\asset_inventory\models\inventory.py:110
+msgid "Expiry date cannot be earlier than manufacture date"
+msgstr "La date d'expiration ne peut pas être antérieure à la date de fabrication"
+
+#: .\asset_inventory\models\inventory.py:116
+msgid "Warranty end date cannot be earlier than purchase date"
+msgstr "La date de fin de garantie ne peut pas être antérieure à la date d'achat"
+
+#: .\asset_inventory\models\inventory_request.py:13
+msgid "Request from Vendor"
+msgstr "Demande du fournisseur"
+
+#: .\asset_inventory\models\inventory_request.py:14
+msgid "Request from Store"
+msgstr "Demande du magasin"
+
+#: .\asset_inventory\models\store.py:14
+msgid "Unique code for the store."
+msgstr "Code unique pour le magasin."
+
+#: .\asset_inventory\models\store.py:20
+msgid "Name of the store."
+msgstr "Nom du magasin."
+
+#: .\asset_inventory\models\store.py:25
+msgid "Physical location or address of the store."
+msgstr "Emplacement physique ou adresse du magasin."
+
+#: .\asset_inventory\models\transfer_form.py:11
+#: .\asset_inventory\models\transfer_form.py:26
+#: .\procurement\models\payment_requisition.py:14
+#: .\procurement\models\purchase_order.py:15
+#: .\procurement\models\received_goods_note.py:16
+#: .\procurement\models\request_quotation.py:15
+msgid "Pending"
+msgstr "En attente"
+
+#: .\asset_inventory\models\transfer_form.py:12
+#: .\procurement\models\payment_requisition.py:15
+msgid "Approved"
+msgstr "Approuvé"
+
+#: .\asset_inventory\models\transfer_form.py:13
+#: .\procurement\models\payment_requisition.py:16
+msgid "Rejected"
+msgstr "Rejeté"
+
+#: .\asset_inventory\models\transfer_form.py:17
+msgid "Transfer"
+msgstr "Transfert"
+
+#: .\asset_inventory\models\transfer_form.py:18
+msgid "Return"
+msgstr "Retour"
+
+#: .\asset_inventory\models\transfer_form.py:30
+msgid "Resources attached to the Transfer Attachment."
+msgstr "Ressources jointes à la pièce jointe de transfert."
+
+#: .\asset_inventory\models\warehouse.py:13
+msgid "Unique code for the warehouse."
+msgstr "Code unique pour l'entrepôt."
+
+#: .\asset_inventory\models\warehouse.py:18
+msgid "Name or title of the warehouse."
+msgstr "Nom ou titre de l'entrepôt."
+
+#: .\asset_inventory\models\warehouse.py:23
+msgid "Detailed description of the warehouse."
+msgstr "Description détaillée de l'entrepôt."
+
+#: .\asset_inventory\models\warehouse.py:29
+msgid "Physical address or location of the warehouse."
+msgstr "Adresse physique ou emplacement de l'entrepôt."
+
+#: .\asset_inventory\models\warehouse.py:34
+msgid "Storage capacity of the warehouse (in cubic meters or other units)."
+msgstr "Capacité de stockage de l'entrepôt (en mètres cubes ou autres unités)."
+
+#: .\asset_inventory\models\warehouse.py:39
+msgid "Indicates whether the warehouse is active."
+msgstr "Indique si l'entrepôt est actif."
+
+#: .\facility\models\apartment.py:11
+msgid "Freehold"
+msgstr "Propriété libre"
+
+#: .\facility\models\apartment.py:12
+msgid "Freehold (Leased Out)"
+msgstr "Propriété libre (louée)"
+
+#: .\facility\models\apartment.py:13
+msgid "Leasehold"
+msgstr "Bail"
+
+#: .\facility\models\apartment.py:19
+msgid "Unique number or identifier for the apartment."
+msgstr "Numéro ou identifiant unique pour l'appartement."
+
+#: .\facility\models\apartment.py:24
+msgid "Type of the apartment or room (e.g., 1-bedroom, studio)."
+msgstr "Type d'appartement ou de chambre (par exemple, 1 chambre, studio)."
+
+#: .\facility\models\apartment.py:31
+msgid "Building or flat associated with this apartment."
+msgstr "Bâtiment ou appartement associé à cet appartement."
+
+#: .\facility\models\apartment.py:36
+msgid "Size of the apartment in square meters (SQM)."
+msgstr "Taille de l'appartement en mètres carrés (m²)."
+
+#: .\facility\models\apartment.py:41
+msgid "Additional description of the apartment."
+msgstr "Description supplémentaire de l'appartement."
+
+#: .\facility\models\apartment.py:49
+msgid "Landlord associated with this apartment."
+msgstr "Propriétaire associé à cet appartement."
+
+#: .\facility\models\apartment.py:55
+msgid "Ownership type of the apartment."
+msgstr "Type de propriété de l'appartement."
+
+#: .\facility\models\apartment.py:60
+msgid "Start date for service or power charges."
+msgstr "Date de début des frais de service ou d'énergie."
+
+#: .\facility\models\apartment.py:65
+msgid "Address of the apartment."
+msgstr "Adresse de l'appartement."
+
+#: .\facility\models\apartment.py:70
+msgid "Indicates if the apartment is bookable."
+msgstr "Indique si l'appartement est réservable."
+
+#: .\facility\models\apartment.py:75
+msgid "Indicates if the apartment is part of a common area."
+msgstr "Indique si l'appartement fait partie d'une zone commune."
+
+#: .\facility\models\apartment.py:80
+msgid "Indicates if the apartment is available for lease."
+msgstr "Indique si l'appartement est disponible à la location."
+
+#: .\facility\models\apartment.py:85
+msgid "Whether the apartment requires lease payments to be remitted."
+msgstr "Si l'appartement nécessite le versement des paiements de bail."
+
+#: .\facility\models\apartment_type.py:13
+msgid "Name of the apartment type (e.g., Studio, 1-bedroom, 2-bedroom, etc.)."
+msgstr "Nom du type d'appartement (par exemple, studio, 1 chambre, 2 chambres, etc.)."
+
+#: .\facility\models\apartment_type.py:20
+msgid "Auto-generated slug for the apartment type."
+msgstr "Slug généré automatiquement pour le type d'appartement."
+
+#: .\facility\models\building.py:14
+msgid "Unique code for the building or flat."
+msgstr "Code unique pour le bâtiment ou l'appartement."
+
+#: .\facility\models\building.py:19
+msgid "Name of the building or flat."
+msgstr "Nom du bâtiment ou de l'appartement."
+
+#: .\facility\models\building.py:26
+msgid "Zone associated with the building."
+msgstr "Zone associée au bâtiment."
+
+#: .\facility\models\bulk_notifcation.py:14
+msgid "Title of the notification message."
+msgstr "Titre du message de notification."
+
+#: .\facility\models\bulk_notifcation.py:21
+msgid "Facilities or locations associated with the notification."
+msgstr "Installations ou emplacements associés à la notification."
+
+#: .\facility\models\bulk_notifcation.py:28
+msgid "Apartments or rooms associated with the notification."
+msgstr "Appartements ou chambres associés à la notification."
+
+#: .\facility\models\bulk_notifcation.py:35
+msgid "Users to whom the notification is sent."
+msgstr "Utilisateurs à qui la notification est envoyée."
+
+#: .\facility\models\bulk_notifcation.py:40
+msgid "Whether to send the notification to all users."
+msgstr "S'il faut envoyer la notification à tous les utilisateurs."
+
+#: .\facility\models\bulk_notifcation.py:45
+msgid "Whether to send the notification to all apartments."
+msgstr "S'il faut envoyer la notification à tous les appartements."
+
+#: .\facility\models\bulk_notifcation.py:49
+msgid "Content of the notification message."
+msgstr "Contenu du message de notification."
+
+#: .\facility\models\bulk_notifcation.py:54
+msgid "Whether to send the notification as an email."
+msgstr "S'il faut envoyer la notification par e-mail."
+
+#: .\facility\models\bulk_notifcation.py:59
+msgid "Whether to send the notification as an SMS."
+msgstr "S'il faut envoyer la notification par SMS."
+
+#: .\facility\models\cluster.py:16
+msgid "Region to which this cluster belongs."
+msgstr "Région à laquelle appartient ce cluster."
+
+#: .\facility\models\cluster.py:22
+msgid "Name of the cluster."
+msgstr "Nom du cluster."
+
+#: .\facility\models\cluster.py:30
+msgid "Manager responsible for this cluster."
+msgstr "Gestionnaire responsable de ce cluster."
+
+#: .\facility\models\facility.py:19
+msgid "Cluster to which this facility belongs."
+msgstr "Cluster auquel appartient cette installation."
+
+#: .\facility\models\facility.py:25
+msgid "Code of the facility."
+msgstr "Code de l'installation."
+
+#: .\facility\models\facility.py:31
+msgid "Name of the facility."
+msgstr "Nom de l'installation."
+
+#: .\facility\models\facility.py:37
+msgid "GPS coordinates or detailed address of the facility."
+msgstr "Coordonnées GPS ou adresse détaillée de l'installation."
+
+#: .\facility\models\facility.py:43
+msgid "Type of the facility (e.g., 'Office', 'Warehouse', 'Retail')."
+msgstr "Type d'installation (par exemple, 'Bureau', 'Entrepôt', 'Commerce')."
+
+#: .\facility\models\facility.py:51
+msgid "Manager responsible for this facility."
+msgstr "Gestionnaire responsable de cette installation."
+
+#: .\facility\models\facility_apartment_type.py:18
+msgid "Name of the apartment type."
+msgstr "Nom du type d'appartement."
+
+#: .\facility\models\facility_invoice.py:12
+msgid "Payment Pending"
+msgstr "Paiement en attente"
+
+#: .\facility\models\facility_invoice.py:13
+msgid "Part Paid"
+msgstr "Partiellement payé"
+
+#: .\facility\models\facility_invoice.py:14
+#: .\procurement\models\payment_requisition.py:17
+msgid "Paid"
+msgstr "Payé"
+
+#: .\facility\models\facility_invoice.py:24
+msgid "Rent"
+msgstr "Loyer"
+
+#: .\facility\models\facility_invoice.py:25
+msgid "Maintenance"
+msgstr "Entretien"
+
+#: .\facility\models\facility_invoice.py:26
+msgid "Utility"
+msgstr "Services publics"
+
+#: .\facility\models\facility_invoice.py:33
+msgid "Type of invoice."
+msgstr "Type de facture."
+
+#: .\facility\models\facility_invoice.py:39
+msgid "Facility or location associated with this invoice."
+msgstr "Installation ou emplacement associé à cette facture."
+
+#: .\facility\models\facility_invoice.py:51
+msgid "Client associated with the invoice."
+msgstr "Client associé à la facture."
+
+#: .\facility\models\facility_invoice.py:57
+msgid "VAT number for the invoice."
+msgstr "Numéro de TVA pour la facture."
+
+#: .\facility\models\facility_invoice.py:63
+msgid "TIN number for the invoice."
+msgstr "Numéro TIN pour la facture."
+
+#: .\facility\models\facility_invoice.py:69
+msgid "Purchase order number for this invoice."
+msgstr "Numéro de bon de commande pour cette facture."
+
+#: .\facility\models\facility_invoice.py:75
+msgid "Payment terms for this invoice."
+msgstr "Conditions de paiement pour cette facture."
+
+#: .\facility\models\facility_invoice.py:80
+msgid "Bank account and currency associated with the payment."
+msgstr "Compte bancaire et devise associés au paiement."
+
+#: .\facility\models\facility_invoice.py:85
+msgid "Expected payment date for the invoice."
+msgstr "Date de paiement attendue pour la facture."
+
+#: .\facility\models\facility_invoice.py:91
+msgid "Template used for this invoice."
+msgstr "Modèle utilisé pour cette facture."
+
+#: .\facility\models\facility_invoice.py:98
+msgid "Status of the invoice payment."
+msgstr "Statut du paiement de la facture."
+
+#: .\facility\models\facility_invoice.py:103
+msgid "Details about the payment."
+msgstr "Détails sur le paiement."
+
+#: .\facility\models\facility_invoice.py:108
+msgid "Address of the client."
+msgstr "Adresse du client."
+
+#: .\facility\models\facility_invoice.py:123
+msgid "Invoice this item belongs to."
+msgstr "Facture à laquelle cet article appartient."
+
+#: .\facility\models\facility_invoice.py:127
+msgid "Quantity of the item."
+msgstr "Quantité de l'article."
+
+#: .\facility\models\facility_invoice.py:133
+msgid "Price per unit of the item."
+msgstr "Prix unitaire de l'article."
+
+#: .\facility\models\facility_invoice.py:138
+msgid "Indicates if the item is vatable."
+msgstr "Indique si l'article est soumis à la TVA."
+
+#: .\facility\models\facility_invoice.py:143
+msgid "Description of the item."
+msgstr "Description de l'article."
+
+#: .\facility\models\facility_invoice.py:170
+msgid "Invoice this payment belongs to."
+msgstr "Facture à laquelle ce paiement appartient."
+
+#: .\facility\models\facility_invoice.py:176
+msgid "Withholding tax applicable to this payment."
+msgstr "Retenue à la source applicable à ce paiement."
+
+#: .\facility\models\facility_invoice.py:181
+msgid "Date of the payment."
+msgstr "Date du paiement."
+
+#: .\facility\models\facility_invoice.py:187
+msgid "Mode of payment (e.g., Bank transfer, Cash)."
+msgstr "Mode de paiement (par exemple, virement bancaire, espèces)."
+
+#: .\facility\models\facility_invoice.py:193
+msgid "Amount paid in this transaction."
+msgstr "Montant payé dans cette transaction."
+
+#: .\facility\models\facility_invoice.py:200
+msgid "Bank account used for this payment."
+msgstr "Compte bancaire utilisé pour ce paiement."
+
+#: .\facility\models\facility_invoice.py:205
+msgid "Additional remarks about the payment."
+msgstr "Remarques supplémentaires sur le paiement."
+
+#: .\facility\models\landlord.py:13
+msgid "Name of the landlord."
+msgstr "Nom du propriétaire."
+
+#: .\facility\models\landlord.py:18
+msgid "Address of the landlord."
+msgstr "Adresse du propriétaire."
+
+#: .\facility\models\landlord.py:24
+msgid "Phone number of the landlord."
+msgstr "Numéro de téléphone du propriétaire."
+
+#: .\facility\models\landlord.py:29
+msgid "Email address of the landlord."
+msgstr "Adresse e-mail du propriétaire."
+
+#: .\facility\models\region.py:15
+msgid "Name of the region."
+msgstr "Nom de la région."
+
+#: .\facility\models\region.py:20
+msgid "Country where the region is located."
+msgstr "Pays où se trouve la région."
+
+#: .\facility\models\region.py:28
+msgid "Manager responsible for this region."
+msgstr "Gestionnaire responsable de cette région."
+
+#: .\facility\models\subsystem.py:15
+msgid "Name of the space or sub-system."
+msgstr "Nom de l'espace ou du sous-système."
+
+#: .\facility\models\subsystem.py:22
+msgid "Building or system to which this space or sub-system belongs."
+msgstr "Bâtiment ou système auquel cet espace ou sous-système appartient."
+
+#: .\facility\models\zone.py:15
+msgid "Unique code for the zone."
+msgstr "Code unique pour la zone."
+
+#: .\facility\models\zone.py:20
+msgid "Name of the zone."
+msgstr "Nom de la zone."
+
+#: .\facility\models\zone.py:28
+msgid "Facility associated with this zone (optional)."
+msgstr "Installation associée à cette zone (facultatif)."
+
+#: .\language.py:28
+msgid "Department"
+msgstr "Département"
+
+#: .\language.py:29
+msgid "Departments"
+msgstr "Départements"
+
+#: .\procurement\models\payment_requisition.py:13
+#: .\procurement\models\purchase_order.py:14
+#: .\procurement\models\request_quotation.py:14
+msgid "Draft"
+msgstr "Brouillon"
+
+#: .\procurement\models\payment_requisition.py:36
+msgid "Withholding tax percentage"
+msgstr "Pourcentage de retenue à la source"
+
+#: .\procurement\models\purchase_order.py:16
+#: .\procurement\models\request_quotation.py:16
+msgid "Sent"
+msgstr "Envoyé"
+
+#: .\procurement\models\purchase_order.py:17
+msgid "Delivered"
+msgstr "Livré"
+
+#: .\procurement\models\purchase_order.py:18
+#: .\procurement\models\received_goods_note.py:19
+msgid "Cancelled"
+msgstr "Annulé"
+
+#: .\procurement\models\received_goods_note.py:17
+msgid "Received"
+msgstr "Reçu"
+
+#: .\procurement\models\received_goods_note.py:18
+msgid "Partially Received"
+msgstr "Partiellement reçu"
+
+#: .\procurement\models\request_quotation.py:17
+msgid "Closed"
+msgstr "Clôturé"
+
+#: .\procurement\models\request_quotation.py:43
+msgid "Resources attached to the work request."
+msgstr "Ressources jointes à la demande de travail."

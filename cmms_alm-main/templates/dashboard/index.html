@@ -1,0 +1,1692 @@
+{% extends 'partials/base.html' %} {% load static %} {% block content %}
+
+  <main id="main">
+
+      <div class="tab-content pt-2" id="myTabContent">
+        <div class="tab-pane fade show active" id="pills-home" role="tabpanel" aria-labelledby="home-tab">
+          <section class="section dashboard">
+            <div class="row">
+      
+              <!-- Left side columns -->
+              <div class="col-lg-12">
+                <div class="row">
+                  
+                  <div class="container">
+                    <div class="row">
+                        <div class="col text-left">
+                            <!-- Text aligned to the beginning -->
+                            <span class="h6 pagetitle text-black col text-left font-weight-bolder text-uppercase">Escalated to me:</span>
+                        </div>
+                        <div class="col text-right">
+                            <!-- Text aligned to the end -->
+                            <span class="h6 pagetitle text-black font-weight-bolder text-uppercase">PPM Due:</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-lg-2">
+                  <!-- Sales Card -->
+                  <div class="col-xxl-12 col-md-12">
+                    <div class="card2 info-card1 revenue-card1">
+      
+                      <div class="card-body">
+                        <h5 class="card-title">Work <span>|Request</span></h5>
+      
+                        <div class="d-flex align-items-center">
+                          <div class="card-icon  d-flex align-items-center justify-content-center">
+                            <i class="bi bi-menu-up mb-5 "></i>
+                          </div>
+                          <div class="ps-4 mb-5">
+                            <h6>45</h6>
+                            </div>
+                        </div>
+                      </div>
+                    </div>
+      
+                    </div>
+                  </div><!-- End Sales Card -->
+                  <div class="col-lg-2">
+      
+                  <!-- Revenue Card -->
+                  <div class="col-xxl-12 col-md-12">
+                    <div class="card2 info-card1 revenue-card1">
+                      <div class="card-body">
+                        <h5 class="card-title h6">Work <span class="h6 text-sm">|Order</span></h5>
+                        <div class="d-flex align-items-center">
+                          <div class="card-icon rounded-circl d-flex align-items-center justify-content-center">
+                            <i class="bi bi-chat-left-text mb-5"></i>
+                          </div>
+                          <div class="ps-4 mb-5">
+                            <h6>64</h6>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+      
+                    </div>
+                  </div><!-- End Revenue Card -->
+                  <div class="col-lg-2">
+                  <!-- Customers Card -->
+                  <div class="col-xxl-12 col-md-12">
+      
+                    <div class="card2 info-card1 revenue-card1   ">
+                      <div class="card-body">
+                        <h5 class="card-title">Payment<span>|Req</span></h5>
+                        <div class="d-flex align-items-center">
+                          <div class="card-icon rounded-circl d-flex align-items-center justify-content-center">
+                            <i class="bi bi-currency-exchange mb-5"></i>
+                          </div>
+                          <div class="ps-4 mb-5">
+                            <h6>24</h6>
+                          </div>
+                        </div>
+      
+                      </div>
+                    </div>
+                  </div>
+                  </div><!-- End Customers Card -->
+                  <!-- <div class="vertical-divider"></div> -->
+                       
+                  <div class="col-lg-2">
+                    <div class="card2">
+                      <div class="col-xxl-12 col-md-12">
+                        <div class="card2 info-card1 customers-card1">
+          
+                          <div class="card-body">
+                            <h5 class="card-title">Over <span>|Due</span></h5>
+          
+                            <div class="d-flex align-items-center">
+                              <div class="card-icon rounded-circle d-flex align-items-center justify-content-center">
+                                <i class="bi bi-clipboard2-x text-danger mb-5"></i>
+                              </div>
+                              <div class="ps-4 mb-5">
+                                <h6>14</h6>
+                                </div>
+                            </div>
+                          </div>
+          
+                        </div>
+                      </div><!-- End Sales Card -->
+                      </div>
+                      </div>
+      
+                  <div class="col-lg-2">
+                   
+                 
+                      
+                      <div class="col-xxl-12 col-xl-12">
+                        <div class="card2 info-card1 customers-card1">
+          
+                          <div class="card-body">
+                            <h5 class="card-title">Almost <span>|Due</span></h5>
+          
+                            <div class="d-flex align-items-center">
+                              <div class="card-icon rounded-circle d-flex align-items-center justify-content-center">
+                                <i class="bi bi-clock text-warning mb-5"></i>
+                              </div>
+                              <div class="ps-4 mb-5">
+                                <h6>15</h6>
+                                </div>
+                            </div>
+                          </div>
+          
+                        </div>
+                      </div><!-- End Sales Card -->
+                    </div>
+             
+                      <div class="col-lg-2">
+                        <div class="card2">
+                          <div class="col-xxl-12 col-md-12">
+                            <div class="card2 info-card1 customers-card1">
+              
+                              <div class="card-body">
+                                <h5 class="card-title">Due <span>|Today</span></h5>
+              
+                                <div class="d-flex align-items-center">
+                                  <div class="card-icon rounded-circle d-flex align-items-center justify-content-center">
+                                    <i class="bi bi-clock text-warning mb-5"></i>
+                                  </div>
+                                  <div class="ps-4 mb-5">
+                                    <h6>45</h6>
+                                    </div>
+                                </div>
+                              </div>
+              
+                            </div>
+                          </div><!-- End Sales Card -->
+                          </div>
+                          </div>
+      
+      
+      
+      
+                  <div class="divider py-1 mt-4 mb-2 bg-secondary-light"></div>
+                
+                  <div class="container">
+                    <div class="row">
+                        <div class="col text-left">
+                            <!-- Text aligned to the beginning -->
+                            <span class="h6 pagetitle text-black col text-left font-weight-bolder text-uppercase">Work Request</span>
+                        </div>
+                        <div class="col text-right">
+                            <!-- Text aligned to the end -->
+                            <span class="h6 pagetitle text-black font-weight-bolder text-uppercase">Work Order </span>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-lg-2">
+                  <!-- Sales Card -->
+                  <div class="col-xxl-12 col-md-12">
+                    <div class="card_height1 info-card1 revenue-card1">
+      
+                      <div class="card-body">
+                        <h5 class="card-title">New <span>|</span></h5>
+      
+                        <div class="d-flex align-items-center">
+                          <div class="card-icon d-flex align-items-center justify-content-center">
+                            <i class="bi bi-envelope-open text-success mb-5"></i>
+                          </div>
+                          <div class="ps-4 mb-5">
+                            <h6>45</h6>
+                            </div>
+                        </div>
+                      </div>
+      
+                    </div>
+                  </div><!-- End Sales Card -->
+                  </div>
+
+                  <div class="col-lg-2">      
+                  <!-- Revenue Card -->
+                  <div class="col-xxl-12 col-md-12">
+                    <div class="card_height1 info-card1 revenue-card1">
+                      <div class="card-body">
+                        <h5 class="card-title">Open <span>|</span></h5>
+      
+                        <div class="d-flex align-items-center">
+                          <div class="card-icon d-flex align-items-center justify-content-center">
+                            <i class="bi bi-door-open text-success mb-5"></i>
+                          </div>
+                          <div class="ps-4 mb-5">
+                            <h6>64</h6>
+      
+                          </div>
+                        </div>
+                      </div>
+      
+                    </div>
+                  </div><!-- End Revenue Card -->
+                  </div>
+                
+                  
+                  <div class="col-lg-2">
+                  <!-- Customers Card -->
+                  <div class="col-xxl-12 col-xl-12">
+                    <div class="card_height1 info-card1 revenue-card1">
+                      <div class="card-body">
+                        <h5 class="card-title ">Quotation<span>|</span></h5>
+      
+                        <div class="d-flex align-items-center">
+                          <div class="card-icon  d-flex align-items-center justify-content-center">
+                            <i class="bi bi-currency-exchange text-success mb-5"></i>
+                          </div>
+                          <div class="ps-4 mb-5">
+                            <h6>44</h6>
+      
+                          </div>
+                        </div>
+      
+                      </div>
+                    </div>
+                  </div><!-- End Customers Card -->
+                </div>
+                  <div class="col-lg-2">
+                    <!-- Recent Activity -->       
+                      <div class="col-xxl-12 col-md-12">
+                        <div class="card21 info-card1 customers-card1">
+          
+                          <div class="card-body">
+                            <h5 class="card-title">New <span>|</span></h5>
+          
+                            <div class="d-flex align-items-center">
+                              <div class="card-icon rounded-circle d-flex align-items-center justify-content-center">
+                                <i class="bi bi-envelope-open text-success mb-5"></i>
+                              </div>
+                              <div class="ps-4 mb-5">
+                                <h6>45</h6>
+                                </div>
+                            </div>
+                          </div>
+                        </div>
+                      </div><!-- End Sales Card -->
+                    </div>
+                    <div class="col-lg-2">
+                    <div class="card21">
+                      <div class="col-xxl-12 col-md-12">
+                        <div class="card21 info-card1 customers-card1">
+          
+                          <div class="card-body">
+                            <h5 class="card-title">Open <span>|</span></h5>
+          
+                            <div class="d-flex align-items-center">
+                              <div class="card-icon rounded-circle d-flex align-items-center justify-content-center">
+                                <i class="bi bi-door-open text-success mb-5"></i>
+                              </div>
+                              <div class="ps-4 mb-5">
+                                <h6>45</h6>
+                                </div>
+                            </div>
+                          </div>
+          
+                        </div>
+                      </div><!-- End Sales Card -->
+                      </div>
+                      </div>
+                      <div class="col-lg-2">
+                        <div class="card21">
+                          <div class="col-xxl-12 col-md-12">
+                            <div class="card21 info-card1 customers-card1">
+              
+                              <div class="card-body">
+                                <h5 class="card-title">Started <span>|</span></h5>
+              
+                                <div class="d-flex align-items-center">
+                                  <div class="card-icon rounded-circle d-flex align-items-center justify-content-center">
+                                    <i class="bi bi-person-walking text-success mb-5"></i>
+                                  </div>
+                                  <div class="ps-4 mb-5">
+                                    <h6>15</h6>
+                                    </div>
+                                </div>
+                              </div>
+              
+                            </div>
+                          </div><!-- End Sales Card -->
+                          </div>
+                          </div>
+      
+                   <!-- Sales Card -->
+                   <div class="col-lg-2">
+                   <div class="col-xxl-12 col-xl-12">
+                    <div class="card_height1 info-card1 revenue-card1">
+                      <div class="card-body">
+                        <h5 class="card-title">Awaiting<span class="h6">|</span></h5>
+      
+                        <div class="d-flex align-items-center">
+                          <div class="card-icon  d-flex align-items-center justify-content-center">
+                            <i class="bi bi-card-checklist text-warning mb-5"></i>
+                          </div>
+                          <div class="ps-4 mb-5">
+                            <h6>4</h6>
+      
+                          </div>
+                        </div>
+      
+                      </div>
+                    </div>
+                    </div>
+      
+                  </div><!-- End Customers Card -->
+      
+                  <!-- Revenue Card -->
+                  <div class="col-lg-2">
+                  <div class="col-xxl-2 col-md-3">
+                    <div class="card6 info-card revenue-card">
+      
+                    </div>
+                  </div><!-- End Revenue Card -->
+                  </div>
+      
+                  <!-- Customers Card -->
+                  <div class="col-lg-2">
+                  <div class="col-xxl-2 col-md-3">
+                    <div class="card6 info-card revenue-card">
+      
+                    </div>
+                  </div><!-- End Revenue Card --><!-- End Customers Card -->
+                  </div>
+                  <div class="col-lg-2">
+                    <div class="card21">
+                      <div class="col-xxl-12 col-md-12">
+                        <div class="card21 info-card1 customers-card1">
+          
+                          <div class="card-body">
+                            <h5 class="card-title">Over-Due <span>|</span></h5>
+          
+                            <div class="d-flex align-items-center">
+                              <div class="card-icon rounded-circle d-flex align-items-center justify-content-center">
+                                <i class="bi bi-clipboard2-x text-danger mb-5"></i>
+                              </div>
+                              <div class="ps-4 mb-5">
+                                <h6>15</h6>
+                                </div>
+                            </div>
+                          </div>
+          
+                        </div>
+                      </div><!-- End Sales Card -->
+                      </div>
+                      </div>
+                      <div class="col-lg-2">
+                        <div class="card21">
+                          <div class="col-xxl-12 col-md-12">
+                            <div class="card21 info-card1 customers-card1">
+              
+                              <div class="card-body">
+                                <h5 class="card-title">Awaiting<span>|</span></h5>
+              
+                                <div class="d-flex align-items-center">
+                                  <div class="card-icon rounded-circle d-flex align-items-center justify-content-center">
+                                    <i class="bi bi-card-checklist text-warning mb-5"></i>
+                                  </div>
+                                  <div class="ps-4 mb-5">
+                                    <h6>45</h6>
+                                    </div>
+                                </div>
+                              </div>
+              
+                            </div>
+                          </div><!-- End Sales Card -->
+                          </div>
+                          </div>  
+                          <div class="col-lg-2">
+                            <div class="card21">
+                              <div class="col-xxl-12 col-md-12">
+                                <div class="card21 info-card1 customers-card1">
+                  
+                                  <div class="card-body">
+                                    <h5 class="card-title">Pending<span>|</span></h5>
+                  
+                                    <div class="d-flex align-items-center">
+                                      <div class="card-icon rounded-circle d-flex align-items-center justify-content-center">
+                                        <i class="bi bi-clipboard-x text-warning mb-5"></i>
+                                      </div>
+                                      <div class="ps-4 mb-5">
+                                        <h6>53</h6>
+                                        </div>
+                                    </div>
+                                  </div>
+                  
+                                </div>
+                              </div>
+                              </div>
+                              </div><!-- End of Work Request and Order -->
+      
+      
+           <!-- Payment Request Section -->
+      
+                  <div class="divider py-1 mt-4 mb-2 bg-secondary-light"></div>
+                  
+                  <div class="container">
+                    <div class="row">
+                        <div class="col text-left">
+                            <!-- Text aligned to the beginning -->
+                            <span class="h6 pagetitle text-black col text-left font-weight-bolder text-uppercase">Payment-Requisition</span>
+                        </div>
+                    
+                    </div>
+                </div>
+                  
+                  <!-- Sales Card -->
+                  <div class="col-lg-3">
+                  <div class="col-xxl-12 col-md-12">
+                    <div class="card_height1 info-card1 revenue-card1">
+      
+                      <div class="card-body">
+                        <h5 class="card-title">New <span>| Payment</span></h5>
+      
+                        <div class="d-flex align-items-center">
+                          <div class="card-icon d-flex align-items-center justify-content-center">
+                            <i class="bi bi-envelope-open text-success mb-5"></i>
+                          </div>
+                          <div class="ps-5 mb-5">
+                            <h6>45</h6>
+                            </div>
+                        </div>
+                      </div>
+      
+                    </div>
+                  </div><!-- End Sales Card -->
+                  </div>
+      
+                  <!-- Revenue Card -->
+                  <div class="col-lg-3">
+                  <div class="col-xxl-12 col-md-12">
+                    <div class="card_height1 info-card1 revenue-card1">
+                      <div class="card-body">
+                        <h5 class="card-title">Awaiting <span>|Approval</span></h5>
+      
+                        <div class="d-flex align-items-center">
+                          <div class="card-icon d-flex align-items-center justify-content-center">
+                            <i class="bi bi-clock text-warning mb-5"></i>
+                          </div>
+                          <div class="ps-5 mb-5">
+                            <h6>64</h6>
+      
+                          </div>
+                        </div>
+                      </div>
+                      </div>
+                    </div>
+                  </div><!-- End Revenue Card -->
+                
+                  
+      
+                  <!-- Customers Card -->
+                  <div class="col-lg-3">
+                  <div class="col-xxl-12 col-xl-12">
+                    <div class="card_height1 info-card1 revenue-card1">
+                      <div class="card-body">
+                        <h5 class="card-title ">Payment <span>|Pending</span></h5>
+      
+                        <div class="d-flex align-items-center">
+                          <div class="card-icon  d-flex align-items-center justify-content-center">
+                            <i class="bi bi-currency-exchange text-warning mb-5"></i>
+                          </div>
+                          <div class="ps-5 mb-5">
+                            <h6>44</h6>
+      
+                          </div>
+                        </div>
+      
+                      </div>
+                    </div>
+                    </div>
+      
+                  </div><!-- End Customers Card -->
+                     <!-- Customers Card -->
+                     <div class="col-lg-3">
+                     <div class="col-xxl-12 col-xl-12">
+                      <div class="card_height1 info-card1 revenue-card1">
+                        <div class="card-body">
+                          <h5 class="card-title">Part <span>|Paid</span></h5>
+        
+                          <div class="d-flex align-items-center">
+                            <div class="card-icon  d-flex align-items-center justify-content-center">
+                              <i class="bi bi-currency-exchange text-success mb-5"></i>
+                            </div>
+                            <div class="ps-5 mb-5">
+                              <h6>44</h6>
+        
+                            </div>
+                          </div>
+        
+                        </div>
+                      </div>
+                      </div>
+                    </div><!-- End Customers Card -->
+      
+                          </div>
+          
+                        </div>
+                      </div>
+
+
+                              <div class="divider py-1 mt-4 mb-2 bg-secondary-light"></div>
+                  <!-- Reports -->
+
+
+
+
+
+
+
+
+                 
+                  
+                              <!-- Recent Sales -->
+                              <div class="col-12">
+                                <div class="card recent-sales overflow-auto">
+                             
+                                  <div class="row">
+                                    <!-- First Column: Open Work order by categories -->
+                                    <div class="col-lg-6">
+                                        <div class="card">
+                                            <div class="card-body" style="background-color: #f2fcf4;">
+                                                <h5 class="card-title">Open Work order by categories</h5>
+                                                
+                                                <!-- Minimize/Maximize Button -->
+                                                <button id="toggleButton1" class="btn btn-primary" onclick="toggleChartSize1()">
+                                                    <i id="toggleIcon1" class="bi bi-arrows-fullscreen"></i>
+                                                </button>
+                                                
+                                                <!-- Bar Chart -->
+                                                <div id="barChart"></div>
+                                                
+                                                <script>
+                                                    document.addEventListener("DOMContentLoaded", () => {
+                                                        var minimizedData1 = [400, 430, 448, 70, 540];
+                                                        var fullData1 = [400, 430, 448, 70, 540, 580, 690, 1100, 200, 180];
+                                                        var categories1 = ['Payment Request', 'Plumbing Water Systems', 'AMF-ADMIN', 'Request(HEAD OFFICE)', 'CONSULTANCY', 'SECURITY SERVICES', 'IT CONSUMABLES', 'LAND SYSTEM', 'ADMIN EXPENSES', 'MANAGEMENT'];
+                                                        var minimizedCategories1 = categories1.slice(0, minimizedData1.length);
+                                
+                                                        var options1 = {
+                                                            series: [{ data: minimizedData1 }],
+                                                            chart: { type: 'bar', height: 220 },
+                                                            plotOptions: { bar: { borderRadius: 4, horizontal: true } },
+                                                            dataLabels: { enabled: true },
+                                                            xaxis: { categories: minimizedCategories1 }
+                                                        };
+                                
+                                                        var chart1 = new ApexCharts(document.querySelector("#barChart"), options1);
+                                                        chart1.render();
+                                
+                                                        window.toggleChartSize1 = function() {
+                                                            var icon = document.querySelector("#toggleIcon1");
+                                                            if (icon.classList.contains("bi-arrows-fullscreen")) {
+                                                                icon.classList.remove("bi-arrows-fullscreen");
+                                                                icon.classList.add("bi-arrows-collapse");
+                                                                chart1.updateSeries([{ data: fullData1 }]);
+                                                                chart1.updateOptions({ chart: { height: 400 }, xaxis: { categories: categories1 } });
+                                                            } else {
+                                                                icon.classList.remove("bi-arrows-collapse");
+                                                                icon.classList.add("bi-arrows-fullscreen");
+                                                                chart1.updateSeries([{ data: minimizedData1 }]);
+                                                                chart1.updateOptions({ chart: { height: 220 }, xaxis: { categories: minimizedCategories1 } });
+                                                            }
+                                                        }
+                                                    });
+                                                </script>
+                                            </div>
+                                        </div>
+                                    </div>
+                                
+                                    <!-- Second Column: Work Orders by Category -->
+                                    <div class="col-lg-6">
+                                        <div class="card">
+                                            <div class="card-body" style="background-color: #f1faf2;">
+                                                <h5 class="card-title">Work Orders by Category</h5>
+                                                
+                                                <!-- Minimize/Maximize Button -->
+                                                <button id="toggleButton2" class="btn btn-primary" onclick="toggleChartSize2()">
+                                                    <i id="toggleIcon2" class="bi bi-arrows-fullscreen"></i>
+                                                </button>
+                                                
+                                                <!-- Stacked Bar Chart -->
+                                                <div id="chartContainer" style="overflow-y: auto; max-height: 300px;">
+                                                    <div id="stackedBarChart"></div>
+                                                </div>
+                                                
+                                                <script>
+                                                    document.addEventListener("DOMContentLoaded", () => {
+                                                        var minimizedData2 = [
+                                                            { name: 'Preventive Work Order', data: [44, 55, 41] },
+                                                            { name: 'Corrective Work Order', data: [13, 23, 20] }
+                                                        ];
+                                                        var fullData2 = [
+                                                            { name: 'Preventive Work Order', data: [44, 55, 41, 67, 22, 43] },
+                                                            { name: 'Corrective Work Order', data: [13, 23, 20, 8, 13, 27] }
+                                                        ];
+                                                        var categories2 = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'];
+                                                        var minimizedCategories2 = categories2.slice(0, minimizedData2[0].data.length);
+                                
+                                                        var options2 = {
+                                                            series: minimizedData2,
+                                                            chart: { type: 'bar', height: 220, stacked: true, toolbar: { show: true } },
+                                                            plotOptions: { bar: { horizontal: false, borderRadius: 10 } },
+                                                            xaxis: { categories: minimizedCategories2 },
+                                                            legend: { position: 'bottom' },
+                                                            fill: { opacity: 1 }
+                                                        };
+                                
+                                                        var chart2 = new ApexCharts(document.querySelector("#stackedBarChart"), options2);
+                                                        chart2.render();
+                                
+                                                        window.toggleChartSize2 = function() {
+                                                            var icon = document.querySelector("#toggleIcon2");
+                                                            var chartContainer = document.querySelector("#chartContainer");
+                                                            if (icon.classList.contains("bi-arrows-fullscreen")) {
+                                                                icon.classList.remove("bi-arrows-fullscreen");
+                                                                icon.classList.add("bi-arrows-collapse");
+                                                                chart2.updateSeries(fullData2);
+                                                                chart2.updateOptions({ chart: { height: 400 }, xaxis: { categories: categories2 } });
+                                                                chartContainer.style.maxHeight = "none";
+                                                            } else {
+                                                                icon.classList.remove("bi-arrows-collapse");
+                                                                icon.classList.add("bi-arrows-fullscreen");
+                                                                chart2.updateSeries(minimizedData2);
+                                                                chart2.updateOptions({ chart: { height: 220 }, xaxis: { categories: minimizedCategories2 } });
+                                                                chartContainer.style.maxHeight = "300px";
+                                                            }
+                                                        }
+                                                    });
+                                                </script>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+
+
+
+
+
+            
+                            
+
+                            <div class="divider py-1 mt-4 mb-2 bg-secondary-light"></div>    
+
+
+                  <!-- Reports -->
+                  <div class="col-12">
+                    <div class="card">
+    
+                      <div class="card-body">
+                        <h5 class="card-title">Cost  <span>Analysis</span></h5>
+      
+                   
+                              <div class="card-body" style="background-color: #edf3ec;">
+                                  <h5 class="card-title">Approved Cost vs Estimated Cost</h5>
+                                  <!-- Minimize/Maximize Button -->
+                                  <button id="toggleButton" class="btn btn-primary" onclick="toggleChartSize()">
+                                      <i id="toggleIcon" class="bi bi-arrows-fullscreen"></i>
+                                  </button>
+                                  <!-- Toggle Chart Type Button -->
+                                  <button id="chartTypeButton" class="btn btn-secondary" onclick="toggleChartType()">
+                                      <i class="bi bi-graph-up"></i> Toggle Line/Bar
+                                  </button>
+                                  <!-- Chart Container -->
+                                  <div id="chartContainer" style="max-width: 100%; overflow-x: auto;">
+                                      <div id="stackedBarChart2" style="min-width: 600px; height: 400px;"></div>
+                                  </div>
+                              </div>
+                          </div>
+                      </div>
+                  
+                      <script>
+                          // Initialize ECharts
+                          var chartDom = document.getElementById('stackedBarChart2');
+                          var myChart = echarts.init(chartDom);
+                  
+                          const colors = ['#5470C6', '#91CC75'];
+                          // Set initial chart option with side-by-side bars
+                          var option = {
+                              color: colors,
+                              tooltip: {
+                                  trigger: 'axis',
+                                  axisPointer: { type: 'shadow' }
+                              },
+                              grid: { right: '20%' },
+                              toolbox: {
+                                  feature: {
+                                      dataView: { show: true, readOnly: false },
+                                      restore: { show: true },
+                                      saveAsImage: { show: true }
+                                  }
+                              },
+                              legend: { data: ['Approved Cost', 'Estimated Cost'] },
+                              xAxis: [{
+                                  type: 'category',
+                                  axisTick: { alignWithLabel: true },
+                                  data: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
+                              }],
+                              yAxis: [
+                                  {
+                                      type: 'value',
+                                      name: 'Cost',
+                                      position: 'left',
+                                      axisLine: { lineStyle: { color: colors[0] } },
+                                      axisLabel: { formatter: '${value}' }
+                                  }
+                              ],
+                              series: [
+                                  {
+                                      name: 'Approved Cost',
+                                      type: 'bar',
+                                      data: [12000, 15000, 8000, 18000, 16000, 23000, 19000, 22000, 17000, 25000, 19000, 21000]
+                                  },
+                                  {
+                                      name: 'Estimated Cost',
+                                      type: 'bar',
+                                      data: [10000, 14000, 7000, 17000, 15000, 22000, 18000, 21000, 16000, 24000, 18000, 20000]
+                                  }
+                              ]
+                          };
+                          myChart.setOption(option);
+                  
+                          // Toggle Maximize/Minimize Chart
+                          function toggleChartSize() {
+                              const chartContainer = document.getElementById('chartContainer');
+                              const icon = document.getElementById('toggleIcon');
+                              if (chartContainer.classList.contains('fullscreen')) {
+                                  chartContainer.classList.remove('fullscreen');
+                                  icon.classList.replace('bi-arrows-collapse', 'bi-arrows-fullscreen');
+                              } else {
+                                  chartContainer.classList.add('fullscreen');
+                                  icon.classList.replace('bi-arrows-fullscreen', 'bi-arrows-collapse');
+                              }
+                              myChart.resize();
+                          }
+                  
+                          // Toggle Chart Type between Line and Side-by-Side Bar
+                          let isBarChart = true;
+                          function toggleChartType() {
+                              isBarChart = !isBarChart;
+                              option.series.forEach(series => {
+                                  series.type = isBarChart ? 'bar' : 'line';
+                              });
+                              myChart.setOption(option);
+                          }
+                      </script>
+                  
+                      <style>
+                          /* Fullscreen styling */
+                          .fullscreen {
+                              position: fixed;
+                              top: 0;
+                              left: 0;
+                              width: 100vw;
+                              height: 100vh;
+                              z-index: 1000;
+                              background-color: #f0f8ff;
+                              overflow: hidden;
+                          }
+                      </style>
+                        <!-- End Line Chart -->
+      
+                      </div>
+      
+                    </div>
+                  </div>
+                  </div>
+                  
+                  
+
+              
+
+
+
+        <div class="tab-pane fade" id="pills-profile" role="tabpanel" aria-labelledby="profile-tab">
+
+
+
+
+          <section class="section dashboard">
+            <div class="row">
+      
+              <!-- Left side columns -->
+              <div class="col-lg-12">
+                <div class="row">
+                  
+                  <div class="container">
+                    <div class="row">
+                        <div class="col text-left">
+                            <!-- Text aligned to the beginning -->
+                            <span class="h5 pagetitle text-black col text-left font-weight-bold text-uppercase">Warehouse Items</span>
+                        </div>
+                      
+                    </div>
+                </div>
+                  
+                  <!-- Sales Card -->
+                  <div class="col-lg-3">
+                    <div class="col-xxl-12 col-xl-12">
+                    <div class="card20 info-card1 revenue-card1">
+      
+                      <div class="card-body">
+                        <h5 class="card-title">Asset <span></span></h5>
+      
+                        <div class="d-flex align-items-center">
+                          <div class="card-icon  d-flex align-items-center justify-content-center">
+                            <i class="bi bi-menu-up mb-5 "></i>
+                          </div>
+                          <div class="ps-5 mb-5">
+                            <h6>45</h6>
+                            </div>
+                        </div>
+                      </div>
+      
+                    </div>
+                  </div><!-- End Sales Card -->
+                  </div>
+      
+                  <!-- Revenue Card -->
+                  <div class="col-lg-3">
+                  <div class="col-xxl-12 col-md-12">
+                    <div class="card20 info-card1 revenue-card1">
+                      <div class="card-body">
+                        <h5 class="card-title">Accessory <span></span></h5>
+                        <div class="d-flex align-items-center">
+                          <div class="card-icon rounded-circl d-flex align-items-center justify-content-center">
+                            <i class="bi bi-chat-left-text-fill mb-5"></i>
+                          </div>
+                          <div class="ps-5 mb-5">
+                            <h6>64</h6>
+                          </div>
+                        </div>
+                      </div>
+      
+                    </div>
+                  </div><!-- End Revenue Card -->
+                  </div>
+      
+                  <!-- Customers Card -->
+                  <div class="col-lg-3">
+                  <div class="col-xxl-12 col-xl-12">
+      
+                    <div class="card20 info-card1 revenue-card1">
+                      <div class="card-body">
+                        <h5 class="card-title">Consumable</h5>
+                        <div class="d-flex align-items-center">
+                          <div class="card-icon rounded-circl d-flex align-items-center justify-content-center">
+                            <i class="bi bi-currency-exchange mb-5"></i>
+                          </div>
+                          <div class="ps-5 mb-5">
+                            <h6>24</h6>
+                          </div>
+                        </div>
+                        </div>
+      
+                      </div>
+                    </div>
+      
+                  </div><!-- End Customers Card -->
+                     <!-- Customers Card -->
+                     <div class="col-lg-3">
+                      <div class="col-xxl-12 col-xl-12">
+          
+                        <div class="card20 info-card1 revenue-card1">
+                          <div class="card-body">
+                            <h5 class="card-title">Total value</h5>
+                            <div class="d-flex align-items-center">
+                              <div class="card-icon rounded-circl d-flex align-items-center justify-content-center">
+                                <i class="bi bi-currency-exchange mb-5"></i>
+                              </div>
+                              <div class="ps-5 mb-5">
+                                <h6>24</h6>
+                              </div>
+                            </div>
+                            </div>
+          
+                          </div>
+                        </div>
+          
+                      </div><!-- End Customers Card -->
+                         <!-- Customers Card -->
+                  <div class="col-lg-3 mt-3">
+                    <div class="col-xxl-12 col-xl-12">
+        
+                      <div class="card20 info-card1 revenue-card1">
+                        <div class="card-body">
+                          <h5 class="card-title">Missing Value</h5>
+                          <div class="d-flex align-items-center">
+                            <div class="card-icon rounded-circl d-flex align-items-center justify-content-center">
+                              <i class="bi bi-currency-exchange mb-5"></i>
+                            </div>
+                            <div class="ps-5 mb-5">
+                              <h6>24</h6>
+                            </div>
+                          </div>
+                          </div>
+        
+                        </div>
+                      </div>
+        
+                    </div><!-- End Customers Card -->
+                       <!-- Customers Card -->
+                  <div class="col-lg-3 mt-3">
+                    <div class="col-xxl-12 col-xl-12">
+        
+                      <div class="card20 info-card1 revenue-card1">
+                        <div class="card-body">
+                          <h5 class="card-title">Excess Value</h5>
+                          <div class="d-flex align-items-center">
+                            <div class="card-icon rounded-circl d-flex align-items-center justify-content-center">
+                              <i class="bi bi-currency-exchange mb-5"></i>
+                            </div>
+                            <div class="ps-5 mb-5">
+                              <h6>24</h6>
+                            </div>
+                          </div>
+                          </div>
+        
+                        </div>
+                      </div>
+        
+                    </div><!-- End Customers Card -->
+                  <!-- <div class="vertical-divider"></div> -->
+    
+      
+      
+                  <div class="divider py-1 mt-4 mb-2 bg-secondary-light"></div>
+                
+                  <div class="container">
+                    <div class="row">
+                        <div class="col text-left">
+                            <!-- Text aligned to the beginning -->
+                            <span class="h6 pagetitle text-black col text-left font-weight-bolder text-uppercase">Inventory Tracking</span>
+                        </div>
+                           </div>
+                </div>
+                  
+                  <!-- Sales Card -->
+                  <div class="col-lg-3 mt-3">
+                    <div class="col-xxl-12 col-xl-12">
+                    <div class="card22 info-card1 revenue-card1">
+      
+                      <div class="card-body">
+                        <h5 class="card-title">Out of <span>|Stock</span></h5>
+      
+                        <div class="d-flex align-items-center">
+                          <div class="card-icon d-flex align-items-center justify-content-center">
+                            <i class="bi bi-envelope-open-fill text-success mb-5"></i>
+                          </div>
+                          <div class="ps-5 mb-5">
+                            <h6>45</h6>
+                            </div>
+                        </div>
+                      </div>
+                      </div>
+      
+                    </div>
+                  </div><!-- End Sales Card -->
+                   <!-- Sales Card -->
+                   <div class="col-lg-3 mt-3">
+                    <div class="col-xxl-12 col-xl-12">
+                    <div class="card22 info-card1 revenue-card1">
+      
+                      <div class="card-body">
+                        <h5 class="card-title">Minimum <span>|quantity</span></h5>
+      
+                        <div class="d-flex align-items-center">
+                          <div class="card-icon d-flex align-items-center justify-content-center">
+                            <i class="bi bi-envelope-open-fill text-success mb-5"></i>
+                          </div>
+                          <div class="ps-5 mb-5">
+                            <h6>45</h6>
+                            </div>
+                        </div>
+                      </div>
+                      </div>
+      
+                    </div>
+                  </div><!-- End Sales Card -->
+      
+                   <!-- Sales Card -->
+                   <div class="col-lg-3 mt-3">
+                    <div class="col-xxl-12 col-xl-12">
+                    <div class="card22 info-card1 revenue-card1">
+      
+                      <div class="card-body">
+                        <h5 class="card-title">Reorder <span>|</span></h5>
+      
+                        <div class="d-flex align-items-center">
+                          <div class="card-icon d-flex align-items-center justify-content-center">
+                            <i class="bi bi-envelope-open-fill text-success mb-5"></i>
+                          </div>
+                          <div class="ps-5 mb-5">
+                            <h6>45</h6>
+                            </div>
+                        </div>
+                      </div>
+                      </div>
+      
+                    </div>
+                  </div><!-- End Sales Card -->
+      
+                   <!-- Sales Card -->
+                   <div class="col-lg-3 mt-3">
+                    <div class="col-xxl-12 col-xl-12">
+                    <div class="card22 info-card1 revenue-card1">
+      
+                      <div class="card-body">
+                        <h5 class="card-title">Maximum <span>|Quantity</span></h5>
+      
+                        <div class="d-flex align-items-center">
+                          <div class="card-icon d-flex align-items-center justify-content-center">
+                            <i class="bi bi-envelope-open-fill text-success mb-5"></i>
+                          </div>
+                          <div class="ps-5 mb-5">
+                            <h6>45</h6>
+                            </div>
+                        </div>
+                      </div>
+                      </div>
+      
+                    </div>
+                  </div><!-- End Sales Card -->
+      
+      
+            
+      
+  
+      
+      
+           <!-- Payment Request Section -->
+      
+                  <div class="divider py-1 mt-4 mb-2 bg-secondary-light"></div>
+                  
+                  <div class="container">
+                    <div class="row">
+                        <div class="col text-left">
+                            <!-- Text aligned to the beginning -->
+                            <span class="h6 pagetitle text-black col text-left font-weight-bolder text-uppercase">Fuel Dump</span>
+                        </div>
+                    
+                    </div>
+                </div>
+                  
+                  <!-- Sales Card -->
+                  <div class="col-lg-4 mt-3">
+                    <div class="col-xxl-12 col-xl-12">
+                    <div class="card23 info-card1 revenue-card1">
+      
+                      <div class="card-body">
+                        <h5 class="card-title">Qunatity</h5>
+      
+                        <div class="d-flex align-items-center">
+                          <div class="card-icon d-flex align-items-center justify-content-center">
+                            <i class="bi bi-envelope-open-fill text-success mb-5"></i>
+                          </div>
+                          <div class="ps-5 mb-5">
+                            <h6>45</h6>
+                            </div>
+                        </div>
+                      </div>
+                      </div>
+      
+                    </div>
+                  </div><!-- End Sales Card -->
+      
+                  <!-- Revenue Card -->
+                  <div class="col-lg-4 mt-3">
+                    <div class="col-xxl-12 col-xl-12">
+                    <div class="card23 info-card1 revenue-card1">
+                      <div class="card-body">
+                        <h5 class="card-title">Total <span>|Value</span></h5>
+      
+                        <div class="d-flex align-items-center">
+                          <div class="card-icon d-flex align-items-center justify-content-center">
+                            <i class="bi bi-clock-fill text-warning mb-5"></i>
+                          </div>
+                          <div class="ps-5 mb-5">
+                            <h6>64</h6>
+      
+                          </div>
+                        </div>
+                      </div>
+                      </div>
+      
+                    </div>
+                  </div><!-- End Revenue Card -->
+                
+                  
+      
+                  <!-- Customers Card -->
+                  <div class="col-lg-4 mt-3">
+                    <div class="col-xxl-12 col-xl-12">
+                    <div class="card23 info-card1 revenue-card1">
+                      <div class="card-body">
+                        <h5 class="card-title ">Missing <span>|Value</span></h5>
+      
+                        <div class="d-flex align-items-center">
+                          <div class="card-icon  d-flex align-items-center justify-content-center">
+                            <i class="bi bi-currency-exchange text-warning mb-5"></i>
+                          </div>
+                          <div class="ps-5 mb-5">
+                            <h6>44</h6>
+      
+                          </div>
+                        </div>
+                        </div>
+      
+                      </div>
+                    </div>
+      
+                  </div><!-- End Customers Card -->
+                
+      
+                          </div>
+          
+                        </div>
+               
+                         
+                              </div>
+                              <div class="divider py-1 mt-4 mb-2 bg-secondary-light"></div>
+                  <!-- Reports -->
+                  
+             <!-- End Reports -->
+                  <div class="divider py-1 mt-0 mb-2 bg-success"></div>
+                  
+                
+              </div><!-- End Left side columns -->
+      
+              <!-- Right side columns -->
+
+              
+             
+      
+
+        <div class="tab-pane fade" id="pills-contact" role="tabpanel" aria-labelledby="contact-tab">
+          <section class="section dashboard">
+            <div class="row">
+      
+              <!-- Left side columns -->
+              <div class="col-lg-12">
+                <div class="row">
+                  
+                  <div class="container">
+                    <div class="row">
+                        <div class="col text-left">
+                            <!-- Text aligned to the beginning -->
+                            <span class="h6 pagetitle text-black col text-left font-weight-bolder text-uppercase">Escalated to me:</span>
+                        </div>
+                        <div class="col text-right">
+                            <!-- Text aligned to the end -->
+                            <span class="h6 pagetitle text-black font-weight-bolder text-uppercase">PPM Due:</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-lg-2">
+                  <!-- Sales Card -->
+                  <div class="col-xxl-12 col-md-12">
+                    <div class="card0 info-card1 revenue-card1">
+      
+                      <div class="card-body">
+                        <h5 class="card-title">Work <span>|Request</span></h5>
+      
+                        <div class="d-flex align-items-center">
+                          <div class="card-icon  d-flex align-items-center justify-content-center">
+                            <i class="bi bi-menu-up mb-5 "></i>
+                          </div>
+                          <div class="ps-4 mb-5">
+                            <h6>45</h6>
+                            </div>
+                        </div>
+                      </div>
+                    </div>
+      
+                    </div>
+                  </div><!-- End Sales Card -->
+                  <div class="col-lg-2">
+      
+                  <!-- Revenue Card -->
+                  <div class="col-xxl-12 col-md-12">
+                    <div class="card0 info-card1 revenue-card1">
+                      <div class="card-body">
+                        <h5 class="card-title h6">Work <span class="h6 text-sm">|Order</span></h5>
+                        <div class="d-flex align-items-center">
+                          <div class="card-icon rounded-circl d-flex align-items-center justify-content-center">
+                            <i class="bi bi-chat-left-text-fill mb-5"></i>
+                          </div>
+                          <div class="ps-4 mb-5">
+                            <h6>64</h6>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+      
+                    </div>
+                  </div><!-- End Revenue Card -->
+                  <div class="col-lg-2">
+                  <!-- Customers Card -->
+                  <div class="col-xxl-12 col-md-12">
+      
+                    <div class="card0 info-card1 revenue-card1">
+                      <div class="card-body">
+                        <h5 class="card-title">Payment <span>|Request</span></h5>
+                        <div class="d-flex align-items-center">
+                          <div class="card-icon rounded-circl d-flex align-items-center justify-content-center">
+                            <i class="bi bi-currency-exchange mb-5"></i>
+                          </div>
+                          <div class="ps-4 mb-5">
+                            <h6>24</h6>
+                          </div>
+                        </div>
+      
+                      </div>
+                    </div>
+                  </div>
+                  </div><!-- End Customers Card -->
+                  <!-- <div class="vertical-divider"></div> -->
+      
+                  <div class="col-lg-2">
+                   
+                 
+                      
+                      <div class="col-xxl-12 col-xl-12">
+                        <div class="card2 info-card1 customers-card1">
+          
+                          <div class="card-body">
+                            <h5 class="card-title">Almost <span>|Due</span></h5>
+          
+                            <div class="d-flex align-items-center">
+                              <div class="card-icon rounded-circle d-flex align-items-center justify-content-center">
+                                <i class="bi bi-clock text-warning mb-5"></i>
+                              </div>
+                              <div class="ps-4 mb-5">
+                                <h6>15</h6>
+                                </div>
+                            </div>
+                          </div>
+          
+                        </div>
+                      </div><!-- End Sales Card -->
+                    </div>
+                 
+                    <div class="col-lg-2">
+                    <div class="card2">
+                      <div class="col-xxl-12 col-md-12">
+                        <div class="card2 info-card1 customers-card1">
+          
+                          <div class="card-body">
+                            <h5 class="card-title">Over <span>|Due</span></h5>
+          
+                            <div class="d-flex align-items-center">
+                              <div class="card-icon rounded-circle d-flex align-items-center justify-content-center">
+                                <i class="bi bi-clipboard2-x-fill text-danger mb-5"></i>
+                              </div>
+                              <div class="ps-4 mb-5">
+                                <h6>14</h6>
+                                </div>
+                            </div>
+                          </div>
+          
+                        </div>
+                      </div><!-- End Sales Card -->
+                      </div>
+                      </div>
+                      <div class="col-lg-2">
+                        <div class="card2">
+                          <div class="col-xxl-12 col-md-12">
+                            <div class="card2 info-card1 customers-card1">
+              
+                              <div class="card-body">
+                                <h5 class="card-title">Due <span>|Today</span></h5>
+              
+                                <div class="d-flex align-items-center">
+                                  <div class="card-icon rounded-circle d-flex align-items-center justify-content-center">
+                                    <i class="bi bi-clock-fill text-warning mb-5"></i>
+                                  </div>
+                                  <div class="ps-4 mb-5">
+                                    <h6>45</h6>
+                                    </div>
+                                </div>
+                              </div>
+              
+                            </div>
+                          </div><!-- End Sales Card -->
+                          </div>
+                          </div>
+
+                  <div class="divider py-1 mt-4 mb-2 bg-secondary-light"></div>
+                
+                  <div class="container">
+                    <div class="row">
+                        <div class="col text-left">
+                            <!-- Text aligned to the beginning -->
+                            <span class="h6 pagetitle text-black col text-left font-weight-bolder text-uppercase">Work Request</span>
+                        </div>
+                        <div class="col text-right">
+                            <!-- Text aligned to the end -->
+                            <span class="h6 pagetitle text-black font-weight-bolder text-uppercase">Work Order </span>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-lg-2">
+                  <!-- Sales Card -->
+                  <div class="col-xxl-12 col-md-12">
+                    <div class="card_height1 info-card1 revenue-card1">
+      
+                      <div class="card-body">
+                        <h5 class="card-title">New <span>|</span></h5>
+      
+                        <div class="d-flex align-items-center">
+                          <div class="card-icon d-flex align-items-center justify-content-center">
+                            <i class="bi bi-envelope-open-fill text-success mb-5"></i>
+                          </div>
+                          <div class="ps-4 mb-5">
+                            <h6>45</h6>
+                            </div>
+                        </div>
+                      </div>
+      
+                    </div>
+                  </div><!-- End Sales Card -->
+                  </div>
+
+                  <div class="col-lg-2">      
+                  <!-- Revenue Card -->
+                  <div class="col-xxl-12 col-md-12">
+                    <div class="card_height1 info-card1 revenue-card1">
+                      <div class="card-body">
+                        <h5 class="card-title">Open <span>|</span></h5>
+      
+                        <div class="d-flex align-items-center">
+                          <div class="card-icon d-flex align-items-center justify-content-center">
+                            <i class="bi bi-door-open-fill text-success mb-5"></i>
+                          </div>
+                          <div class="ps-4 mb-5">
+                            <h6>64</h6>
+      
+                          </div>
+                        </div>
+                      </div>
+      
+                    </div>
+                  </div><!-- End Revenue Card -->
+                  </div>
+                
+                  
+                  <div class="col-lg-2">
+                  <!-- Customers Card -->
+                  <div class="col-xxl-12 col-xl-12">
+                    <div class="card_height1 info-card1 revenue-card1">
+                      <div class="card-body">
+                        <h5 class="card-title ">Quotation<span>|</span></h5>
+      
+                        <div class="d-flex align-items-center">
+                          <div class="card-icon  d-flex align-items-center justify-content-center">
+                            <i class="bi bi-currency-exchange text-success mb-5"></i>
+                          </div>
+                          <div class="ps-4 mb-5">
+                            <h6>44</h6>
+      
+                          </div>
+                        </div>
+      
+                      </div>
+                    </div>
+                  </div><!-- End Customers Card -->
+                </div>
+                  <div class="col-lg-2">
+                    <!-- Recent Activity -->       
+                      <div class="col-xxl-12 col-md-12">
+                        <div class="card21 info-card1 customers-card1">
+          
+                          <div class="card-body">
+                            <h5 class="card-title">New <span>|</span></h5>
+          
+                            <div class="d-flex align-items-center">
+                              <div class="card-icon rounded-circle d-flex align-items-center justify-content-center">
+                                <i class="bi bi-envelope-open-fill text-success mb-5"></i>
+                              </div>
+                              <div class="ps-4 mb-5">
+                                <h6>45</h6>
+                                </div>
+                            </div>
+                          </div>
+                        </div>
+                      </div><!-- End Sales Card -->
+                    </div>
+                    <div class="col-lg-2">
+                    <div class="card21">
+                      <div class="col-xxl-12 col-md-12">
+                        <div class="card21 info-card1 customers-card1">
+          
+                          <div class="card-body">
+                            <h5 class="card-title">Open <span>|</span></h5>
+          
+                            <div class="d-flex align-items-center">
+                              <div class="card-icon rounded-circle d-flex align-items-center justify-content-center">
+                                <i class="bi bi-door-open-fill text-success mb-5"></i>
+                              </div>
+                              <div class="ps-4 mb-5">
+                                <h6>45</h6>
+                                </div>
+                            </div>
+                          </div>
+          
+                        </div>
+                      </div><!-- End Sales Card -->
+                      </div>
+                      </div>
+                      <div class="col-lg-2">
+                        <div class="card21">
+                          <div class="col-xxl-12 col-md-12">
+                            <div class="card21 info-card1 customers-card1">
+              
+                              <div class="card-body">
+                                <h5 class="card-title">Started <span>|</span></h5>
+              
+                                <div class="d-flex align-items-center">
+                                  <div class="card-icon rounded-circle d-flex align-items-center justify-content-center">
+                                    <i class="bi bi-person-walking text-success mb-5"></i>
+                                  </div>
+                                  <div class="ps-4 mb-5">
+                                    <h6>15</h6>
+                                    </div>
+                                </div>
+                              </div>
+              
+                            </div>
+                          </div><!-- End Sales Card -->
+                          </div>
+                          </div>
+      
+                   <!-- Sales Card -->
+                   <div class="col-lg-2">
+                   <div class="col-xxl-12 col-xl-12">
+                    <div class="card_height1 info-card1 revenue-card1">
+                      <div class="card-body">
+                        <h5 class="card-title">Awaiting<span class="h6">|</span></h5>
+      
+                        <div class="d-flex align-items-center">
+                          <div class="card-icon  d-flex align-items-center justify-content-center">
+                            <i class="bi bi-card-checklist text-warning mb-5"></i>
+                          </div>
+                          <div class="ps-4 mb-5">
+                            <h6>4</h6>
+      
+                          </div>
+                        </div>
+      
+                      </div>
+                    </div>
+                    </div>
+      
+                  </div><!-- End Customers Card -->
+      
+                  <!-- Revenue Card -->
+                  <div class="col-lg-2">
+                  <div class="col-xxl-2 col-md-3">
+                    <div class="card6 info-card revenue-card">
+      
+                    </div>
+                  </div><!-- End Revenue Card -->
+                  </div>
+      
+                  <!-- Customers Card -->
+                  <div class="col-lg-2">
+                  <div class="col-xxl-2 col-md-3">
+                    <div class="card6 info-card revenue-card">
+      
+                    </div>
+                  </div><!-- End Revenue Card --><!-- End Customers Card -->
+                  </div>
+                  <div class="col-lg-2">
+                    <div class="card21">
+                      <div class="col-xxl-12 col-md-12">
+                        <div class="card21 info-card1 customers-card1">
+          
+                          <div class="card-body">
+                            <h5 class="card-title">Over-Due <span>|</span></h5>
+          
+                            <div class="d-flex align-items-center">
+                              <div class="card-icon rounded-circle d-flex align-items-center justify-content-center">
+                                <i class="bi bi-clipboard2-x-fill text-danger mb-5"></i>
+                              </div>
+                              <div class="ps-4 mb-5">
+                                <h6>15</h6>
+                                </div>
+                            </div>
+                          </div>
+          
+                        </div>
+                      </div><!-- End Sales Card -->
+                      </div>
+                      </div>
+                      <div class="col-lg-2">
+                        <div class="card21">
+                          <div class="col-xxl-12 col-md-12">
+                            <div class="card21 info-card1 customers-card1">
+              
+                              <div class="card-body">
+                                <h5 class="card-title">Awaiting<span>|</span></h5>
+              
+                                <div class="d-flex align-items-center">
+                                  <div class="card-icon rounded-circle d-flex align-items-center justify-content-center">
+                                    <i class="bi bi-card-checklist mb-5"></i>
+                                  </div>
+                                  <div class="ps-4 mb-5">
+                                    <h6>45</h6>
+                                    </div>
+                                </div>
+                              </div>
+              
+                            </div>
+                          </div><!-- End Sales Card -->
+                          </div>
+                          </div>  
+                          <div class="col-lg-2">
+                            <div class="card21">
+                              <div class="col-xxl-12 col-md-12">
+                                <div class="card21 info-card1 customers-card1">
+                  
+                                  <div class="card-body">
+                                    <h5 class="card-title">Pending<span>|</span></h5>
+                  
+                                    <div class="d-flex align-items-center">
+                                      <div class="card-icon rounded-circle d-flex align-items-center justify-content-center">
+                                        <i class="bi bi-clipboard-x-fill text-warning mb-5"></i>
+                                      </div>
+                                      <div class="ps-4 mb-5">
+                                        <h6>53</h6>
+                                        </div>
+                                    </div>
+                                  </div>
+                  
+                                </div>
+                              </div>
+                              </div>
+                              </div><!-- End of Work Request and Order -->
+      
+      
+           <!-- Payment Request Section -->
+      
+                  <div class="divider py-1 mt-4 mb-2 bg-secondary-light"></div>
+                  
+                  <div class="container">
+                    <div class="row">
+                        <div class="col text-left">
+                            <!-- Text aligned to the beginning -->
+                            <span class="h6 pagetitle text-black col text-left font-weight-bolder text-uppercase">Payment-Requisition</span>
+                        </div>
+                    
+                    </div>
+                </div>
+                  
+                  <!-- Sales Card -->
+                  <div class="col-lg-3">
+                  <div class="col-xxl-12 col-md-12">
+                    <div class="card_height1 info-card1 revenue-card1">
+      
+                      <div class="card-body">
+                        <h5 class="card-title">New <span>| Payment</span></h5>
+      
+                        <div class="d-flex align-items-center">
+                          <div class="card-icon d-flex align-items-center justify-content-center">
+                            <i class="bi bi-envelope-open-fill text-success mb-5"></i>
+                          </div>
+                          <div class="ps-5 mb-5">
+                            <h6>45</h6>
+                            </div>
+                        </div>
+                      </div>
+      
+                    </div>
+                  </div><!-- End Sales Card -->
+                  </div>
+      
+                  <!-- Revenue Card -->
+                  <div class="col-lg-3">
+                  <div class="col-xxl-12 col-md-12">
+                    <div class="card_height1 info-card1 revenue-card1">
+                      <div class="card-body">
+                        <h5 class="card-title">Awaiting <span>|Approval</span></h5>
+      
+                        <div class="d-flex align-items-center">
+                          <div class="card-icon d-flex align-items-center justify-content-center">
+                            <i class="bi bi-clock-fill text-warning mb-5"></i>
+                          </div>
+                          <div class="ps-5 mb-5">
+                            <h6>64</h6>
+      
+                          </div>
+                        </div>
+                      </div>
+                      </div>
+                    </div>
+                  </div><!-- End Revenue Card -->
+                
+                  
+      
+                  <!-- Customers Card -->
+                  <div class="col-lg-3">
+                  <div class="col-xxl-12 col-xl-12">
+                    <div class="card_height1 info-card1 revenue-card1">
+                      <div class="card-body">
+                        <h5 class="card-title ">Payment <span>|Pending</span></h5>
+      
+                        <div class="d-flex align-items-center">
+                          <div class="card-icon  d-flex align-items-center justify-content-center">
+                            <i class="bi bi-currency-exchange text-warning mb-5"></i>
+                          </div>
+                          <div class="ps-5 mb-5">
+                            <h6>44</h6>
+      
+                          </div>
+                        </div>
+      
+                      </div>
+                    </div>
+                    </div>
+      
+                  </div><!-- End Customers Card -->
+                     <!-- Customers Card -->
+                     <div class="col-lg-3">
+                     <div class="col-xxl-12 col-xl-12">
+                      <div class="card_height1 info-card1 revenue-card1">
+                        <div class="card-body">
+                          <h5 class="card-title">Part <span>|Paid</span></h5>
+        
+                          <div class="d-flex align-items-center">
+                            <div class="card-icon  d-flex align-items-center justify-content-center">
+                              <i class="bi bi-currency-exchange text-success mb-5"></i>
+                            </div>
+                            <div class="ps-5 mb-5">
+                              <h6>44</h6>
+        
+                            </div>
+                          </div>
+        
+                        </div>
+                      </div>
+                      </div>
+                    </div><!-- End Customers Card -->
+      
+                          </div>
+          
+                        </div>
+                      </div>
+      
+       
+            
+          
+              
+      
+      
+      
+      
+                   
+               
+                              <div class="divider py-1 mt-4 mb-2 bg-secondary-light"></div>
+                  
+                </div>
+          
+      
+              </div>
+
+  </main><!-- End #main -->
+
+
+  {% endblock content %}

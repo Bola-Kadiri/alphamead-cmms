@@ -1,0 +1,198 @@
+{% extends 'partials/base.html' %} {% load static %} {% block content %}
+
+
+        <main id="main" class="main">
+            <!------Landlord Heading---------->
+            <div class="assets-container">
+                <div class="landlord-heading">
+                    <div class="landlord-heading_text">
+                        <i class="fa-solid fa-sliders filter-icon" data-bs-toggle="tooltip" data-bs-placement="top" title="Filter"></i>
+                        <span>
+                            <i class="fa-solid fa-magnifying-glass" onclick="searchTable()"></i>
+                            <input type="search" id="searchInput" placeholder="Search Landlords...">
+                        </span>
+                        <h3><a href="">Landlords</a></h3>
+                    </div>
+                    <div class="landlord-heading_icons">
+                        <i class="fa-solid fa-list" data-bs-toggle="tooltip" data-bs-placement="bottom" title="List view"></i>
+                        <i class="fa-solid fa-table-cells" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Table view"></i>
+                    </div>
+                </div>
+            
+                <div class="empty-div"></div>
+            
+                <!--------Landlord Main Content------------------->
+                <div class="landlord-main_content">
+                    <div class="landlord-sidebar">
+                        <h5>Landlord</h5>
+                        <div class="landlord-sidebar_controls">
+                            <button>
+                                <i class="fa-solid fa-plus"></i>
+                                <span id="load-button" data-bs-toggle="modal" data-bs-target="#ExtralargeModal">New</span>
+                            </button>
+                            <i class="fa-solid fa-arrow-up-right-from-square export-icon" data-bs-toggle="tooltip" data-bs-placement="top" title="Export"></i>
+                        </div>
+
+                        <div class="landlord-sidebar_contents"></div>
+                        <div class="landlord-sidebar_loadMore">
+                            <div id="landlordCount" class="landlord-count"></div>
+                            <button id="loadMoreBtn">Load More</button>
+                        </div>
+                    </div>
+                    <i class="fa-solid fa-bars landlord-sidebarBtn"></i>
+
+                    <!----------Landlord Main Body-------------->
+                    <div class="landlord-main_body">
+                        <div class="default-image" id="default-image">
+                            <img src="./assets/img/in-empty-details-icon.svg" alt="">
+                            <h3>Your Landlords are sleeping!</h3>
+                            <p>Click on them</p>
+                        </div>
+                        <div class="landlord-body_content">
+                            <div class="landlord-type">
+                                <div class="landlord-type_header">
+                                    <h4>Detail</h4>
+                                    <h5 data-bs-toggle="collapse" data-bs-target="#landlord-detail">Click to collapse</h5>
+                                    <i class="fa-solid fa-chevron-left"></i>
+                                </div>
+                                <div id="landlord-detail">
+                                    <hr>
+                                    <h6>About</h6>
+                                    <div class="landlord-type_details">
+                                        <div class="landlord-details">
+                                            <h4>Name</h4>
+                                            <p id="name"></p>
+                                        </div>
+
+                                        <div class="landlord-details">
+                                            <h4>Address</h4>
+                                            <p id="address"></p>
+                                        </div>
+
+                                        <div class="landlord-details">
+                                            <h4>Phone</h4>
+                                            <p id="phone"></p>
+                                        </div>
+
+                                        <div class="landlord-details">
+                                            <h4>Email</h4>
+                                            <p id="email"></p>
+                                        </div>
+
+                                        <div class="landlord-details">
+                                            <h4>Status</h4>
+                                            <p id="status"></p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="landlord-type">
+                                <div class="landlord-type_header">
+                                    <h4>Apartments <i>(0)</i></h4>
+                                    <h5 data-bs-toggle="collapse" data-bs-target="#landlord-apartment">Click to collapse</h5>
+                                    <i class="fa-solid fa-chevron-left"></i>
+                                </div>
+                                <div id="landlord-apartment">
+                                    <hr>
+                                    <div class="landlord-item_header"></div>
+                                </div>
+                            </div>
+
+                            <div class="landlord-type">
+                                <div class="landlord-type_header">
+                                  <h4>Leases <i>(0)</i></h4>
+                                  <h5 data-bs-toggle="collapse" data-bs-target="#landlord-leases">Click to collapse</h5>
+                                  <i class="fa-solid fa-chevron-left"></i>
+                                </div>
+                                <div id="landlord-leases">
+                                  <hr>
+                                  <div class="landlord-item"></div>
+                                </div>
+                            </div>
+
+                            <div class="landlord-type">
+                                <div class="landlord-type_header">
+                                    <h4>Remittances <i>(0)</i></h4>
+                                    <h5 data-bs-toggle="collapse" data-bs-target="#landlord-remit">Click to collapse</h5>
+                                    <i class="fa-solid fa-chevron-left"></i>
+                                </div>
+                                <div id="landlord-remit">
+                                    <hr>
+                                    <div class="landlord-item"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!----------Modal for a new landlord----------->
+            <div class="modal fade" id="ExtralargeModal" tabindex="-1">
+                <div class="modal-dialog modal-xl">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                                <h5 class="modal-title">New Landlord</h5>
+                            <div class="modal-buttons">
+                                <button>
+                                    <i class="fa-solid fa-check" style="margin-right: 1rem;"></i>
+                                    Done
+                                </button>
+                                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                            </div>
+                        </div>
+
+                        <div class="modal-body">
+                            <div class="modal-content">
+                                <div class="modal-content_header" onmouseover="showIcons()" onmouseout="hideIcons()">
+                                    <h4>Detail</h4>
+                                    <h5 data-bs-toggle="collapse" data-bs-target="#landlord_modal-detail">Click to collapse</h5>
+                                    <i class="fa-solid fa-chevron-left arrow" onmouseover="showIcons()" onmouseout="hideIcons()"></i>
+                                </div>
+
+                                <div id="landlord_modal-detail">
+                                    <hr>
+                                    <div class="modal-content_body">
+                                        <h5>Details</h5>
+                                        <form action="">
+                                            <div class="landlord-content_container">
+                                                <div class="landlord-content_input">
+                                                    <label for="landlord_input-name">Name</label><br>
+                                                    <input type="text" name="landlord_input-name" id="landlord_input-name">
+                                                </div>
+
+                                                <div class="landlord-content_input">
+                                                    <label for="landlord_input-address">Address</label><br>
+                                                    <input type="text" name="landlord_input-address" id="landlord_input-address">
+                                                </div>
+
+                                                <div class="landlord-content_input">
+                                                    <label for="landlord_input-phone">Phone</label><br>
+                                                    <input type="text" name="landlord_input-phone" id="landlord_input-phone">
+                                                </div>
+
+                                                <div class="landlord-content_input">
+                                                    <label for="landlord_input-email">Email</label><br>
+                                                    <input type="email" name="landlord_input-email" id="landlord_input-email">
+                                                </div>
+
+                                                <div class="landlord-content_input">
+                                                    <label for="landlord_input-status">Status</label><br>
+                                                    <select name="landlord_input-status" id="landlord_input-status">
+                                                        <option value="select">Select</option>
+                                                    </select>
+                                                </div>
+                                            </div>
+                                        </form>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>   
+                    </div>
+                </div>
+            </div>
+        </main>
+
+
+
+{% endblock content %}

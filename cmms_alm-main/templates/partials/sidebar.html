@@ -1,0 +1,374 @@
+{% load static %}
+    <!-- ======= Sidebar ======= -->
+    <aside id="sidebar" class="sidebar">
+  
+        <ul class="sidebar-nav" id="sidebar-nav">
+    
+          <li class="nav-item">
+            <a class="nav-link " href="{% url 'dashboard:dashboard' %}">
+             
+              <i class="bi bi-grid"></i>
+              <span>Dashboard</span>
+            </a>
+          </li><!-- End Dashboard Nav -->
+          <li class="nav-item">
+            <a class="nav-link " href="{% url 'dashboard:calendar' %}">
+              <i class="bi bi-calendar"></i>
+              <span>Work Calendar</span>
+            </a>
+          </li><!-- End Dashboard Nav -->
+    
+          <li class="nav-item">
+            <a class="nav-link collapsed" data-bs-target="#components-nav" data-bs-toggle="collapse" href="#">
+              <i class="bi bi-menu-button-wide"></i><span>Work</span><i class="bi bi-chevron-down ms-auto"></i>
+            </a>
+            <ul id="components-nav" class="nav-content collapse " data-bs-parent="#sidebar-nav">
+              <li>
+                <a href="{% url 'work:work_request' %}">
+                  <i class="bi bi-circle"></i><span>Work Request</span>
+                </a>
+              </li>
+              <li>
+                <a href="{% url 'work:work_order' %}">
+                  <i class="bi bi-circle"></i><span>Work Order</span>
+                </a>
+              </li>
+              <li>
+                <a href="{% url 'work:pending_ppm' %}">
+                  <i class="bi bi-circle"></i><span>Pending PPM</span>
+                </a>
+              </li>
+              <li class="nav-item" id="requisition">
+                <a class="nav-link collapsed" data-bs-target="#requisition-nav" data-bs-toggle="collapse" href="#">
+                  <i class="bi bi-circle"></i><span>Requisition</span><i class="bi bi-chevron-down ms-auto"></i>
+                </a>
+                <ul id="requisition-nav" class="nav-content collapse " data-bs-parent="#requisition">
+                  <li>
+                    <a href="{% url 'work:requisition' %}">
+                      <i class="bi bi-circle"></i><span>Payment Requisition</span>
+                    </a>
+                  </li>
+                  <li>
+                    <a href="{% url 'work:requisition' %}">
+                      <i class="bi bi-circle"></i><span>Bulk Payment Requisition</span>
+                    </a>
+                  </li>
+                </ul>
+              </li>
+              <li>
+                <a href="{% url 'work:ppm_setting' %}">
+                  <i class="bi bi-circle"></i><span>PPM Setting</span>
+                </a>
+              </li>
+              <li>
+                <a href="{% url 'work:budget' %}">
+                  <i class="bi bi-circle"></i><span>Budget</span>
+                </a>
+              </li>
+     
+            </ul>
+          </li><!-- End Work Nav -->
+          <li class="nav-item">
+            <a class="nav-link collapsed" data-bs-target="#asset-nav" data-bs-toggle="collapse" href="#">
+              <i class="bi bi-laptop"></i><span>Asset & Inventory</span><i class="bi bi-chevron-down ms-auto"></i>
+            </a>
+            <ul id="asset-nav" class="nav-content collapse " data-bs-parent="#sidebar-nav">
+              <li>
+                <a href="{% url 'asset_inventory:asset_register' %}">
+                  <i class="bi bi-circle"></i><span>Asset Register</span>
+                </a>
+              </li>
+              <li>
+                <a href="{% url 'asset_inventory:inventory' %}">
+                  <i class="bi bi-circle"></i><span>Inventory Register</span>
+                </a>
+              </li>
+              <li>
+                <a href="{% url 'asset_inventory:item_request' %}">
+                  <i class="bi bi-circle"></i><span>Item Request</span>
+                </a>
+              </li>
+              <li>
+                <a href="{% url 'asset_inventory:transfer_form' %}">
+                  <i class="bi bi-circle"></i><span>Transfer Form</span>
+                </a>
+              </li>
+              <li>
+                <a href="{% url 'asset_inventory:movement_history' %}">
+                  <i class="bi bi-circle"></i><span>Movement History</span>
+                </a>
+              </li>
+              <li class="nav-item" id="asset-report">
+                <a class="nav-link collapsed" data-bs-target="#assetReports-nav" data-bs-toggle="collapse" href="#">
+                  <i class="bi bi-circle"></i><span>Reports</span><i class="bi bi-chevron-down ms-auto"></i>
+                </a>
+                <ul id="assetReports-nav" class="nav-content collapse " data-bs-parent="#asset-report">
+                  <li>
+                  
+                      <a href="{% url 'asset_inventory:asset_performance' %}">
+                      <i class="bi bi-circle"></i><span>Asset Performance Report</span>
+                    </a>
+                  </li>
+                  <li>
+               
+                      <a href="{% url 'asset_inventory:inventory_summary' %}">
+                      <i class="bi bi-circle"></i><span>Inventory Summary Report</span>
+                    </a>
+                  </li>
+                </ul>
+              </li>
+              <li class="nav-item" id="asset-reference">
+                <a class="nav-link collapsed" data-bs-target="#assetReference-nav" data-bs-toggle="collapse" href="#">
+                  <i class="bi bi-circle"></i><span>Reference</span><i class="bi bi-chevron-down ms-auto"></i>
+                </a>
+                <ul id="assetReference-nav" class="nav-content collapse " data-bs-parent="#asset-reference">
+                  <li>
+                   
+                      <a href="{% url 'asset_inventory:category' %}">
+                      <i class="bi bi-circle"></i><span>Category</span>
+                    </a>
+                  </li>
+                  <li>
+   
+                      <a href="{% url 'asset_inventory:subcategory' %}">
+                      <i class="bi bi-circle"></i><span>Subcategory</span>
+                    </a>
+                  </li>
+                  <li>
+                  
+                      <a href="{% url 'asset_inventory:model' %}">
+                      <i class="bi bi-circle"></i><span>Model</span>
+                    </a>
+                  </li>
+                  <li>
+           
+                      <a href="{% url 'asset_inventory:manufacturer' %}">
+                      <i class="bi bi-circle"></i><span>Manufacturer</span>
+                    </a>
+                  </li>
+                  <li>
+
+                      <a href="{% url 'asset_inventory:warehouse' %}">
+                      <i class="bi bi-circle"></i><span>Warehouse</span>
+                    </a>
+                  </li>
+                  <li>
+                   
+                      <a href="{% url 'accounts:unit_of_measurement' %}">
+                      <i class="bi bi-circle"></i><span>Unit of Measurement</span>
+                    </a>
+                  </li>
+                  
+                </ul>
+              </li>
+            
+            </ul>
+          </li><!-- End Asset and Inventory Nav -->
+          <li class="nav-item">
+            <a class="nav-link collapsed" data-bs-target="#icons-procurement" data-bs-toggle="collapse" href="#">
+              <i class="bi bi-cart-plus-fill"></i><span>Procurement</span><i class="bi bi-chevron-down ms-auto"></i>
+            </a>
+            <ul id="icons-procurement" class="nav-content collapse " data-bs-parent="#sidebar-nav">
+              <li>
+                <a href="{% url 'procurement:request_quotation' %}">
+                  <i class="bi bi-circle"></i><span>Request For Quotation</span>
+                </a>
+              </li>
+              <li>
+                <a href="{% url 'procurement:purchase_order' %}">
+                  <i class="bi bi-circle"></i><span>Purchase Order</span>
+                </a>
+              </li>
+              <li>
+                <a href="{% url 'procurement:goods_received' %}">
+                  <i class="bi bi-circle"></i><span>Goods Received Note</span>
+                </a>
+              </li>
+              <li>
+                <a href="{% url 'procurement:payment_requisition' %}">
+                  <i class="bi bi-circle"></i><span>Payment Requisition</span>
+                </a>
+              </li>
+              <li>
+                <a href="{% url 'procurement:saving_loss_report' %}">
+                  <i class="bi bi-circle"></i><span>Savings/Loss Report</span>
+                </a>
+              </li>
+            </ul>
+          </li><!-- End Procurement Nav -->
+          
+      
+          <li class="nav-item">
+            <a class="nav-link collapsed" data-bs-target="#facility-nav" data-bs-toggle="collapse" href="#">
+              <i class="bi bi-buildings-fill"></i><span>Facility</span><i class="bi bi-chevron-down ms-auto"></i>
+            </a>
+            <ul id="facility-nav" class="nav-content collapse " data-bs-parent="#sidebar-nav">
+              <li>
+              
+                  <a href="{% url 'facility:facility' %}">
+                  <i class="bi bi-circle"></i><span>Facility</span>
+                </a>
+              </li>
+              <li>
+                    
+                <a href="{% url 'facility:apartment_type' %}">
+                <i class="bi bi-circle"></i><span>Apartment Type</span>
+              </a>
+            </li>
+           
+             
+            </ul>
+          </li><!-- End lease Nav -->
+          <li class="nav-item">
+            <a class="nav-link collapsed" data-bs-target="#report-nav" data-bs-toggle="collapse" href="#">
+              <i class="bi bi-list"></i><span>Report</span><i class="bi bi-chevron-down ms-auto"></i>
+            </a>
+            <ul id="report-nav" class="nav-content collapse " data-bs-parent="#sidebar-nav">
+              <li>
+             
+                  <a href="{% url 'report:scheduled' %}">
+                  <i class="bi bi-circle"></i><span>Scheduled Report</span>
+                </a>
+              </li>
+              <li>
+                <a href="{% url 'report:user_facility' %}">
+                  <i class="bi bi-circle"></i><span>User Facility report</span>
+                </a>
+              </li>
+              <li>
+                  <a href="{% url 'report:user_audit' %}">
+                  <i class="bi bi-circle"></i><span>User Audit Report</span>
+                </a>
+              </li>
+              <li>
+
+                  <a href="{% url 'report:usage_report' %}">
+                  <i class="bi bi-circle"></i><span>Usage Report</span>
+                </a>
+              </li>
+            </ul>
+          </li><!-- End lease Nav -->
+          <li class="nav-item">
+            <a class="nav-link collapsed" data-bs-target="#reference-nav" data-bs-toggle="collapse" href="#">
+              <i class="bi bi-amd"></i><span>Reference</span><i class="bi bi-chevron-down ms-auto"></i>
+            </a>
+            <ul id="reference-nav" class="nav-content collapse " data-bs-parent="#sidebar-nav">
+
+
+
+              <li>
+                <a href="{% url 'accounts:users' %}">
+                  <i class="bi bi-circle"></i><span>User Management</span>
+                </a>
+              </li>
+              <li>
+                <a href="{% url 'accounts:personnel' %}">
+                  <i class="bi bi-circle"></i><span>Personnel</span>
+                </a>
+              </li>
+              <li>
+                <a href="{% url 'accounts:vendor' %}">
+                  <i class="bi bi-circle"></i><span>Vendor</span>
+                </a>
+              </li>
+              <li>
+                <a href="{% url 'accounts:client' %}">
+                  <i class="bi bi-circle"></i><span>Client</span>
+                </a>
+              </li>
+              <li>
+                <a href="{% url 'accounts:category' %}">
+                  <i class="bi bi-circle"></i><span>Category</span>
+                </a>
+              </li>
+              <li>
+                <a href="{% url 'accounts:department' %}">
+                  <i class="bi bi-circle"></i><span>Department</span>
+                </a>
+              </li>
+              <li>
+                <a href="{% url 'accounts:bank_account' %}">
+                  <i class="bi bi-circle"></i><span>Bank Account</span>
+                </a>
+              </li>
+              <li>
+                <a href="{% url 'accounts:unit_of_measurement' %}">
+                  <i class="bi bi-circle"></i><span>Unit of Measurement</span>
+                </a>
+              </li>
+
+       
+              <li class="nav-item" id="data">
+                <a class="nav-link collapsed" data-bs-target="#data-nav" data-bs-toggle="collapse" href="#">
+                  <i class="bi bi-circle"></i><span>Data Import</span><i class="bi bi-chevron-down ms-auto"></i>
+                </a>
+                <ul id="data-nav" class="nav-content collapse " data-bs-parent="#data">
+                  <li>
+                    <a href="{% url 'accounts:data_facility' %}">
+                      <i class="bi bi-circle"></i><span>Facility</span>
+                    </a>
+                  </li>
+                  <li>
+                    <a href="{% url 'accounts:data_inventory' %}">
+                      <i class="bi bi-circle"></i><span>Inventory</span>
+                    </a>
+                  </li>
+                </ul>
+              </li>
+            </ul>
+          </li><!-- End lease Nav -->
+          <li class="nav-heading">Management Systems</li>
+          <li class="nav-item">
+            <a class="nav-link collapsed" data-bs-target="#lease-nav" data-bs-toggle="collapse" href="#">
+              <i class="bi bi-house"></i><span>Lease</span><i class="bi bi-chevron-down ms-auto"></i>
+            </a>
+            <ul id="lease-nav" class="nav-content collapse " data-bs-parent="#sidebar-nav">
+              <li>
+                <a href="rent4less.com.ng">
+                  <i class="bi bi-circle"></i><span>Rent4Less</span>
+                </a>
+              </li>
+            </ul>
+          </li><!-- End lease Nav -->
+    
+          <li class="nav-item">
+            <a class="nav-link collapsed" data-bs-target="#power-nav" data-bs-toggle="collapse" href="#">
+              <i class="bi bi-phone-vibrate"></i><span>Service & Power Charge</span><i class="bi bi-chevron-down ms-auto"></i>
+            </a>
+            <ul id="power-nav" class="nav-content collapse " data-bs-parent="#sidebar-nav">
+              <li>
+                <a href="components-alerts.html">
+                  <i class="bi bi-circle"></i><span>Service Charge</span>
+                </a>
+              </li>
+              <li>
+                <a href="components-accordion.html">
+                  <i class="bi bi-circle"></i><span>Power Charge</span>
+                </a>
+              </li>
+           
+              
+            
+            </ul>
+          </li><!-- End Service and Power Nav -->
+          <li class="nav-item">
+            <a class="nav-link collapsed" data-bs-target="#vms-nav" data-bs-toggle="collapse" href="#">
+              <i class="bi bi-person-fill-check"></i><span>Visitor Management</span><i class="bi bi-chevron-down ms-auto"></i>
+            </a>
+            <ul id="vms-nav" class="nav-content collapse " data-bs-parent="#sidebar-nav">
+              <li>
+                <a href="rent4less.com.ng">
+                  <i class="bi bi-circle"></i><span>VMS</span>
+                </a>
+              </li>
+            </ul>
+          </li><!-- End lease Nav -->
+         
+    
+         
+    
+      
+    
+        </ul>
+    
+      </aside><!-- End Sidebar-->

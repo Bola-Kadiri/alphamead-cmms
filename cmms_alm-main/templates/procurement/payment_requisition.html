@@ -1,0 +1,444 @@
+{% extends 'partials/base.html' %} {% load static %} {% block content %}
+
+
+
+        <main id="main" class="main">
+            <!------Purchase order requisitions Heading---------->
+            <div class="assets-container">
+                <div class="order-heading">
+                    <div class="order-heading_text">
+                        <i class="fa-solid fa-sliders filter-icon" data-bs-toggle="tooltip" data-bs-placement="top" title="Filter"></i>
+                        <span>
+                            <i class="fa-solid fa-magnifying-glass" onclick="searchTable()"></i>
+                            <input type="search" id="searchInput" placeholder="Search requisitions...">
+                        </span>
+                        <h3><a href="">Purchase order requisitions</a></h3>
+                    </div>
+                    <div class="order-heading_icons">
+                        <i class="fa-solid fa-list" data-bs-toggle="tooltip" data-bs-placement="bottom" title="List view"></i>
+                        <i class="fa-solid fa-table-cells" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Table view"></i>
+                    </div>
+                </div>
+            
+                <div class="empty-div"></div>
+            
+                <!--------Purchase order requisition Main Content------------------->
+                <div class="order-main_content">
+                    <div class="order-sidebar">
+                        <h5>Purchase order requisitions</h5>
+                        <div class="order-sidebar_controls">
+                            <button>
+                                <i class="fa-solid fa-plus"></i>
+                                <span id="load-button" data-bs-toggle="modal" data-bs-target="#ExtralargeModal">New</span>
+                            </button>
+                            <i class="fa-solid fa-arrow-up-right-from-square export-icon" data-bs-toggle="tooltip" data-bs-placement="top" title="Export"></i>
+                        </div>
+
+                        <div class="order-sidebar_contents">
+                            <div class="transfer-sidebar_image">
+                                <img src="{% static 'assets/img/in-empty-filter-icon.svg' %}" alt="">
+                                <h3>OMG!</h3>
+                                <p>No requisition found! You are sure it's in here?</p>
+                            </div>
+                        </div>
+                        <div class="order-sidebar_loadMore">
+                            <div id="orderCount" class="order-count"></div>
+                            <button id="loadMoreBtn">Load More</button>
+                        </div>
+                    </div>
+                    <i class="fa-solid fa-bars order-sidebarBtn"></i>
+
+                    <!----------Purchase order requisition Main Body-------------->
+                    <div class="order-main_body">
+                        <div class="default-image" id="default-image">
+                            <img src="{% static 'assets/img/in-empty-details-icon.svg" alt="">
+                            <h3>Your requisitions are sleeping!</h3>
+                            <p>Click on them</p>
+                        </div>
+                        <div class="order-body_content">
+                            <div class="order-type">
+                                <div class="order-type_header">
+                                    <h4>Detail</h4>
+                                    <h5 data-bs-toggle="collapse" data-bs-target="#order-detail">Click to collapse</h5>
+                                    <i class="fa-solid fa-chevron-left"></i>
+                                </div>
+                                <div id="order-detail">
+                                    <hr>
+                                    <h6>About</h6>
+                                    <div class="order-type_details">
+                                        <div class="order-details">
+                                            <h4>Number</h4>
+                                            <p id="number"></p>
+                                        </div>
+
+                                        <div class="order-details">
+                                            <h4>Purchase order</h4>
+                                            <p id="order"></p>
+                                        </div>
+
+                                        <div class="order-details">
+                                            <h4>Vendor</h4>
+                                            <p id="vendor"></p>
+                                        </div>
+
+                                        <div class="order-details">
+                                            <h4>Received at</h4>
+                                            <p id="receiver"></p>
+                                        </div>
+
+                                        <div class="order-details">
+                                            <h4>Facility/Location Store</h4>
+                                            <p id="facility"></p>
+                                        </div>
+
+                                        <div class="order-details">
+                                            <h4>Requested by</h4>
+                                            <p id="requester"></p>
+                                        </div>
+
+                                        <div class="order-details">
+                                            <h4>Requested date</h4>
+                                            <p id="date"></p>
+                                        </div>
+
+                                        <div class="order-details">
+                                            <h4>Requested time</h4>
+                                            <p id="time"></p>
+                                        </div>
+
+                                        <div class="order-details">
+                                            <h4>Approved</h4>
+                                            <p id="approve"></p>
+                                        </div>
+
+                                        <div class="order-details">
+                                            <h4>Status</h4>
+                                            <p id="status"></p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="order-type">
+                                <div class="order-type_header">
+                                    <h4>Items <i>(1)</i></h4>
+                                    <h5 data-bs-toggle="collapse" data-bs-target="#order-item">Click to collapse</h5>
+                                    <i class="fa-solid fa-chevron-left"></i>
+                                </div>
+                                <div id="order-item">
+                                    <hr>
+                                    <div class="order-item_table">
+                                        <table class="order-table">
+                                            <thead>
+                                                <tr>
+                                                    <th>#</th>
+                                                    <th>LPO Item</th>
+                                                    <th>Sub category</th>
+                                                    <th>Model</th>
+                                                    <th>Specification</th>
+                                                    <th>Serial No(s)</th>
+                                                    <th>Quantity received</th>
+                                                    <th>Unit price</th>
+                                                    <th>Amount</th>
+                                                    <th>Checked</th>
+                                                    <th>Rejected</th>
+                                                </tr>
+                                            </thead>
+
+                                            <tbody>
+                                                <tr>
+                                                    <td>1</td>
+                                                    <td>#0 - Test Item</td>
+                                                    <td>AVR</td>
+                                                    <td>3phase Auto AC Voltage Stabiliser (30KVA) Terrace Villa's)</td>
+                                                    <td></td>
+                                                    <td></td>
+                                                    <td>1</td>
+                                                    <td></td>
+                                                    <td></td>
+                                                    <td></td>
+                                                    <td>No</td>
+                                                </tr>
+                                            </tbody>
+                                        </table>
+                                        <div class="order-total">
+                                            <div class="order-total-name">
+                                              <h3>Total <i class="fa-solid fa-angles-right"></i></h3>
+                                            </div>
+
+                                            <div class="order-total-quantity">
+                                                <p>Qty</p>
+                                                <h3>1</h3>
+                                            </div>
+                                
+                                            <div class="order-total-quantity">
+                                              <p>Amount</p>
+                                              <h3>NGN 104,500</h3>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="order-type">
+                                <div class="order-type_header">
+                                  <h4>Approval <i>(0)</i></h4>
+                                  <h5 data-bs-toggle="collapse" data-bs-target="#order-approval">Click to collapse</h5>
+                                  <i class="fa-solid fa-chevron-left"></i>
+                                </div>
+                                <div id="order-approval">
+                                  <hr>
+                                  <div class="order-item">
+                                    <div class="order-modal_image">
+                                        <img src="./assets/img/movement-history.svg" alt="">
+                                        <p>No approvals requested.</p>
+                                        <p>Request approval</p>
+                                    </div>
+                                </div>
+                                </div>
+                            </div>
+
+                            <div class="order-type">
+                                <div class="order-type_header">
+                                    <h4>Comment <i>(0)</i></h4>
+                                    <h5 data-bs-toggle="collapse" data-bs-target="#order-comment">Click to collapse</h5>
+                                    <i class="fa-solid fa-chevron-left"></i>
+                                </div>
+                                <div id="order-comment">
+                                    <hr>
+                                    <div class="order-item">
+                                        <div class="order-modal_image">
+                                            <img src="./assets/img/movement-history.svg" alt="">
+                                            <p>Not been keeping track.</p>
+                                            <p>Leave a comment</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="order-type">
+                                <div class="order-type_header">
+                                    <h4>File attachments <i>(0)</i></h4>
+                                    <h5 data-bs-toggle="collapse" data-bs-target="#order-file">Click to collapse</h5>
+                                    <i class="fa-solid fa-chevron-left"></i>
+                                </div>
+                                <div id="order-file">
+                                    <hr>
+                                    <div class="order-item">
+                                        <div class="order-modal_image">
+                                            <img src="./assets/img/movement-history.svg" alt="">
+                                            <p>No strings attached.</p>
+                                            <p>Attach something</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="order-type">
+                                <div class="order-type_header">
+                                    <h4>History <i>(1)</i></h4>
+                                    <h5 data-bs-toggle="collapse" data-bs-target="#order-history">Click to collapse</h5>
+                                    <i class="fa-solid fa-chevron-left"></i>
+                                </div>
+                                <div id="order-history">
+                                    <hr>
+                                    <div class="order-item_table">
+                                        <table class="order-table">
+                                            <thead>
+                                                <tr>
+                                                    <th>Date</th>
+                                                    <th>Time</th>
+                                                    <th>User</th>
+                                                    <th>Action</th>
+                                                    <th>Detail</th>
+                                                </tr>
+                                            </thead>
+
+                                            <tbody>
+                                                <tr>
+                                                    <td>13/09/2024</td>
+                                                    <td>03:23 PM</td>
+                                                    <td>Martins Emoghene</td>
+                                                    <td>FIRST CREATED</td>
+                                                    <td>FIRST CREATED (From Request #0005701 approval)</td>
+                                                </tr>
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!----------Modal for a new purchase order requisition----------->
+            <div class="modal fade" id="ExtralargeModal" tabindex="-1">
+                <div class="modal-dialog modal-xl">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                                <h5 class="modal-title">New purchase order requisition</h5>
+                            <div class="modal-buttons">
+                                <button>
+                                    <i class="fa-solid fa-check" style="margin-right: 1rem;"></i>
+                                    Done
+                                </button>
+                                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                            </div>
+                        </div>
+
+                        <div class="modal-body">
+                            <div class="modal-content">
+                                <div class="modal-content_header" onmouseover="showIcons()" onmouseout="hideIcons()">
+                                    <h4>Detail</h4>
+                                    <h5 data-bs-toggle="collapse" data-bs-target="#order_modal-detail">Click to collapse</h5>
+                                    <i class="fa-solid fa-chevron-left arrow" onmouseover="showIcons()" onmouseout="hideIcons()"></i>
+                                </div>
+
+                                <div id="order_modal-detail">
+                                    <hr>
+                                    <div class="modal-content_body">
+                                        <h5>About</h5>
+                                        <form action="">
+                                            <div class="order-content_container">
+                                                <div class="order-content_input">
+                                                    <label for="order_input-vendor">Vendor</label><br>
+                                                    <select name="order_input-vendor" id="order_input-vendor">
+                                                        <option value="select">Select</option>
+                                                    </select>
+                                                </div>
+
+                                                <div class="order-content_input">
+                                                    <label for="order_input-date">Expected payment date</label><br>
+                                                    <input type="date" name="order_input-date" id="order_input-date">
+                                                </div>
+
+                                                <div class="order-content_input">
+                                                    <label for="order_input-invoice">Invoice No</label><br>
+                                                    <input type="text" name="order_input-invoice" id="order_input-invoice">
+                                                </div>
+
+                                                <div class="order-content_description flex-basis">
+                                                    <label for="order_input-remark">Remark</label><br>
+                                                    <input type="text" name="order_input-remark" id="order_input-remark" placeholder="Leave a remark">
+                                                </div>
+
+                                                <div class="order-content_input">
+                                                    <label for="order_input-status">Status</label><br>
+                                                    <select name="order_input-status" id="order_input-status">
+                                                        <option value="select">Select</option>
+                                                    </select>
+                                                </div>
+                                            </div>
+                                        </form>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="modal-content item-modal">
+                                <div class="modal-content_header" onmouseover="showIcons()" onmouseout="hideIcons()">
+                                    <h4>Items <i>(0)</i></h4>
+                                    <h5 data-bs-toggle="collapse" data-bs-target="#order_modal-item">Click to collapse</h5>
+                                    <i class="fa-solid fa-chevron-left arrow" onmouseover="showIcons()" onmouseout="hideIcons()"></i>
+                                </div>
+
+                                <div class="item-modal_body collapse" id="order_modal-item">
+                                    <div class="itemRequest-modal_add">
+                                        <button>
+                                            <i class="fa-solid fa-plus"></i>
+                                            <span>Add Items</span>
+                                        </button>
+                                    </div>
+                                    <div class="itemRequest-modal_image">
+                                        <img src="./assets/img/movement-history.svg" alt="">
+                                        <p>Nothing found here. Add some items</p>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="modal-content item-modal">
+                                <div class="modal-content_header" onmouseover="showIcons()" onmouseout="hideIcons()">
+                                    <h4>Approval <i>(0)</i></h4>
+                                    <h5 data-bs-toggle="collapse" data-bs-target="#order_modal-approval">Click to collapse</h5>
+                                    <i class="fa-solid fa-chevron-left arrow" onmouseover="showIcons()" onmouseout="hideIcons()"></i>
+                                </div>
+
+                                <div class="item-modal_body collapse" id="order_modal-approval">
+                                    <div class="itemRequest-modal_add">
+                                        <input type="radio" name="" id="">
+                                        <label for="" style="font-size: 13px;">Request approval</label>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="modal-content item-modal">
+                                <div class="modal-content_header" onmouseover="showIcons()" onmouseout="hideIcons()">
+                                    <h4>Comment <i>(0)</i></h4>
+                                    <h5 data-bs-toggle="collapse" data-bs-target="#order_modal-comment">Click to collapse</h5>
+                                    <i class="fa-solid fa-chevron-left arrow" onmouseover="showIcons()" onmouseout="hideIcons()"></i>
+                                </div>
+
+                                <div class="item-modal_body collapse" id="order_modal-comment">
+                                    <div class="itemRequest-modal_add">
+                                        <button>
+                                            <i class="fa-solid fa-comment"></i>
+                                            <span>Leave a comment</span>
+                                        </button>
+                                    </div>
+                                    <div class="itemRequest-modal_image">
+                                        <img src="./assets/img/movement-history.svg" alt="">
+                                        <p>Not been keeping track!</p>
+                                        <p>Leave a comment.</p>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="modal-content item-modal">
+                                <div class="modal-content_header" onmouseover="showIcons()" onmouseout="hideIcons()">
+                                    <h4>File attachments <i>(0)</i></h4>
+                                    <h5 data-bs-toggle="collapse" data-bs-target="#order_modal-file">Click to collapse</h5>
+                                    <i class="fa-solid fa-chevron-left arrow" onmouseover="showIcons()" onmouseout="hideIcons()"></i>
+                                </div>
+
+                                <div class="item-modal_body collapse" id="order_modal-file">
+                                    <div class="itemRequest-modal_add">
+                                        <button>
+                                            <i class="fa-solid fa-plus"></i>
+                                            <span>Add file</span>
+                                        </button>
+                                    </div>
+                                    <div class="itemRequest-modal_image">
+                                        <img src="./assets/img/movement-history.svg" alt="">
+                                        <p>No string attached!</p>
+                                        <p>Attach something</p>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="modal-content item-modal">
+                                <div class="modal-content_header" onmouseover="showIcons()" onmouseout="hideIcons()">
+                                    <h4>Payments <i>(0)</i></h4>
+                                    <h5 data-bs-toggle="collapse" data-bs-target="#order_modal-payment">Click to collapse</h5>
+                                    <i class="fa-solid fa-chevron-left arrow" onmouseover="showIcons()" onmouseout="hideIcons()"></i>
+                                </div>
+
+                                <div class="item-modal_body collapse" id="order_modal-payment">
+                                    <div class="itemRequest-modal_add">
+                                        <h6 style="font-weight: 800;">Withholding tax</h6>
+                                        <p>0%</p>
+                                    </div>
+                                    <div class="itemRequest-modal_image">
+                                        <img src="./assets/img/movement-history.svg" alt="">
+                                        <p>No string attached!</p>
+                                        <p>Attach something</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>   
+                    </div>
+                </div>
+            </div>
+        </main>
+
+
+{% endblock content %}

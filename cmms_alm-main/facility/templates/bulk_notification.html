@@ -1,0 +1,462 @@
+{% extends 'partials/base.html' %} {% load static %} {% block content %}
+
+
+        <main id="main" class="main">
+            <!------Bulk Notification Heading---------->
+            <div class="assets-container">
+                <div class="bulkNotify-heading">
+                    <div class="bulkNotify-heading_text">
+                        <i class="fa-solid fa-sliders filter-icon" data-bs-toggle="tooltip" data-bs-placement="top" title="Filter"></i>
+                        <span>
+                            <i class="fa-solid fa-magnifying-glass" onclick="searchTable()"></i>
+                            <input type="search" id="searchInput" placeholder="Search bulk notifications...">
+                        </span>
+                        <h3><a href="">Bulk Notifications</a></h3>
+                    </div>
+                    <div class="bulkNotify-heading_icons">
+                        <i class="fa-solid fa-list" data-bs-toggle="tooltip" data-bs-placement="bottom" title="List view"></i>
+                        <i class="fa-solid fa-table-cells" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Table view"></i>
+                    </div>
+                </div>
+            
+                <div class="empty-div"></div>
+            
+                <!--------Bulk Notification Main Content------------------->
+                <div class="bulkNotify-main_content">
+                    <div class="bulkNotify-sidebar">
+                        <h5>List of bulk notifications</h5>
+                        <div class="bulkNotify-sidebar_controls">
+                            <button>
+                                <i class="fa-solid fa-plus"></i>
+                                <span id="load-button" data-bs-toggle="modal" data-bs-target="#ExtralargeModal">New</span>
+                            </button>
+                            <i class="fa-solid fa-arrow-up-right-from-square export-icon" data-bs-toggle="tooltip" data-bs-placement="top" title="Export"></i>
+                        </div>
+
+                        <div class="bulkNotify-sidebar_contents">
+                            <div class="transfer-sidebar_image">
+                                <img src="./assets/img/in-empty-filter-icon.svg" alt="">
+                                <h3>OMG!</h3>
+                                <p>No bulk notification found! You are sure it's in here?</p>
+                            </div>
+                        </div>
+                        <div class="bulkNotify-sidebar_loadMore">
+                            <div id="bulkNotifyCount" class="bulkNotify-count"></div>
+                            <button id="loadMoreBtn">Load More</button>
+                        </div>
+                    </div>
+                    <i class="fa-solid fa-bars bulkNotify-sidebarBtn"></i>
+
+                    <!----------Bulk Notification Main Body-------------->
+                    <div class="bulkNotify-main_body">
+                        <div class="default-image" id="default-image">
+                            <img src="./assets/img/in-empty-details-icon.svg" alt="">
+                            <h3>Your bulk notifications are sleeping!</h3>
+                            <p>Click on them</p>
+                        </div>
+                        <div class="bulkNotify-body_content">
+                            <div class="bulkNotify-type">
+                                <div class="bulkNotify-type_header">
+                                    <h4>Detail</h4>
+                                    <h5 data-bs-toggle="collapse" data-bs-target="#bulkNotify-detail">Click to collapse</h5>
+                                    <i class="fa-solid fa-chevron-left"></i>
+                                </div>
+                                <div id="bulkNotify-detail">
+                                    <hr>
+                                    <h6>About</h6>
+                                    <div class="bulkNotify-type_details">
+                                        <div class="bulkNotify-details">
+                                            <h4>Number</h4>
+                                            <p id="number"></p>
+                                        </div>
+
+                                        <div class="bulkNotify-details">
+                                            <h4>Purchase order</h4>
+                                            <p id="order"></p>
+                                        </div>
+
+                                        <div class="bulkNotify-details">
+                                            <h4>Vendor</h4>
+                                            <p id="vendor"></p>
+                                        </div>
+
+                                        <div class="bulkNotify-details">
+                                            <h4>Received at</h4>
+                                            <p id="receiver"></p>
+                                        </div>
+
+                                        <div class="bulkNotify-details">
+                                            <h4>Facility/Location Store</h4>
+                                            <p id="facility"></p>
+                                        </div>
+
+                                        <div class="bulkNotify-details">
+                                            <h4>Requested by</h4>
+                                            <p id="requester"></p>
+                                        </div>
+
+                                        <div class="bulkNotify-details">
+                                            <h4>Requested date</h4>
+                                            <p id="date"></p>
+                                        </div>
+
+                                        <div class="bulkNotify-details">
+                                            <h4>Requested time</h4>
+                                            <p id="time"></p>
+                                        </div>
+
+                                        <div class="bulkNotify-details">
+                                            <h4>Approved</h4>
+                                            <p id="approve"></p>
+                                        </div>
+
+                                        <div class="bulkNotify-details">
+                                            <h4>Status</h4>
+                                            <p id="status"></p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="bulkNotify-type">
+                                <div class="bulkNotify-type_header">
+                                    <h4>Items <i>(1)</i></h4>
+                                    <h5 data-bs-toggle="collapse" data-bs-target="#bulkNotify-item">Click to collapse</h5>
+                                    <i class="fa-solid fa-chevron-left"></i>
+                                </div>
+                                <div id="bulkNotify-item">
+                                    <hr>
+                                    <div class="bulkNotify-item_table">
+                                        <table class="bulkNotify-table">
+                                            <thead>
+                                                <tr>
+                                                    <th>#</th>
+                                                    <th>LPO Item</th>
+                                                    <th>Sub category</th>
+                                                    <th>Model</th>
+                                                    <th>Specification</th>
+                                                    <th>Serial No(s)</th>
+                                                    <th>Quantity received</th>
+                                                    <th>Unit price</th>
+                                                    <th>Amount</th>
+                                                    <th>Checked</th>
+                                                    <th>Rejected</th>
+                                                </tr>
+                                            </thead>
+
+                                            <tbody>
+                                                <tr>
+                                                    <td>1</td>
+                                                    <td>#0 - Test Item</td>
+                                                    <td>AVR</td>
+                                                    <td>3phase Auto AC Voltage Stabiliser (30KVA) Terrace Villa's)</td>
+                                                    <td></td>
+                                                    <td></td>
+                                                    <td>1</td>
+                                                    <td></td>
+                                                    <td></td>
+                                                    <td></td>
+                                                    <td>No</td>
+                                                </tr>
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="bulkNotify-type">
+                                <div class="bulkNotify-type_header">
+                                  <h4>Approval <i>(0)</i></h4>
+                                  <h5 data-bs-toggle="collapse" data-bs-target="#bulkNotify-approval">Click to collapse</h5>
+                                  <i class="fa-solid fa-chevron-left"></i>
+                                </div>
+                                <div id="bulkNotify-approval">
+                                  <hr>
+                                  <div class="bulkNotifyy-item">
+                                    <div class="bulkNotify-modal_image">
+                                        <img src="./assets/img/movement-history.svg" alt="">
+                                        <p>No approvals requested.</p>
+                                        <p>Request approval</p>
+                                    </div>
+                                </div>
+                                </div>
+                            </div>
+
+                            <div class="bulkNotify-type">
+                                <div class="bulkNotify-type_header">
+                                    <h4>Comment <i>(0)</i></h4>
+                                    <h5 data-bs-toggle="collapse" data-bs-target="#bulkNotify-comment">Click to collapse</h5>
+                                    <i class="fa-solid fa-chevron-left"></i>
+                                </div>
+                                <div id="bulkNotify-comment">
+                                    <hr>
+                                    <div class="bulkNotify-item">
+                                        <div class="bulkNotify-modal_image">
+                                            <img src="./assets/img/movement-history.svg" alt="">
+                                            <p>Not been keeping track.</p>
+                                            <p>Leave a comment</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="bulkNotify-type">
+                                <div class="bulkNotify-type_header">
+                                    <h4>File attachments <i>(0)</i></h4>
+                                    <h5 data-bs-toggle="collapse" data-bs-target="#bulkNotify-file">Click to collapse</h5>
+                                    <i class="fa-solid fa-chevron-left"></i>
+                                </div>
+                                <div id="bulkNotify-file">
+                                    <hr>
+                                    <div class="bulkNotify-item">
+                                        <div class="bulkNotify-modal_image">
+                                            <img src="./assets/img/movement-history.svg" alt="">
+                                            <p>No strings attached.</p>
+                                            <p>Attach something</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="bulkNotify-type">
+                                <div class="bulkNotify-type_header">
+                                    <h4>History <i>(1)</i></h4>
+                                    <h5 data-bs-toggle="collapse" data-bs-target="#bulkNotify-history">Click to collapse</h5>
+                                    <i class="fa-solid fa-chevron-left"></i>
+                                </div>
+                                <div id="bulkNotify-history">
+                                    <hr>
+                                    <div class="bulkNotify-item_table">
+                                        <table class="bulkNotify-table">
+                                            <thead>
+                                                <tr>
+                                                    <th>Date</th>
+                                                    <th>Time</th>
+                                                    <th>User</th>
+                                                    <th>Action</th>
+                                                    <th>Detail</th>
+                                                </tr>
+                                            </thead>
+
+                                            <tbody>
+                                                <tr>
+                                                    <td>13/09/2024</td>
+                                                    <td>03:23 PM</td>
+                                                    <td>Martins Emoghene</td>
+                                                    <td>FIRST CREATED</td>
+                                                    <td>FIRST CREATED (From Request #0005701 approval)</td>
+                                                </tr>
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!----------Modal for a new bulk notification----------->
+            <div class="modal fade" id="ExtralargeModal" tabindex="-1">
+                <div class="modal-dialog modal-xl">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                                <h5 class="modal-title">New Bulk Notification</h5>
+                            <div class="modal-buttons">
+                                <button>
+                                    <i class="fa-solid fa-check" style="margin-right: 1rem;"></i>
+                                    Done
+                                </button>
+                                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                            </div>
+                        </div>
+
+                        <div class="modal-body">
+                            <div class="modal-content">
+                                <div class="modal-content_header" onmouseover="showIcons()" onmouseout="hideIcons()">
+                                    <h4>Detail</h4>
+                                    <h5 data-bs-toggle="collapse" data-bs-target="#bulkNotify_modal-detail">Click to collapse</h5>
+                                    <i class="fa-solid fa-chevron-left arrow" onmouseover="showIcons()" onmouseout="hideIcons()"></i>
+                                </div>
+
+                                <div id="bulkNotify_modal-detail">
+                                    <hr>
+                                    <div class="modal-content_body">
+                                        <form action="">
+                                            <div class="bulkNotify-content_container">
+                                                <div class="bulkNotify-content_description flex-basis">
+                                                    <label for="bulkNotify_input-title">Message title</label><br>
+                                                    <input type="text" name="bulkNotify_input-title" id="bulkNotify_input-title" placeholder="Title">
+                                                </div>
+                                            </div>
+                                        </form>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="modal-content item-modal">
+                                <div class="modal-content_header" onmouseover="showIcons()" onmouseout="hideIcons()">
+                                    <h4>Apartment</h4>
+                                    <h5 data-bs-toggle="collapse" data-bs-target="#bulkNotify_modal-apartment">Click to collapse</h5>
+                                    <i class="fa-solid fa-chevron-left arrow" onmouseover="showIcons()" onmouseout="hideIcons()"></i>
+                                </div>
+
+                                <div id="bulkNotify_modal-apartment">
+                                    <hr>
+                                    <div class="modal-content_body">
+                                        <form action="">
+                                            <input type="checkbox" name="sendAll" id="sendAll">
+                                            <label for="sendAll" style="font-weight: bold;">Send to all</label>
+                                            
+                                            <div class="contain">
+                                                <div class="column">
+                                                    <div class="column-header">
+                                                        <input type="checkbox" name="facilityCheckAll" id="facilityCheckAll">
+                                                        <label for="facilityCheckAll">Facility/Location</label>
+                                                    </div>
+                                                    <div class="column-body">
+                                                        <div class="rowsee">
+                                                            <input type="checkbox" name="location1" id="location1">
+                                                            <label for="location1">1 Moore Road</label>
+                                                        </div>
+                                                        <div class="rowsee">
+                                                            <input type="checkbox" name="location2" id="location2">
+                                                            <label for="location2">1004 (Cluster A)</label>
+                                                        </div>
+                                                        <div class="rowsee">
+                                                            <input type="checkbox" name="location2" id="location2">
+                                                            <label for="location2">1004 (Cluster A)</label>
+                                                        </div>
+                                                        <div class="rowsee">
+                                                            <input type="checkbox" name="location2" id="location2">
+                                                            <label for="location2">1004 (Cluster A)</label>
+                                                        </div>
+                                                        <div class="rowsee">
+                                                            <input type="checkbox" name="location2" id="location2">
+                                                            <label for="location2">1004 (Cluster A)</label>
+                                                        </div>
+                                                        <div class="rowsee">
+                                                            <input type="checkbox" name="location2" id="location2">
+                                                            <label for="location2">1004 (Cluster A)</label>
+                                                        </div>
+                                                        <div class="rowsee">
+                                                            <input type="checkbox" name="location2" id="location2">
+                                                            <label for="location2">1004 (Cluster A)</label>
+                                                        </div>
+                                                        <div class="rowsee">
+                                                            <input type="checkbox" name="location2" id="location2">
+                                                            <label for="location2">1004 (Cluster A)</label>
+                                                        </div>
+                                                        <div class="rowsee">
+                                                            <input type="checkbox" name="location2" id="location2">
+                                                            <label for="location2">1004 (Cluster A)</label>
+                                                        </div>
+                                                        <div class="rowsee">
+                                                            <input type="checkbox" name="location2" id="location2">
+                                                            <label for="location2">1004 (Cluster A)</label>
+                                                        </div>
+                                                        <!-- Add more rows as needed -->
+                                                    </div>
+                                                </div>
+                                        
+                                                <div class="column">
+                                                    <div class="column-header">
+                                                        <input type="checkbox" name="apartmentCheckAll" id="apartmentCheckAll">
+                                                        <label for="apartmentCheckAll">Apartment/Room</label>
+                                                    </div>
+                                                    <div class="column-body">
+                                                        <div class="rowsee">
+                                                            <input type="checkbox" name="apartment1" id="apartment1">
+                                                            <label for="apartment1">Villa 1</label>
+                                                        </div>
+                                                        <div class="rowsee">
+                                                            <input type="checkbox" name="apartment2" id="apartment2">
+                                                            <label for="apartment2">Villa 2</label>
+                                                        </div>
+                                                        <div class="rowsee">
+                                                            <input type="checkbox" name="apartment2" id="apartment2">
+                                                            <label for="apartment2">Villa 2</label>
+                                                        </div>
+                                                        <div class="rowsee">
+                                                            <input type="checkbox" name="apartment2" id="apartment2">
+                                                            <label for="apartment2">Villa 2</label>
+                                                        </div>
+                                                        <div class="rowsee">
+                                                            <input type="checkbox" name="apartment2" id="apartment2">
+                                                            <label for="apartment2">Villa 2</label>
+                                                        </div>
+                                                        <div class="rowsee">
+                                                            <input type="checkbox" name="apartment2" id="apartment2">
+                                                            <label for="apartment2">Villa 2</label>
+                                                        </div>
+                                                        <div class="rowsee">
+                                                            <input type="checkbox" name="apartment2" id="apartment2">
+                                                            <label for="apartment2">Villa 2</label>
+                                                        </div>
+                                                        <div class="rowsee">
+                                                            <input type="checkbox" name="apartment2" id="apartment2">
+                                                            <label for="apartment2">Villa 2</label>
+                                                        </div>
+                                                        <div class="rowsee">
+                                                            <input type="checkbox" name="apartment2" id="apartment2">
+                                                            <label for="apartment2">Villa 2</label>
+                                                        </div>
+                                                        <div class="rowsee">
+                                                            <input type="checkbox" name="apartment2" id="apartment2">
+                                                            <label for="apartment2">Villa 2</label>
+                                                        </div>
+                                                        <!-- Add more rows as needed -->
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </form>
+
+                                        
+                                        <h5>User</h5>
+                                        <form action="">
+                                            <input type="checkbox" name="sendAll" id="sendAll">
+                                            <label for="sendAll" style="font-weight: bold;">Send to all</label>
+                                            <div class="bulkNotify-content_container">
+                                                <div class="bulkNotify-content_input">
+                                                    <input list="users" name="user" placeholder="Select user">
+                                                    <datalist id="users">
+                                                      <option value="Abdulhafeez Badmus">
+                                                      <option value="Aanuoluwapo Adekola">
+                                                      <option value="Abubakar Sadiq Ibrahim">
+                                                      <option value="Adebusola Sofowora">
+                                                      <option value="Adekola Adebayo">
+                                                    </datalist>
+                                                </div>
+                                            </div>
+                                        </form>
+
+                                        <h5>Message</h5>
+                                        <form action="">
+                                            <div class="buulkNotify-content_container">
+                                                <div class="bulkNotify-content_description flex-basis">
+                                                    <label for="bulkNotify_input-message">Message</label><br>
+                                                    <input type="text" name="bulkNotify_input-message" id="bulkNotify_input-message" placeholder="Type a message">
+                                                </div>
+                                            </div>
+                                        </form>
+
+                                        <div>
+                                            <input type="checkbox" name="" id="">
+                                            <label for="" style="font-weight: bold;">Send as email</label>
+
+                                            <input type="checkbox" name="" id="" style="margin-left: 2rem;">
+                                            <label for="" style="font-weight: bold;">Send as SMS</label>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>   
+                    </div>
+                </div>
+            </div>
+        </main>
+
+
+
+
+{% endblock content %}

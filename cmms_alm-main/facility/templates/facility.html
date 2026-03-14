@@ -1,0 +1,224 @@
+{% extends 'partials/base.html' %} {% load static %} {% block content %}
+
+<main id="main" class="main">
+
+    <!------Location Container---------->
+    <div class="assets-container">
+      {% include 'partials/messages.html' %}
+      <div class="location-main_content">
+        <div class="location-sidebar">
+          <div class="location-sidebar_controls">
+            <h4>Facility/Location</h4>
+            <div class="location_sidebar_icons">
+              <button>
+                <i class="fa-solid fa-plus" data-bs-toggle="modal" data-bs-target="#ExtralargeModal1" data-bs-placement="top" title="New Facility/Location"></i>
+              </button>
+              <i class="fa-solid fa-sliders filter-icon" data-bs-toggle="tooltip" data-bs-placement="top" title="Filter"></i>
+              <i class="fa-solid fa-arrow-up-right-from-square export-icon" data-bs-toggle="tooltip" data-bs-placement="top" title="Export"></i>
+            </div>
+          </div>
+          <div class="location-sidebar_contents">
+            {% for facility in facilities %}
+            <a
+              href="{% url 'facility:facility_detail' facility.code %}" 
+              hx-get="{% url 'facility:facility_detail' facility.code %}" 
+              hx-target="#facility-main-body"
+              hx-swap="outerHTML"          
+              class="user-sidebar_content"
+              hx-trigger="click"
+              hx-on="htmx:afterSettle: setActiveClass(event)"
+            >
+              <div class="user-sidebar_profile">
+                <div class="user-sidebar_name">
+                  <center><span>{{ facility.code }}</span></center>
+                  <p>{{ facility.name }}</p>
+                </div>
+              </div>
+            </a>
+          {% endfor %}
+
+          </div>
+          <div class="goods-sidebar_loadMore">
+            <div class="goods-count"></div>
+            <button class="loadMoreBtn">Load More</button>
+          </div>
+        </div>
+
+        <!----------facility Main Body-------------->
+        <div class="building-main_content">
+          <div class="location-sidebar">
+            <div class="location-sidebar_controls">
+              <h4>Building/Flat</h4>
+              <button>
+                <i class="fa-solid fa-plus" data-bs-toggle="modal" data-bs-target="#ExtralargeModal2" data-bs-placement="top" title="New Building/Flat"></i>
+              </button>
+              <i class="fa-solid fa-arrow-up-right-from-square export-icon" data-bs-toggle="tooltip" data-bs-placement="top" title="Export"></i>
+            </div>
+            <div class="location-sidebar_subContents"></div>
+            <div class="goods-sidebar_loadMore">
+              <div class="buildings-count"></div>
+              <button class="loadMoreBtn">Load More</button>
+            </div>
+          </div>
+        </div>
+        <div class="room-main_content">
+          <div class="location-sidebar">
+            <div class="location-sidebar_controls">
+              <h4>Apartment/Room</h4>
+              <button>
+                <i class="fa-solid fa-plus" data-bs-toggle="modal" data-bs-target="#ExtralargeModal3" data-bs-placement="top" title="New Apartment/Room"></i>
+              </button>
+              <i class="fa-solid fa-arrow-up-right-from-square export-icon" data-bs-toggle="tooltip" data-bs-placement="top" title="Export"></i>
+            </div>
+            <div class="room-sidebar_contents">
+              
+            </div>
+            <div class="goods-sidebar_loadMore">
+              <div class="room-count"></div>
+              <button class="loadMoreBtn">Load More</button>
+            </div>
+          </div>
+        </div>
+
+        <div id="facility-main-body"> </div>
+      </div>
+    </div>
+
+
+
+
+    <div class="modal fade" id="ExtralargeModal1" tabindex="-1">
+      <div class="modal-dialog modal-xl">
+        <form class="modal-content" action="{% url 'facility:facility' %}" method="POST">
+          {% csrf_token %}
+          <div class="modal-header">
+            <h5 class="modal-title">New Facility/Location</h5>
+            <div class="modal-buttons">
+              <button>
+                <i class="fa-solid fa-check" style="margin-right: 1rem;"></i>
+                Done
+              </button>
+              <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+          </div>
+
+          <div class="modal-body">
+            <div class="modal-content">
+              <div class="modal-content_header" onmouseover="showIcons()" onmouseout="hideIcons()">
+                <h4>Detail</h4>
+                <h5 data-bs-toggle="collapse" data-bs-target="#location_modal-detail">Click to collapse</h5>
+                <i class="fa-solid fa-chevron-left arrow" onmouseover="showIcons()" onmouseout="hideIcons()"></i>
+              </div>
+
+              <div id="location_modal-detail">
+                <hr>
+                <div class="modal-content_body">
+                  <div>
+                    <div class="location-content_container">
+                      <div class="location-content_input">
+                        <label for="location_input-code">Code</label><br>
+                        <input type="text" name="code" id="location_input-code" placeholder="Enter code">
+                      </div>
+                      <div class="location-content_input">
+                        <label for="location_input-name">Name</label><br>
+                        <input type="text" name="name" id="location_input-name" placeholder="Enter name">
+                      </div>
+
+                      <div class="location-content_input">
+                        <label for="location_input-type">Type</label><br>
+                        <select name="type" id="location_input-type">
+                          <option value="select">Select</option>
+                          <option value="Commercial">Commercial</option>
+                          <option value="Residential">Residential</option>
+                        </select>
+                      </div>
+
+                      <div class="location-content_input">
+                        <label for="location_input-contact">Contact Name</label><br>
+                        <input type="text" name="location_input-contact" id="location_input-contact" placeholder="Enter contact name">
+                      </div>
+
+                      <div class="location-content_input">
+                        <label for="location_input-email">Email</label><br>
+                        <input type="email" name="contact_name" id="location_input-email" placeholder="Enter email">
+                      </div>
+
+                      <div class="location-content_input">
+                        <label for="location_input-phone">Phone</label><br>
+                        <input type="text" name="phone" id="location_input-phone" placeholder="Enter phone">
+                      </div>
+
+                      <div class="location-content_input">
+                        <label for="location_input-facility">Facility officer</label><br>
+                        <select name="facility_officer" id="location_input-facility">
+                          {% for user in users %}
+                          <option value="{{ user.id }}">{{ user.name }}</option>
+                          {% endfor %}
+                        </select>
+                      </div>
+
+                      <div class="location-content_input">
+                        <label for="location_input-store">Store</label><br>
+                        <select name="store" id="location_input-store">
+                          {% for store in stores %}
+                          <option value="{{ store.id }}">{{ store.name }}</option>
+                          {% endfor %}
+                        </select>
+                      </div>
+
+                      <div class="location-content_input">
+                        <label for="location_input-limit">Non procurement limit</label><br>
+                        <input type="number" name="non_procurement_limit" id="location_input-limit">
+                      </div>
+
+                      <div class="location-content_input">
+                        <label for="location_input-sqm">No of SQM</label><br>
+                        <input type="number" name="no_of_sqm" id="location_input-sqm">
+                      </div>
+
+                      <div class="location-content_input">
+                        <input type="checkbox" name="common_area" id="location_input-area">
+                        <label for="location_input-area">Common Area</label><br>
+                      </div>
+
+                      <div class="location-content_input">
+                        <input type="checkbox" name="approval_required_for_imprest" id="location_input-imprest">
+                        <label for="location_input-imprest">Approval required for imprest</label><br>
+                      </div>
+
+                      <div class="location-content_input">
+                        <input type="checkbox" name="available_for_lease" id="location_input-lease">
+                        <label for="location_input-lease">Available for lease</label><br>
+                      </div>
+
+                      <div class="location-content_input">
+                        <input type="checkbox" name="remit_lease_payment" id="location_input-payment">
+                        <label for="location_input-payment">Remit Lease Payment</label><br>
+                      </div>
+
+                      <div class="location-content_description flex-basis">
+                        <label for="address">Address</label><br>
+                        <input type="text" name="location_input-address" id="location_input-address" placeholder="Enter address">
+                      </div>
+
+                      <div class="location-content_input">
+                        <label for="location_input-status">Status</label><br>
+                        <select name="status" id="status-select" name="status">
+                          <option value="Active">Active</option>
+                          <option value="Inactive">Inactive</option>
+                        </select>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>   
+        </form>
+      </div>
+    </div>
+
+  </main>
+
+
+{% endblock content %}

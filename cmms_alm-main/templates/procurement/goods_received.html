@@ -1,0 +1,438 @@
+{% extends 'partials/base.html' %} {% load static %} {% block content %}
+
+
+
+        <main id="main" class="main">
+            <!------Goods Heading---------->
+            <div class="assets-container">
+                <div class="goods-heading">
+                    <div class="goods-heading_text">
+                        <i class="fa-solid fa-sliders filter-icon" data-bs-toggle="tooltip" data-bs-placement="top" title="Filter"></i>
+                        <span>
+                            <i class="fa-solid fa-magnifying-glass" onclick="searchTable()"></i>
+                            <input type="search" id="searchInput" placeholder="Search goods received note...">
+                        </span>
+                        <h3><a href="">Goods received note</a></h3>
+                    </div>
+                    <div class="goods-heading_icons">
+                        <i class="fa-solid fa-list" data-bs-toggle="tooltip" data-bs-placement="bottom" title="List view"></i>
+                        <i class="fa-solid fa-table-cells" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Table view"></i>
+                    </div>
+                </div>
+            
+                <div class="empty-div"></div>
+            
+                <!--------Goods Main Content------------------->
+                <div class="goods-main_content">
+                    <div class="goods-sidebar">
+                        <h5>Goods received note</h5>
+                        <div class="goods-sidebar_controls">
+                            <button>
+                                <i class="fa-solid fa-plus"></i>
+                                <span id="load-button" data-bs-toggle="modal" data-bs-target="#ExtralargeModal">New</span>
+                            </button>
+                            <i class="fa-solid fa-arrow-up-right-from-square export-icon" data-bs-toggle="tooltip" data-bs-placement="top" title="Export"></i>
+                        </div>
+
+                        <div class="goods-sidebar_contents"></div>
+                        <div class="goods-sidebar_loadMore">
+                            <div id="goodsCount" class="goods-count"></div>
+                            <button id="loadMoreBtn">Load More</button>
+                        </div>
+                    </div>
+                    <i class="fa-solid fa-bars goods-sidebarBtn"></i>
+
+                    <!----------Goods Main Body-------------->
+                    <div class="goods-main_body">
+                        <div class="default-image" id="default-image">
+                            <img src="./assets/img/in-empty-details-icon.svg" alt="">
+                            <h3>Your goods received notes are sleeping!</h3>
+                            <p>Click on them</p>
+                        </div>
+                        <div class="goods-body_content">
+                            <div class="goods-type">
+                                <div class="goods-type_header">
+                                    <h4>Detail</h4>
+                                    <h5 data-bs-toggle="collapse" data-bs-target="#goods-detail">Click to collapse</h5>
+                                    <i class="fa-solid fa-chevron-left"></i>
+                                </div>
+                                <div id="goods-detail">
+                                    <hr>
+                                    <h6>About</h6>
+                                    <div class="goods-type_details">
+                                        <div class="goods-details">
+                                            <h4>Number</h4>
+                                            <p id="number"></p>
+                                        </div>
+
+                                        <div class="goods-details">
+                                            <h4>Purchase order</h4>
+                                            <p id="order"></p>
+                                        </div>
+
+                                        <div class="goods-details">
+                                            <h4>Vendor</h4>
+                                            <p id="vendor"></p>
+                                        </div>
+
+                                        <div class="goods-details">
+                                            <h4>Received at</h4>
+                                            <p id="receiver"></p>
+                                        </div>
+
+                                        <div class="goods-details">
+                                            <h4>Facility/Location Store</h4>
+                                            <p id="facility"></p>
+                                        </div>
+
+                                        <div class="goods-details">
+                                            <h4>Requested by</h4>
+                                            <p id="requester"></p>
+                                        </div>
+
+                                        <div class="goods-details">
+                                            <h4>Requested date</h4>
+                                            <p id="date"></p>
+                                        </div>
+
+                                        <div class="goods-details">
+                                            <h4>Requested time</h4>
+                                            <p id="time"></p>
+                                        </div>
+
+                                        <div class="goods-details">
+                                            <h4>Approved</h4>
+                                            <p id="approve"></p>
+                                        </div>
+
+                                        <div class="goods-details">
+                                            <h4>Status</h4>
+                                            <p id="status"></p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="goods-type">
+                                <div class="goods-type_header">
+                                    <h4>Items <i>(1)</i></h4>
+                                    <h5 data-bs-toggle="collapse" data-bs-target="#goods-item">Click to collapse</h5>
+                                    <i class="fa-solid fa-chevron-left"></i>
+                                </div>
+                                <div id="goods-item">
+                                    <hr>
+                                    <div class="goods-item_table">
+                                        <table class="goods-table">
+                                            <thead>
+                                                <tr>
+                                                    <th>#</th>
+                                                    <th>LPO Item</th>
+                                                    <th>Sub category</th>
+                                                    <th>Model</th>
+                                                    <th>Specification</th>
+                                                    <th>Serial No(s)</th>
+                                                    <th>Quantity received</th>
+                                                    <th>Unit price</th>
+                                                    <th>Amount</th>
+                                                    <th>Checked</th>
+                                                    <th>Rejected</th>
+                                                </tr>
+                                            </thead>
+
+                                            <tbody>
+                                                <tr>
+                                                    <td>1</td>
+                                                    <td>#0 - Test Item</td>
+                                                    <td>AVR</td>
+                                                    <td>3phase Auto AC Voltage Stabiliser (30KVA) Terrace Villa's)</td>
+                                                    <td></td>
+                                                    <td></td>
+                                                    <td>1</td>
+                                                    <td></td>
+                                                    <td></td>
+                                                    <td></td>
+                                                    <td>No</td>
+                                                </tr>
+                                            </tbody>
+                                        </table>
+                                        <div class="goods-total">
+                                            <div class="goods-total-name">
+                                              <h3>Total <i class="fa-solid fa-angles-right"></i></h3>
+                                            </div>
+
+                                            <div class="goods-total-quantity">
+                                                <p>Qty</p>
+                                                <h3>1</h3>
+                                            </div>
+                                
+                                            <div class="goods-total-quantity">
+                                              <p>Amount</p>
+                                              <h3>NGN 104,500</h3>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="goods-type">
+                                <div class="goods-type_header">
+                                  <h4>Approval <i>(0)</i></h4>
+                                  <h5 data-bs-toggle="collapse" data-bs-target="#goods-approval">Click to collapse</h5>
+                                  <i class="fa-solid fa-chevron-left"></i>
+                                </div>
+                                <div id="goods-approval">
+                                  <hr>
+                                  <div class="goods-item">
+                                    <div class="goods-modal_image">
+                                        <img src="./assets/img/movement-history.svg" alt="">
+                                        <p>No approvals requested.</p>
+                                        <p>Request approval</p>
+                                    </div>
+                                </div>
+                                </div>
+                            </div>
+
+                            <div class="goods-type">
+                                <div class="goods-type_header">
+                                    <h4>Comment <i>(0)</i></h4>
+                                    <h5 data-bs-toggle="collapse" data-bs-target="#goods-comment">Click to collapse</h5>
+                                    <i class="fa-solid fa-chevron-left"></i>
+                                </div>
+                                <div id="goods-comment">
+                                    <hr>
+                                    <div class="goods-item">
+                                        <div class="goods-modal_image">
+                                            <img src="./assets/img/movement-history.svg" alt="">
+                                            <p>Not been keeping track.</p>
+                                            <p>Leave a comment</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="goods-type">
+                                <div class="goods-type_header">
+                                    <h4>File attachments <i>(0)</i></h4>
+                                    <h5 data-bs-toggle="collapse" data-bs-target="#goods-file">Click to collapse</h5>
+                                    <i class="fa-solid fa-chevron-left"></i>
+                                </div>
+                                <div id="goods-file">
+                                    <hr>
+                                    <div class="goods-item">
+                                        <div class="goods-modal_image">
+                                            <img src="./assets/img/movement-history.svg" alt="">
+                                            <p>No strings attached.</p>
+                                            <p>Attach something</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="goods-type">
+                                <div class="goods-type_header">
+                                    <h4>History <i>(1)</i></h4>
+                                    <h5 data-bs-toggle="collapse" data-bs-target="#goods-history">Click to collapse</h5>
+                                    <i class="fa-solid fa-chevron-left"></i>
+                                </div>
+                                <div id="goods-history">
+                                    <hr>
+                                    <div class="goods-item_table">
+                                        <table class="goods-table">
+                                            <thead>
+                                                <tr>
+                                                    <th>Date</th>
+                                                    <th>Time</th>
+                                                    <th>User</th>
+                                                    <th>Action</th>
+                                                    <th>Detail</th>
+                                                </tr>
+                                            </thead>
+
+                                            <tbody>
+                                                <tr>
+                                                    <td>13/09/2024</td>
+                                                    <td>03:23 PM</td>
+                                                    <td>Martins Emoghene</td>
+                                                    <td>FIRST CREATED</td>
+                                                    <td>FIRST CREATED (From Request #0005701 approval)</td>
+                                                </tr>
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!----------Modal for a new goods received note----------->
+            <div class="modal fade" id="ExtralargeModal" tabindex="-1">
+                <div class="modal-dialog modal-xl">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                                <h5 class="modal-title">New goods received note</h5>
+                            <div class="modal-buttons">
+                                <button>
+                                    <i class="fa-solid fa-check" style="margin-right: 1rem;"></i>
+                                    Done
+                                </button>
+                                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                            </div>
+                        </div>
+
+                        <div class="modal-body">
+                            <div class="modal-content">
+                                <div class="modal-content_header" onmouseover="showIcons()" onmouseout="hideIcons()">
+                                    <h4>Detail</h4>
+                                    <h5 data-bs-toggle="collapse" data-bs-target="#goods_modal-detail">Click to collapse</h5>
+                                    <i class="fa-solid fa-chevron-left arrow" onmouseover="showIcons()" onmouseout="hideIcons()"></i>
+                                </div>
+
+                                <div id="goods_modal-detail">
+                                    <hr>
+                                    <div class="modal-content_body">
+                                        <h5>Details</h5>
+                                        <form action="">
+                                            <div class="goods-content_container">
+                                                <div class="goods-content_input">
+                                                    <label for="goods_input-order">Purchase order</label><br>
+                                                    <select name="goods_input-order" id="goods_input-order">
+                                                        <option value="select">Select</option>
+                                                    </select>
+                                                </div>
+
+                                                <div class="goods-content_input">
+                                                    <label for="goods_input-receive">Received at</label><br>
+                                                    <select name="goods_input-receive" id="goods_input-receive">
+                                                        <option value="select">Select</option>
+                                                    </select>
+                                                </div>
+
+                                                <div class="goods-content_input">
+                                                    <label for="goods_input-store">Store</label><br>
+                                                    <select name="goods_input-store" id="goods_input-store">
+                                                        <option value="select">Select</option>
+                                                    </select>
+                                                </div>
+
+                                                <div class="goods-content_input">
+                                                    <label for="goods_input-by">Received by</label><br>
+                                                    <input type="text" name="goods_input-by" id="goods_input-by">
+                                                </div>
+
+                                                <div class="goods-content_input">
+                                                    <label for="goods_input-date">Requested date</label><br>
+                                                    <input type="date" name="goods_input-date" id="goods_input-date">
+                                                </div>
+
+                                                <div class="goods-content_input">
+                                                    <label for="goods_input-time">Requested time</label><br>
+                                                    <input type="time" name="goods_input-time" id="goods_input-time">
+                                                </div>
+
+                                                <div class="goods-content_description flex-basis">
+                                                    <label for="goods_input-remark">Remark</label><br>
+                                                    <input type="text" name="goods_input-remark" id="goods_input-remark" placeholder="Enter a remark">
+                                                </div>
+
+                                                <div class="goods-content_input">
+                                                    <label for="goods_input-status">Status</label><br>
+                                                    <select name="goods_input-status" id="goods_input-status">
+                                                        <option value="select">Select</option>
+                                                    </select>
+                                                </div>
+                                            </div>
+                                        </form>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="modal-content item-modal">
+                                <div class="modal-content_header" onmouseover="showIcons()" onmouseout="hideIcons()">
+                                    <h4>Items <i>(0)</i></h4>
+                                    <h5 data-bs-toggle="collapse" data-bs-target="#goods_modal-item">Click to collapse</h5>
+                                    <i class="fa-solid fa-chevron-left arrow" onmouseover="showIcons()" onmouseout="hideIcons()"></i>
+                                </div>
+
+                                <div class="item-modal_body collapse" id="goods_modal-item">
+                                    <div class="itemRequest-modal_add">
+                                        <button>
+                                            <i class="fa-solid fa-plus"></i>
+                                            <span>Add Items</span>
+                                        </button>
+                                    </div>
+                                    <div class="itemRequest-modal_image">
+                                        <img src="./assets/img/movement-history.svg" alt="">
+                                        <p>Nothing found here. Add some items</p>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="modal-content item-modal">
+                                <div class="modal-content_header" onmouseover="showIcons()" onmouseout="hideIcons()">
+                                    <h4>Approval <i>(0)</i></h4>
+                                    <h5 data-bs-toggle="collapse" data-bs-target="#goods_modal-approval">Click to collapse</h5>
+                                    <i class="fa-solid fa-chevron-left arrow" onmouseover="showIcons()" onmouseout="hideIcons()"></i>
+                                </div>
+
+                                <div class="item-modal_body collapse" id="goods_modal-approval">
+                                    <div class="itemRequest-modal_add">
+                                        <input type="radio" name="" id="">
+                                        <label for="" style="font-size: 13px;">Request approval</label>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="modal-content item-modal">
+                                <div class="modal-content_header" onmouseover="showIcons()" onmouseout="hideIcons()">
+                                    <h4>Comment <i>(0)</i></h4>
+                                    <h5 data-bs-toggle="collapse" data-bs-target="#goods_modal-comment">Click to collapse</h5>
+                                    <i class="fa-solid fa-chevron-left arrow" onmouseover="showIcons()" onmouseout="hideIcons()"></i>
+                                </div>
+
+                                <div class="item-modal_body collapse" id="goods_modal-comment">
+                                    <div class="itemRequest-modal_add">
+                                        <button>
+                                            <i class="fa-solid fa-comment"></i>
+                                            <span>Leave a comment</span>
+                                        </button>
+                                    </div>
+                                    <div class="itemRequest-modal_image">
+                                        <img src="./assets/img/movement-history.svg" alt="">
+                                        <p>Not been keeping track!</p>
+                                        <p>Leave a comment.</p>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="modal-content item-modal">
+                                <div class="modal-content_header" onmouseover="showIcons()" onmouseout="hideIcons()">
+                                    <h4>File attachments <i>(0)</i></h4>
+                                    <h5 data-bs-toggle="collapse" data-bs-target="#goods_modal-file">Click to collapse</h5>
+                                    <i class="fa-solid fa-chevron-left arrow" onmouseover="showIcons()" onmouseout="hideIcons()"></i>
+                                </div>
+
+                                <div class="item-modal_body collapse" id="goods_modal-file">
+                                    <div class="itemRequest-modal_add">
+                                        <button>
+                                            <i class="fa-solid fa-plus"></i>
+                                            <span>Add file</span>
+                                        </button>
+                                    </div>
+                                    <div class="itemRequest-modal_image">
+                                        <img src="./assets/img/movement-history.svg" alt="">
+                                        <p>No string attached!</p>
+                                        <p>Attach something</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>   
+                    </div>
+                </div>
+            </div>
+        </main>
+
+ 
+
+{% endblock content %}

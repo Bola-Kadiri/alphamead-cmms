@@ -1,0 +1,168 @@
+{% extends 'partials/base.html' %} 
+{% load static %} {% block content %}
+
+
+
+        <main id="main" class="main">
+            <!------Facility Apartment Type Heading---------->
+            <div class="assets-container">
+                {% include 'partials/messages.html' %}
+                <div class="client-heading d-flex justify-content-between align-items-center bg-light px-3 py-2 rounded shadow-sm">
+  
+                    <!-- Left Section: Filter & Search -->
+                    <div class="d-flex align-items-center gap-3">
+                      <i class="fa-solid fa-sliders filter-icon text-secondary" data-bs-toggle="tooltip" data-bs-placement="top" title="Filter"></i>
+                      
+                      <div class="position-relative">
+                        <input type="search" id="searchInput" class="form-control form-control-sm ps-4 rounded-pill shadow-sm" 
+                               placeholder="Search clients..." style="width: 200px;">
+                        <i class="fa-solid fa-magnifying-glass position-absolute top-50 start-0 translate-middle-y ms-2 text-muted"></i>
+                      </div>
+                    </div>
+                  
+                    <!-- Center: Title -->
+                    <h4 class="fw-bold text-primary m-0"><a href="#" class="text-decoration-none">Apartment</a></h4>
+                  
+                    <!-- Right Section: View Options -->
+                    <div class="d-flex align-items-center gap-3">
+                      <i class="fa-solid fa-list text-secondary" data-bs-toggle="tooltip" data-bs-placement="bottom" title="List view"></i>
+                      <i class="fa-solid fa-table-cells text-secondary" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Table view"></i>
+                    </div>
+                  
+                  </div>
+                
+                </div> <br />
+
+                <div class="empty-div"></div>
+                
+                  <div class="apartment-main_content" >
+                    <div class="apartment-sidebar">
+                        <h5>Facility Apartment Types</h5>
+                        <div class="apartment-sidebar_controls">
+                            <button>
+                                <i class="fa-solid fa-plus"></i>
+                                <span id="load-button" data-bs-toggle="modal" data-bs-target="#largeModal">New</span>
+                            </button>
+                            <i class="fa-solid fa-arrow-up-right-from-square export-icon" data-bs-toggle="tooltip" data-bs-placement="top" title="Export"></i>
+                        </div>      
+                     
+                        <div class="apartment-sidebar_contents">
+                            {% for apartment_type in apartment_types %}
+                                <a href="{% url 'facility:apartment_type_detail' apartment_type.slug %}"
+                                    hx-get="{% url 'facility:apartment_type_detail' apartment_type.slug %}"
+                                    hx-target="#apartment-main_body"
+                                    hx-swap="innerHTML"
+                                    class="apartment-item d-flex justify-content-between align-items-center px-4 py-3 rounded shadow-sm bg-white hover:bg-gray-100 transition duration-300 border mb-3 text-decoration-none">
+                        
+                                    <div style="flex-grow: 1; overflow: hidden;">
+                                        <!-- Apartment Type Name (Clickable) -->
+                                        <h6 class="fw-bold text-dark mb-1" style="font-size: 1rem;">
+                                            {{ apartment_type.name }}
+                                        </h6>
+                        
+                                        <!-- Status -->
+                                        <p class="text-muted mb-0" style="font-size: 0.9rem;">
+                                            <strong>Status:</strong> 
+                                            <span class="badge {% if apartment_type.status == 'Active' %} bg-success {% else %} bg-danger {% endif %}">
+                                                {{ apartment_type.status }}
+                                            </span>
+                                        </p>
+                                    </div>
+                        
+                                    <!-- External Link Icon -->
+                                    <i class="fa-solid fa-arrow-up-right-from-square text-muted"></i>
+                                </a>
+                            {% empty %}
+                                <p class="text-muted text-center mt-3">No apartment types available.</p>
+                            {% endfor %}
+                        </div>
+
+                        
+
+                        <div class="apartment-sidebar_loadMore">
+                            <div id="apartmentCount" class="apartment-count"></div>
+                            <button id="loadMoreBtn">Load More</button>
+                        </div>
+                    </div>
+
+            
+                    <div id="apartment-main_body" class="apartment-main_body d-flex flex-column align-items-center justify-content-center text-center" style="height: 100%; padding: 2rem;">
+                        <div class="default-image">
+                            <img src="{% static 'assets/img/in-empty-details-icon.svg' %}" alt="No Data" class="mb-3" style="max-width: 200px;">
+                            <h3 class="fw-bold text-dark">Your Facility Apartment Types are sleeping!</h3>
+                            <p class="text-muted">Click on them to wake them up.</p>
+                        </div>
+                    </div>
+             
+
+
+
+            </div>
+            
+
+            <!-- Standard Form (Placed Before Modal Header) -->
+            <form method="POST" action="{% url 'facility:apartment_type' %}">
+                {% csrf_token %}
+
+                <div class="modal fade" id="largeModal" tabindex="-1" aria-labelledby="largeModalLabel" aria-hidden="true">
+                    <div class="modal-dialog modal-lg">
+                        <div class="modal-content">
+
+                            <!-- Modal Header -->
+                            <div class="modal-header bg-primary text-white">
+                                <h5 class="modal-title">New Facility Apartment Type</h5>
+                                <div class="modal-buttons">
+                                    <button type="submit" class="btn btn-success">
+                                        <i class="fa-solid fa-check" style="margin-right: 0.5rem;"></i> Done
+                                    </button>
+                                    <button type="button" class="btn-close text-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                                </div>
+                            </div>
+
+                            <!-- Modal Body -->
+                            <div class="modal-body">
+                                <div class="card shadow-sm p-3">
+                                    <!-- Section Header -->
+                                    <div class="card-header bg-secondary text-white d-flex justify-content-between align-items-center"
+                                        data-bs-toggle="collapse" data-bs-target="#apartment_modal-detail">
+                                        <h5 class="mb-0">Details</h5>
+                                        <span class="text-white fw-light">Click to collapse</span>
+                                        <i class="fa-solid fa-chevron-down"></i>
+                                    </div>
+                                    
+                                    <!-- Form Body -->
+                                    <div id="apartment_modal-detail" class="collapse show">
+                                        <div class="card-body"> <br />
+                                            <div class="row">
+                                                <!-- Name Input -->
+                                                <div class="col-md-6">
+                                                    <label for="id_name" class="form-label">Name</label>
+                                                    <input type="text" name="name" id="id_name" class="form-control" placeholder="Enter Apartment Type Name" required>
+                                                </div>
+
+                                                <!-- Status Dropdown -->
+                                                <div class="col-md-6">
+                                                    <label for="id_status" class="form-label">Status</label>
+                                                    <select name="status" id="id_status" class="form-select">
+                                                        <option value="Active">Active</option>
+                                                        <option value="Inactive">Inactive</option>
+                                                    </select>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                   
+                            </div>
+
+                        </div>
+                    </div>
+                </div>
+            </form>
+
+        </main>
+
+
+
+{% endblock content %}

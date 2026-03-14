@@ -1,0 +1,512 @@
+{% extends 'partials/base.html' %} {% load static %} {% block content %}
+
+
+
+        <main id="main" class="main">
+            <!------Request for Quotation Heading---------->
+            <div class="assets-container">
+                <div class="quotation-heading">
+                    <div class="quotation-heading_text">
+                        <i class="fa-solid fa-sliders filter-icon" data-bs-toggle="tooltip" data-bs-placement="top" title="Filter"></i>
+                        <span>
+                            <i class="fa-solid fa-magnifying-glass" onclick="searchTable()"></i>
+                            <input type="search" id="searchInput" placeholder="Search quotations...">
+                        </span>
+                        <h3><a href="">Request for quotations</a></h3>
+                    </div>
+                    <div class="quotation-heading_icons">
+                        <i class="fa-solid fa-list" data-bs-toggle="tooltip" data-bs-placement="bottom" title="List view"></i>
+                        <i class="fa-solid fa-table-cells" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Table view"></i>
+                    </div>
+                </div>
+            
+                <div class="empty-div"></div>
+            
+                <!--------Request for Quotation Main Content------------------->
+                <div class="quotation-main_content">
+                    <div class="quotation-sidebar">
+                        <h5>Request for quotations</h5>
+                        <div class="quotation-sidebar_controls">
+                            <button>
+                                <i class="fa-solid fa-plus"></i>
+                                <span id="load-button" data-bs-toggle="modal" data-bs-target="#ExtralargeModal">New</span>
+                            </button>
+                            <i class="fa-solid fa-arrow-up-right-from-square export-icon" data-bs-toggle="tooltip" data-bs-placement="top" title="Export"></i>
+                        </div>
+
+                        <div class="quotation-sidebar_contents"></div>
+                        <div class="quotation-sidebar_loadMore">
+                            <div id="quotationCount" class="quotation-count"></div>
+                            <button id="loadMoreBtn">Load More</button>
+                        </div>
+                    </div>
+                    <i class="fa-solid fa-bars quotation-sidebarBtn"></i>
+
+                    <!----------Request for quotation Main Body-------------->
+                    <div class="quotation-main_body">
+                        <div class="default-image" id="default-image">
+                            <img src="./assets/img/in-empty-details-icon.svg" alt="">
+                            <h3>Your quotations are sleeping!</h3>
+                            <p>Click on them</p>
+                        </div>
+                        <div class="quotation-body_content">
+                            <div class="quotation-type">
+                                <div class="quotation-type_header">
+                                    <h4>Detail</h4>
+                                    <h5 data-bs-toggle="collapse" data-bs-target="#quotation-detail">Click to collapse</h5>
+                                    <i class="fa-solid fa-chevron-left"></i>
+                                </div>
+                                <div id="quotation-detail">
+                                    <hr>
+                                    <h6>About</h6>
+                                    <div class="quotation-type_details">
+                                        <div class="quotation-details">
+                                            <h4>Number</h4>
+                                            <p id="number"></p>
+                                        </div>
+
+                                        <div class="quotation-details">
+                                            <h4>Type</h4>
+                                            <p id="type"></p>
+                                        </div>
+
+                                        <div class="quotation-details">
+                                            <h4>Title</h4>
+                                            <p id="title"></p>
+                                        </div>
+
+                                        <div class="quotation-details">
+                                            <h4>Submitted date</h4>
+                                            <p id="submit-date"></p>
+                                        </div>
+
+                                        <div class="quotation-details">
+                                            <h4>Facility/Location</h4>
+                                            <p id="facility"></p>
+                                        </div>
+
+                                        <div class="quotation-details">
+                                            <h4>Currency</h4>
+                                            <p id="currency"></p>
+                                        </div>
+
+                                        <div class="quotation-details">
+                                            <h4>Deadline date</h4>
+                                            <p id="deadline-date"></p>
+                                        </div>
+                                    </div>
+
+                                    <div class="quotation-type_details">
+                                        <div class="quotation-details">
+                                            <h4>Status</h4>
+                                            <p id="status"></p>
+                                        </div>
+                                    </div>
+
+                                    <h6>Items</h6>
+                                    <div class="quotation-item_table">
+                                        <table class="quotation-table">
+                                            <thead>
+                                                <tr>
+                                                <th>#</th>
+                                                <th>Work order</th>
+                                                <th>Amount</th>
+                                                <th>Approved by</th>
+                                                <th>Approved date</th>
+                                                <th>Status</th>
+                                                </tr>
+                                            </thead>
+                    
+                                            <tbody>
+                                                <tr>
+                                                <td>1</td>
+                                                <td>#0033930 - Waste management /LAWMA - Waste disposal for September - 1 Moore Road</td>
+                                                <td>NG 90,000</td>
+                                                <td>Martins Emoghene | ADESHINA OLAGUNJU</td>
+                                                <td>23/09/2024</td>
+                                                <td>Closed</td>
+                                                </tr> 
+                                            </tbody>
+                                        </table>
+                                    </div>
+
+                                    <h6>Vendor</h6>
+                                    <div class="quotation-type_details">
+                                        <div class="quotation-button">
+                                            <button>Unregistered vendor</button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="quotation-type">
+                                <div class="quotation-type_header">
+                                    <h4>Vendor quotations <i>(1)</i></h4>
+                                    <h5 data-bs-toggle="collapse" data-bs-target="#quotation-vendor">Click to collapse</h5>
+                                    <i class="fa-solid fa-chevron-left"></i>
+                                </div>
+                                <div id="quotation-vendor">
+                                    <hr>
+                                    <h6>Quotation summary</h6>
+                                    <div class="quotation-item_table">
+                                        <table class="quotation-table">
+                                            <thead>
+                                                <tr>
+                                                    <th>#</th>
+                                                    <th>Vendor</th>
+                                                    <th>Estimated total</th>
+                                                    <th>Approved total</th>
+                                                </tr>
+                                            </thead>
+
+                                            <tbody>
+                                                <tr>
+                                                    <td>1</td>
+                                                    <td>Unregistered vendors</td>
+                                                    <td>1,606,834</td>
+                                                    <td>1,606,834</td>
+                                                </tr> 
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                    <div class="lease-type">
+                                        <div id="lease-room">
+                                            <div class="lease-sub_type">
+                                                <div class="lease-type_header">
+                                                    <h4><span style="color: green;">#1</span> Un-Registered Vendors</h4>
+                                                    <h5 data-bs-toggle="collapse" data-bs-target="#lease-service">Click to collapse</h5>
+                                                    <i class="fa-solid fa-chevron-left"></i>
+                                                </div>
+                                                <div id="lease-service">
+                                                    <hr>
+                                                    <h6>Detail</h6>
+                                                    <div class="lease-type_details">
+                                                        <div class="lease-details">
+                                                            <h4>Valid until</h4>
+                                                            <p>27-03-2022</p>
+                                                        </div>
+                            
+                                                        <div class="lease-details">
+                                                            <h4>Discount</h4>
+                                                            <p>0%</p>
+                                                        </div>
+                                                    </div>
+
+                                                    <div class="lease-sub_type lease-fees">
+                                    
+                                                        <div id="lease-fee">
+                                                            <div class="lease-item_table">
+                                                                <table class="lease-table">
+                                                                    <thead>
+                                                                        <tr>
+                                                                        <th>#</th>
+                                                                        <th>Description</th>
+                                                                        <th>Est. qty</th>
+                                                                        <th>Est. unit price</th>
+                                                                        <th>Est. Amount</th>
+                                                                        <th>Approved qty</th>
+                                                                        <th>Approved price</th>
+                                                                        <th>Approved amount</th>
+                                                                        </tr>
+                                                                    </thead>
+                                                
+                                                                    <tbody>
+                                                                        <tr>
+                                                                        <td>1</td>
+                                                                        <td>Cleaning Consumables for March 2022</td>
+                                                                        <td>1</td>
+                                                                        <td>1,606,834</td>
+                                                                        <td>1,606,834</td>
+                                                                        <td>1</td>
+                                                                        <td>1,606,834</td>
+                                                                        <td>1,606,834</td>
+                                                                        </tr>
+                                                                    </tbody>
+                                                                </table>
+                                        
+                                                                <div class="lease-total">
+                                                    
+                                                                    <div class="lease-total-name">
+                                                                        <h3>Total <i class="fa-solid fa-angles-right"></i></h3>
+                                                                    </div>
+                                                        
+                                                                    <div class="lease-total-quantity">
+                                                                        <p>Est. qty</p>
+                                                                        <h3>1</h3>
+                                                                    </div>
+                                            
+                                                                    <div class="lease-total-quantity">
+                                                                        <p>Est. amount</p>
+                                                                        <h3>XOF 1,606,834</h3>
+                                                                    </div>
+                                                        
+                                                                    <div class="lease-total-amount">
+                                                                        <p>Actual qty</p>
+                                                                        <h3>1</h3>
+                                                                    </div>
+
+                                                                    <div class="lease-total-amount">
+                                                                        <p>Actual amount</p>
+                                                                        <h3>XOF 1,606,834,</h3>
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="quotation-type">
+                                <div class="quotation-type_header">
+                                    <h4>Comment <i>(0)</i></h4>
+                                    <h5 data-bs-toggle="collapse" data-bs-target="#quotation-comment">Click to collapse</h5>
+                                    <i class="fa-solid fa-chevron-left"></i>
+                                </div>
+                                <div id="quotation-comment">
+                                    <hr>
+                                    <div class="quotation-item">
+                                        <div class="quotation-modal_image">
+                                            <img src="./assets/img/movement-history.svg" alt="">
+                                            <p>Not been keeping track.</p>
+                                            <p>Leave a comment</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                        
+
+                            <div class="quotation-type">
+                                <div class="quotation-type_header">
+                                    <h4>History <i>(1)</i></h4>
+                                    <h5 data-bs-toggle="collapse" data-bs-target="#quotation-history">Click to collapse</h5>
+                                    <i class="fa-solid fa-chevron-left"></i>
+                                </div>
+                                <div id="quotation-history">
+                                    <hr>
+                                    <div class="quotation-item_table">
+                                        <table class="quotation-table">
+                                            <thead>
+                                                <tr>
+                                                    <th>Date</th>
+                                                    <th>Time</th>
+                                                    <th>User</th>
+                                                    <th>Action</th>
+                                                    <th>Detail</th>
+                                                </tr>
+                                            </thead>
+
+                                            <tbody>
+                                                <tr>
+                                                    <td>13/09/2024</td>
+                                                    <td>03:23 PM</td>
+                                                    <td>Martins Emoghene</td>
+                                                    <td>FIRST CREATED</td>
+                                                    <td>FIRST CREATED (From Request #0005701 approval)</td>
+                                                </tr>
+
+                                                <tr>
+                                                    <td>13/09/2024</td>
+                                                    <td>03:23 PM</td>
+                                                    <td>Martins Emoghene</td>
+                                                    <td>FIRST CREATED</td>
+                                                    <td>FIRST CREATED (From Request #0005701 approval)</td>
+                                                </tr>
+
+                                                <tr>
+                                                    <td>13/09/2024</td>
+                                                    <td>03:23 PM</td>
+                                                    <td>Martins Emoghene</td>
+                                                    <td>FIRST CREATED</td>
+                                                    <td>FIRST CREATED (From Request #0005701 approval)</td>
+                                                </tr>
+
+                                                <tr>
+                                                    <td>13/09/2024</td>
+                                                    <td>03:23 PM</td>
+                                                    <td>Martins Emoghene</td>
+                                                    <td>FIRST CREATED</td>
+                                                    <td>FIRST CREATED (From Request #0005701 approval)</td>
+                                                </tr>
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!----------Modal for a new request for quotation----------->
+            <div class="modal fade" id="ExtralargeModal" tabindex="-1">
+                <div class="modal-dialog modal-xl">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                                <h5 class="modal-title">New request for quotation</h5>
+                            <div class="modal-buttons">
+                                <button>
+                                    <i class="fa-solid fa-check" style="margin-right: 1rem;"></i>
+                                    Done
+                                </button>
+                                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                            </div>
+                        </div>
+
+                        <div class="modal-body">
+                            <div class="modal-content">
+                                <div class="modal-content_header" onmouseover="showIcons()" onmouseout="hideIcons()">
+                                    <h4>Detail</h4>
+                                    <h5 data-bs-toggle="collapse" data-bs-target="#quotation_modal-detail">Click to collapse</h5>
+                                    <i class="fa-solid fa-chevron-left arrow" onmouseover="showIcons()" onmouseout="hideIcons()"></i>
+                                </div>
+
+                                <div id="quotation_modal-detail">
+                                    <hr>
+                                    <div class="modal-content_body">
+                                        <h5>About</h5>
+                                        <form action="">
+                                            <div class="quotation-content_container">
+                                                <div class="quotation-content_input flex-basis">
+                                                    <label for="quotation_input-type">Type</label><br>
+                                                    <input type="text" name="quotation_input-type" id="quotation_input-type">
+                                                </div>
+
+                                                <div class="quotation-content_input flex-basis">
+                                                    <label for="quotation_input-title">Title</label><br>
+                                                    <input type="text" name="quotation_input-title" id="quotation_input-title" style="width: 100%;" placeholder="Enter title">
+                                                </div>
+
+                                                <div class="quotation-content_input">
+                                                    <label for="quotation_input-facility">Facility/Location</label><br>
+                                                    <input type="text" name="quotation_input-facility" id="quotation_input-facility">
+                                                </div>
+
+                                                <div class="quotation-content_input">
+                                                    <label for="quotation_input-currency">Currency</label><br>
+                                                    <select name="quotation_input-currency" id="quotation_input-currency">
+                                                        <option value="select">Select</option>
+                                                    </select>
+                                                </div>
+
+                                                <div class="quotation-content_input">
+                                                    <label for="quotation_input-date">Deadline date</label><br>
+                                                    <input type="date" name="quotation_input-date" id="quotation_input-date">
+                                                </div>
+
+                                                <div class="quotation-content_input">
+                                                    <label for="quotation_input-time">Deadline time</label><br>
+                                                    <input type="time" name="quotation_input-time" id="quotation_input-time">
+                                                </div>
+                                            </div>
+                                        </form>
+                                        <form class="quotation-content_container">
+                                            <div class="quotation-content_description flex-basis">
+                                                <label for="quotation_input-terms">Terms</label><br>
+                                                <input type="text" name="quotation_input-terms" id="quotation_input-terms" placeholder="Enter the term">
+                                            </div>
+                                            <div class="quotation-content_input">
+                                                <label for="quotation_input-status">Status</label><br>
+                                                <select name="quotation_input-status" id="quotation_input-status">
+                                                    <option value="select">Select</option>
+                                                </select>
+                                            </div>
+                                        </form>
+                                        <div class="quotation-modal_add">
+                                            <button>
+                                                <i class="fa-solid fa-plus"></i>
+                                                <span>Add items</span>
+                                            </button>
+                                            <div class="itemRequest-modal_image">
+                                                <img src="./assets/img/movement-history.svg" alt="">
+                                                <p>No quotation items!</p>
+                                                <p>Add some items</p>
+                                            </div>
+                                        </div>
+
+                                        <h5>Vendors</h5>
+                                        <form action="">
+                                            <div class="quotation-content_input">
+                                                <input list="list" name="list" placeholder="Select a vendor">
+                                                <datalist id="list">
+                                                    <option value="Alpha Mead Facilities Management Service">
+                                                    <option value="CHARTEX AUTO">
+                                                    <option value="Comstream Nigeria Limited">
+                                                    <option value="JMG Limited">
+                                                </datalist>
+                                            </div>
+                                        </form>
+
+                                        <h5>Attachments</h5>
+                                        <div class="itemRequest-modal_add">
+                                            <button>
+                                                <i class="fa-solid fa-plus"></i>
+                                                <span>Add attachment</span>
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="modal-content item-modal">
+                                <div class="modal-content_header" onmouseover="showIcons()" onmouseout="hideIcons()">
+                                    <h4>Vendor quotations <i>(0)</i></h4>
+                                    <h5 data-bs-toggle="collapse" data-bs-target="#quotation_modal-vendor">Click to collapse</h5>
+                                    <i class="fa-solid fa-chevron-left arrow" onmouseover="showIcons()" onmouseout="hideIcons()"></i>
+                                </div>
+
+                                <div class="item-modal_body collapse" id="quotation_modal-vendor">
+                                    <div class="itemRequest-modal_add"></div>
+                                </div>
+                            </div>
+
+                            <div class="modal-content item-modal">
+                                <div class="modal-content_header" onmouseover="showIcons()" onmouseout="hideIcons()">
+                                    <h4>Comment <i>(0)</i></h4>
+                                    <h5 data-bs-toggle="collapse" data-bs-target="#quotation_modal-comment">Click to collapse</h5>
+                                    <i class="fa-solid fa-chevron-left arrow" onmouseover="showIcons()" onmouseout="hideIcons()"></i>
+                                </div>
+
+                                <div class="item-modal_body collapse" id="quotation_modal-comment">
+                                    <div class="itemRequest-modal_add">
+                                        <button>
+                                            <i class="fa-solid fa-comment"></i>
+                                            <span>Leave a comment</span>
+                                        </button>
+                                    </div>
+                                    <div class="itemRequest-modal_image">
+                                        <img src="./assets/img/movement-history.svg" alt="">
+                                        <p>Not been keeping track!</p>
+                                        <p>Leave a comment.</p>
+                                    </div>
+                                </div>
+
+                            </div>
+
+                            <div class="modal-content item-modal">
+                                <div class="modal-content_header" onmouseover="showIcons()" onmouseout="hideIcons()">
+                                    <h4>Approval <i>(0)</i></h4>
+                                    <h5 data-bs-toggle="collapse" data-bs-target="#quotation_modal-approval">Click to collapse</h5>
+                                    <i class="fa-solid fa-chevron-left arrow" onmouseover="showIcons()" onmouseout="hideIcons()"></i>
+                                </div>
+
+                                <div class="item-modal_body collapse" id="quotation_modal-approval">
+                                    <div class="itemRequest-modal_add">
+                                        <input type="radio" name="" id="">
+                                        <label for="" style="font-size: 13px;">Request approval</label>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>   
+                    </div>
+                </div>
+            </div>
+        </main>
+
+
+
+{% endblock content %}
