@@ -55,4 +55,7 @@ BASE_URL = "https://alpha-cmms.alphamead.com"
 CORS_ALLOW_CREDENTIALS = True
 
 # --- Recommended Production Security ---
-CSRF_TRUSTED_ORIGINS = ["https://alpha-cmms.alphamead.com"]
+CSRF_TRUSTED_ORIGINS = [
+    "https://alpha-cmms.alphamead.com",
+    "http://46.101.74.174"
+]
