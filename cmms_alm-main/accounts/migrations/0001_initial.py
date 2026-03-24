@@ -71,7 +71,7 @@ class Migration(migrations.Migration):
                             ("Facility Store", "Facility Store"),
                             ("Facility View", "Facility View"),
                         ],
-                        default="Facility View",
+                        default="Super Admin",
                         help_text="Type of user.",
                         max_length=50,
                     ),
