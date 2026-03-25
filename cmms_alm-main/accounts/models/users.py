@@ -68,12 +68,12 @@ class User(AbstractBaseUser):
     #     ('Facility View', _('Facility View')),
     # ]
     ROLES_TYPE_CHOICES = [
-        ('Super Admin', _('SUPER_ADMIN')),
-        ('Admin', _('ADMIN')),
-        ('Requester', _('REQUESTER')),
-        ('Reviewer', _('REVIEWER')),
-        ('Approver', _('APPROVER')),
-        ('Procurement and store', _('PROCUREMENT AND STORE')),
+        ('SUPER ADMIN', _('Super Admin')),
+        ('ADMIN', _('Admin')),
+        ('REQUESTER', _('Requester')),
+        ('REVIEWER', _('Reviewer')),
+        ('APPROVER', _('Approver')),
+        ('PROCUREMENT AND STORE', _('Procurement and store')),
     ]
     STATUS_CHOICES = [
         ('Active', _('Active')),

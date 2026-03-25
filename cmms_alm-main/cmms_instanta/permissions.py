@@ -3,7 +3,7 @@ from rest_framework.permissions import BasePermission
 class RoleBasedPermission(BasePermission):
     """Single permission class that checks access based on role and feature"""
     ROLE_FEATURES = {
-        'Super Admin': {
+        'SUPER ADMIN': {
             'work_request': ['view', 'edit'],
             'work_order': ['view', 'edit'],
             'pending_ppm': ['view', 'edit'],
@@ -20,7 +20,7 @@ class RoleBasedPermission(BasePermission):
             'django_admin': ['view', 'edit'],
             'comment': ['view', 'edit'],
         },
-        'Facility Admin': {
+        'ADMIN': {
             'work_request': ['view', 'edit'],
             'work_order': ['view', 'edit'],
             'pending_ppm': ['view', 'edit'],
@@ -36,7 +36,7 @@ class RoleBasedPermission(BasePermission):
             'reference': ['view', 'edit'],
             'comment': ['view', 'edit'],
         },
-        'Facility Procurement': {
+        'PROCUREMENT AND STORE': {
             'work_request': ['view', 'edit'],
             'work_order': ['view', 'edit'],
             'pending_ppm': ['view', 'edit'],
@@ -44,21 +44,21 @@ class RoleBasedPermission(BasePermission):
             'ppm_setting': ['view', 'edit'],
             'comment': ['view', 'edit'],
         },
-        'Facility Manager': {
+        'APPROVER': {
             'work_order': ['view', 'edit'],
             'pending_ppm': ['view', 'edit'],
             'requisition': ['view', 'edit'],
             'ppm_setting': ['view', 'edit'],
             'comment': ['view', 'edit'],
         },
-        'Facility Officer': {
+        'REQUESTER': {
             'work_order': ['view', 'edit'],
             'pending_ppm': ['view', 'edit'],
             'requisition': ['view', 'edit'],
             'ppm_setting': ['view', 'edit'],
             'comment': ['view', 'edit'],
         },
-        'Facility Auditor': {
+        'REVIEWER': {
             'work_request': ['view'],
             'work_order': ['view'],
             'pending_ppm': ['view'],

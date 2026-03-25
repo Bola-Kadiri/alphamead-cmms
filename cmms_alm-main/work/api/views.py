@@ -111,7 +111,7 @@ class WorkRequestViewSet(RoleBasedPermissionMixin, viewsets.ModelViewSet):
         if request.user.roles != 'Facility Procurement':
             return Response(
                 {"error": "Only users with Facility Procurement role can access this endpoint."}, 
-                status=status.HTTP_403_FORBIDDEN
+                status=status.HTTP_403_
             )
         
         # Get all work requests assigned to Facility Procurement users
