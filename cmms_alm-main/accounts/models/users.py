@@ -56,18 +56,25 @@ class UserManager(BaseUserManager):
 
 
 class User(AbstractBaseUser):
+    # ROLES_TYPE_CHOICES = [
+    #     ('Super Admin', _('Super Admin')),
+    #     ('Facility Admin', _('Facility Admin')),
+    #     ('Facility Procurement', _('Facility Procurement')),
+    #     ('Facility Manager', _('Facility Manager')),
+    #     ('Facility Officer', _('Facility Officer')),
+    #     ('Facility Auditor', _('Facility Auditor')),
+    #     ('Facility Account', _('Facility Account')),
+    #     ('Facility Store', _('Facility Store')),
+    #     ('Facility View', _('Facility View')),
+    # ]
     ROLES_TYPE_CHOICES = [
-        ('Super Admin', _('Super Admin')),
-        ('Facility Admin', _('Facility Admin')),
-        ('Facility Procurement', _('Facility Procurement')),
-        ('Facility Manager', _('Facility Manager')),
-        ('Facility Officer', _('Facility Officer')),
-        ('Facility Auditor', _('Facility Auditor')),
-        ('Facility Account', _('Facility Account')),
-        ('Facility Store', _('Facility Store')),
-        ('Facility View', _('Facility View')),
+        ('Super Admin', _('SUPER_ADMIN')),
+        ('Admin', _('ADMIN')),
+        ('Requester', _('REQUESTER')),
+        ('Reviewer', _('REVIEWER')),
+        ('Approver', _('APPROVER')),
+        ('Procurement and store', _('PROCUREMENT AND STORE')),
     ]
-    
     STATUS_CHOICES = [
         ('Active', _('Active')),
         ('Inactive', _('Inactive')),
