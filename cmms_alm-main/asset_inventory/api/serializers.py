@@ -15,12 +15,17 @@ from asset_inventory.models.assets_category import AssetCategory, AssetSubCatego
 
 
 class AssetCategorySerializer(serializers.ModelSerializer):
+    subcategories = serializers.SerializerMethodField(read_only=True)
     class Meta:
         model = AssetCategory
         fields = [
-            'id', 'type', 'code', 'name', 'salvage_value_percent', 'useful_life_year', 'description'
+            'id', 'type', 'code', 'name', 'salvage_value_percent', 'useful_life_year', 'description', 'subcategories'
         ]
         read_only_fields = ['id']
+    
+    def get_subcategories(self, obj):
+        subs = obj.subcategories.all()
+        return AssetSubCategorySerializer(subs, many=True).data
 
 class AssetSubCategorySerializer(serializers.ModelSerializer):
     asset_category_detail = AssetCategorySerializer(source='asset_category', read_only=True)
