@@ -54,6 +54,18 @@ class WorkRequestViewSet(RoleBasedPermissionMixin, viewsets.ModelViewSet):
         data = [{"id": user.id, "name": user.name, "email": user.email} for user in procurement_users]
         return Response(data)
     
+    @action(detail=False, methods=['get'], url_path='reviewers')
+    def reviewers(self, request):
+        reviewers = User.objects.filter(roles='REVIEWER')
+        data = [{"id": user.id, "name": user.name, "email": user.email} for user in reviewers]
+        return Response(data)
+        
+    @action(detail=False, methods=['get'], url_path='approvers')
+    def approvers(self, request):
+        approvers = User.objects.filter(roles='APPROVER')
+        data = [{"id": user.id, "name": user.name, "email": user.email} for user in approvers]
+        return Response(data)
+    
     @action(detail=True, methods=['post'], url_path='approve')
     def approve_request(self, request, slug):
         # Only allow approval by ADMIN, SUPER ADMIN, or APPROVER
