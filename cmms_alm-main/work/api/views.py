@@ -36,31 +36,43 @@ class WorkRequestViewSet(RoleBasedPermissionMixin, viewsets.ModelViewSet):
         user = self.request.user
         if user.is_authenticated:
             # Add your admin roles here
-            admin_roles = ['Super Admin', 'Facility Admin'] 
+            admin_roles = ['SUPER ADMIN', 'ADMIN'] 
             if user.roles not in admin_roles:
                 return WorkRequest.objects.filter(owner=user).order_by('-id')
         return WorkRequest.objects.all().order_by('-id')
 
     def perform_create(self, serializer):
-        # Only allow creation by Facility Officer, Facility Store, or Facility Admin
-        allowed_roles = ['Facility Officer', 'Facility Store', 'Facility Admin']
+        # Only allow creation by REQUESTER, ADMIN, or SUPER ADMIN
+        allowed_roles = ['REQUESTER', 'ADMIN', 'SUPER ADMIN']
         if self.request.user.roles not in allowed_roles:
-            raise PermissionError("Only Facility Officer, Facility Store, or Facility Admin can create work requests.")
+            raise PermissionError("Only REQUESTER, ADMIN, or SUPER ADMIN can create work requests.")
         serializer.save(owner=self.request.user, requester=self.request.user)
         
     @action(detail=False, methods=['get'], url_path='procurement-users')
     def procurement_users(self, request):
-        procurement_users = User.objects.filter(roles='Facility Procurement')
+        procurement_users = User.objects.filter(roles='PROCUREMENT AND STORE')
         data = [{"id": user.id, "name": user.name, "email": user.email} for user in procurement_users]
+        return Response(data)
+    
+    @action(detail=False, methods=['get'], url_path='reviewers')
+    def reviewers(self, request):
+        reviewers = User.objects.filter(roles='REVIEWER')
+        data = [{"id": user.id, "name": user.name, "email": user.email} for user in reviewers]
+        return Response(data)
+        
+    @action(detail=False, methods=['get'], url_path='approvers')
+    def approvers(self, request):
+        approvers = User.objects.filter(roles='APPROVER')
+        data = [{"id": user.id, "name": user.name, "email": user.email} for user in approvers]
         return Response(data)
     
     @action(detail=True, methods=['post'], url_path='approve')
     def approve_request(self, request, slug):
-        # Only allow approval by Facility Manager, Facility Auditor, or Facility Admin
-        allowed_roles = ['Facility Manager', 'Facility Auditor', 'Facility Admin']
+        # Only allow approval by ADMIN, SUPER ADMIN, or APPROVER
+        allowed_roles = ['ADMIN', 'SUPER ADMIN', 'APPROVER']
         if request.user.roles not in allowed_roles:
             return Response(
-                {"error": "Only Facility Manager, Facility Auditor, or Facility Admin can approve work requests."},
+                {"error": "Only ADMIN, SUPER ADMIN, or APPROVER can approve work requests."},
                 status=status.HTTP_403_FORBIDDEN
             )
         
@@ -104,18 +116,18 @@ class WorkRequestViewSet(RoleBasedPermissionMixin, viewsets.ModelViewSet):
     @action(detail=False, methods=['get'], url_path='po-requisition')
     def po_requisition(self, request):
         """
-        Get all work requests that are assigned to users with Facility Procurement role.
-        Only Facility Procurement users can access this endpoint.
+        Get all work requests that are assigned to users with PROCUREMENT AND STORE role.
+        Only PROCUREMENT AND STORE users can access this endpoint.
         """
         # Check if user has Facility Procurement role
-        if request.user.roles != 'Facility Procurement':
+        if request.user.roles != 'PROCUREMENT AND STORE':
             return Response(
-                {"error": "Only users with Facility Procurement role can access this endpoint."}, 
+                {"error": "Only users with PROCUREMENT AND STORE role can access this endpoint."}, 
                 status=status.HTTP_403_
             )
         
-        # Get all work requests assigned to Facility Procurement users
-        procurement_users = User.objects.filter(roles='Facility Procurement')
+        # Get all work requests assigned to PROCUREMENT AND STORE users
+        procurement_users = User.objects.filter(roles='PROCUREMENT AND STORE')
         work_requests = WorkRequest.objects.filter(
             request_to__in=procurement_users
         ).distinct().order_by('-id')
@@ -126,12 +138,12 @@ class WorkRequestViewSet(RoleBasedPermissionMixin, viewsets.ModelViewSet):
     @action(detail=True, methods=['put', 'patch'], url_path='update-requisition')
     def update_requisition(self, request, slug):
         """
-        Allow Facility Procurement users to update work requests assigned to them.
+        Allow PROCUREMENT AND STORE users to update work requests assigned to them.
         """
-        # Check if user has Facility Procurement role
-        if request.user.roles != 'Facility Procurement':
+        # Check if user has PROCUREMENT AND STORE role
+        if request.user.roles != 'PROCUREMENT AND STORE':
             return Response(
-                {"error": "Only users with Facility Procurement role can update work requests."}, 
+                {"error": "Only users with PROCUREMENT AND STORE role can update work requests."}, 
                 status=status.HTTP_403_FORBIDDEN
             )
         
@@ -201,19 +213,19 @@ class WorkOrderViewSet(RoleBasedPermissionMixin, viewsets.ModelViewSet):
     lookup_field = 'slug'
 
     def perform_create(self, serializer):
-        # Only allow creation by Facility Officer, Facility Store, or Facility Admin
-        allowed_roles = ['Facility Officer', 'Facility Store', 'Facility Admin']
+        # Only allow creation by REQUESTER, ADMIN, or SUPER ADMIN
+        allowed_roles = ['REQUESTER', 'ADMIN', 'SUPER ADMIN']
         if self.request.user.roles not in allowed_roles:
-            raise PermissionError("Only Facility Officer, Facility Store, or Facility Admin can create work orders.")
+            raise PermissionError("Only REQUESTER, ADMIN, or SUPER ADMIN can create work orders.")
         serializer.save(owner=self.request.user, requester=self.request.user)
 
     @action(detail=True, methods=['post'], url_path='approve')
     def approve_order(self, request, slug=None):
-        # Only allow approval by Facility Manager, Facility Auditor, or Facility Admin
-        allowed_roles = ['Facility Manager', 'Facility Auditor', 'Facility Admin']
+        # Only allow approval by ADMIN, SUPER ADMIN, or APPROVER
+        allowed_roles = ['ADMIN', 'SUPER ADMIN', 'APPROVER']
         if request.user.roles not in allowed_roles:
             return Response(
-                {"error": "Only Facility Manager, Facility Auditor, or Facility Admin can approve work orders."},
+                {"error": "Only ADMIN, SUPER ADMIN, or APPROVER can approve work orders."},
                 status=status.HTTP_403_FORBIDDEN
             )
         # Filter by slug
@@ -231,10 +243,10 @@ class PaymentRequisitionViewSet(RoleBasedPermissionMixin, viewsets.ModelViewSet)
     permission_classes = [IsAuthenticated]
 
     def perform_create(self, serializer):
-        # Only allow creation by Facility Officer, Facility Store, or Facility Admin
-        allowed_roles = ['Facility Officer', 'Facility Store', 'Facility Admin']
+        # Only allow creation by REQUESTER, ADMIN, or SUPER ADMIN
+        allowed_roles = ['REQUESTER', 'ADMIN', 'SUPER ADMIN']
         if self.request.user.roles not in allowed_roles:
-            raise PermissionError("Only Facility Officer, Facility Store, or Facility Admin can create payment requests.")
+            raise PermissionError("Only REQUESTER, ADMIN, or SUPER ADMIN can create payment requests.")
         serializer.save(owner=self.request.user)
 
     @action(detail=True, methods=['post'], url_path='approve')
@@ -248,11 +260,11 @@ class PaymentRequisitionViewSet(RoleBasedPermissionMixin, viewsets.ModelViewSet)
         except Exception:
             amount = 0
 
-        if user_role == 'Facility Account':
+        if user_role == 'SUPER ADMIN':
             pass  # Always allowed
-        elif user_role == 'Facility Admin' and amount > 1000000:
+        elif user_role == 'ADMIN' and amount > 1000000:
             pass  # Allowed for > 1,000,000
-        elif user_role == 'Facility Manager' and amount <= 1000000:
+        elif user_role == 'APPROVER' and amount <= 1000000:
             pass  # Allowed for <= 1,000,000
         else:
             return Response(
