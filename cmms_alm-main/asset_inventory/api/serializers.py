@@ -24,7 +24,7 @@ class AssetCategorySerializer(serializers.ModelSerializer):
         read_only_fields = ['id']
     
     def get_subcategories(self, obj):
-        subs = obj.subcategories.all()
+        subs = obj.subcategory_set.all()
         return AssetSubCategorySerializer(subs, many=True).data
 
 class AssetSubCategorySerializer(serializers.ModelSerializer):
