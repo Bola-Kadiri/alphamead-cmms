@@ -45,6 +45,7 @@ class RoleBasedPermission(BasePermission):
             'comment': ['view', 'edit'],
         },
         'APPROVER': {
+            'work_request': ['view'],
             'work_order': ['view', 'edit'],
             'pending_ppm': ['view', 'edit'],
             'requisition': ['view', 'edit'],
@@ -52,6 +53,7 @@ class RoleBasedPermission(BasePermission):
             'comment': ['view', 'edit'],
         },
         'REQUESTER': {
+            'work_request': ['view', 'edit'],
             'work_order': ['view', 'edit'],
             'pending_ppm': ['view', 'edit'],
             'requisition': ['view', 'edit'],

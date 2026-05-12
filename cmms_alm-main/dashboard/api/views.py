@@ -6,17 +6,14 @@ from rest_framework import status
 from rest_framework.permissions import IsAuthenticated
 from django.db.models import Count, Q, Sum, F
 
-from cmms_instanta.permissions import RoleBasedPermissionMixin
-
 from work.models import WorkRequest, WorkOrder, PaymentRequisition, PPM
 
 
-class DashboardAPIView(RoleBasedPermissionMixin, APIView):
+class DashboardAPIView(APIView):
     """
     API view that returns dashboard data for Work Requests, Work Orders, Payment Requisitions, and PPMs.
     """
-    # permission_classes = [IsAuthenticated]
-    feature = "work_request"
+    permission_classes = [IsAuthenticated]
     
     def get(self, request):
         """
@@ -28,9 +25,8 @@ class DashboardAPIView(RoleBasedPermissionMixin, APIView):
         # Get counts from database
         # ESCALATED TO ME section
         work_requests_escalated = WorkRequest.objects.filter(
-            request_to=user, 
+            request_to=user,
             approval_status="Pending",
-            status="Active"
         ).count()
         
         work_orders_escalated = WorkOrder.objects.filter(
@@ -92,27 +88,22 @@ class DashboardAPIView(RoleBasedPermissionMixin, APIView):
         
         # WORK REQUEST section
         new_work_requests = WorkRequest.objects.filter(
-            status="Active"
-        ).filter(
-            Q(created_at__date=today) | 
+            Q(created_at__date=today) |
             Q(approval_status="Pending", type="Unplanned")
         ).count()
-        
+
         open_work_requests = WorkRequest.objects.filter(
-            status="Active",
             approval_status="Approved"
         ).exclude(
             created_at__date=today
         ).count()
-        
+
         quotation_work_requests = WorkRequest.objects.filter(
-            status="Active",
             require_quotation=True,
             approval_status="Approved"
         ).count()
-        
+
         awaiting_work_requests = WorkRequest.objects.filter(
-            status="Active",
             approval_status="Pending",
             type="Planned"
         ).count()

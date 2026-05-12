@@ -25,21 +25,22 @@ User = get_user_model()
 class WorkRequestViewSet(RoleBasedPermissionMixin, viewsets.ModelViewSet):
     # queryset = WorkRequest.objects.all().order_by('-id')
     serializer_class = WorkRequestSerializer
-    permission_classes = [IsAuthenticated]
+    feature = 'work_request'
     lookup_field = 'slug'
+    # Restrict slug pattern to real slugs (work-*, procument-*) so action
+    # URLs like procurement-assigned/ are never mistaken for a detail lookup.
+    lookup_value_regex = r'(?:work|procument)[a-z0-9\-]*'
     
     def get_queryset(self):
-        """
-        This view should return a list of all the work requests
-        for the currently authenticated user if they are not an admin.
-        """
         user = self.request.user
-        if user.is_authenticated:
-            # Add your admin roles here
-            admin_roles = ['SUPER ADMIN', 'ADMIN'] 
-            if user.roles not in admin_roles:
-                return WorkRequest.objects.filter(owner=user).order_by('-id')
-        return WorkRequest.objects.all().order_by('-id')
+        role = getattr(user, 'roles', '').strip().upper()
+        if role in ['SUPER ADMIN', 'ADMIN']:
+            return WorkRequest.objects.all().order_by('-id')
+        if role == 'PROCUREMENT AND STORE':
+            # Procurement users see requests assigned to them via request_to
+            return WorkRequest.objects.filter(request_to=user).order_by('-id')
+        # All other roles (REQUESTER, REVIEWER, APPROVER) see only what they created
+        return WorkRequest.objects.filter(owner=user).order_by('-id')
 
     def perform_create(self, serializer):
         # Only allow creation by REQUESTER, ADMIN, or SUPER ADMIN
@@ -66,6 +67,26 @@ class WorkRequestViewSet(RoleBasedPermissionMixin, viewsets.ModelViewSet):
         data = [{"id": user.id, "name": user.name, "email": user.email} for user in approvers]
         return Response(data)
     
+    @action(detail=False, methods=['get'], url_path='procurement-assigned')
+    def procurement_assigned(self, request):
+        if request.user.roles != 'PROCUREMENT AND STORE':
+            return Response(
+                {"error": "Only users with PROCUREMENT AND STORE role can access this endpoint."},
+                status=status.HTTP_403_FORBIDDEN
+            )
+
+        work_requests = WorkRequest.objects.filter(
+            request_to=request.user
+        ).order_by('-id')
+
+        page = self.paginate_queryset(work_requests)
+        if page is not None:
+            serializer = self.get_serializer(page, many=True)
+            return self.get_paginated_response(serializer.data)
+
+        serializer = self.get_serializer(work_requests, many=True)
+        return Response({"count": work_requests.count(), "results": serializer.data})
+
     @action(detail=True, methods=['post'], url_path='approve')
     def approve_request(self, request, slug):
         # Only allow approval by ADMIN, SUPER ADMIN, or APPROVER
