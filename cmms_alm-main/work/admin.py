@@ -18,7 +18,7 @@ class WorkOrderAdmin(admin.ModelAdmin):
     search_fields = ( 'work_order_number', 'requester__username', 'requester__email', 'facility__name')
     readonly_fields = ('work_order_number', 'slug')
     ordering = ('-expected_start_date',)
-    autocomplete_fields = ('requester', 'work_owner', 'facility', 'department', 'category', 'subcategory', 'asset', 'request_to')
+    autocomplete_fields = ('requester', 'work_owner', 'facility', 'department', 'asset', 'request_to')
     
     
 @admin.register(PaymentItem)
@@ -100,7 +100,7 @@ class PPMAdmin(admin.ModelAdmin):
             "fields": ("auto_create_work_order", "create_work_order_as_approved"),
         }),
         ("Linked Resources", {
-            "fields": ("assets", "facilities", "apartments", "items"),
+            "fields": ("assets", "facilities", "buildings", "items"),
         }),
         ("Additional Notes", {
             "fields": ("activities_safety_tips",),

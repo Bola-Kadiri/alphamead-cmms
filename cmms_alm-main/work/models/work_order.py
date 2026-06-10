@@ -72,6 +72,9 @@ class WorkOrder(OwnerPrivModel, Dated, Status, models.Model):
     TYPE_CHOICES = [
         ('Unplanned', 'Unplanned'),
         ('Planned', 'Planned'),
+        ('FROM-PPM', 'From PPM'),
+        ('FROM-WORK-REQUEST', 'From Work Request'),
+        ('RAISE-PAYMENT', 'Raise Payment'),
     ]
 
     PRIORITY_CHOICES = [
@@ -87,7 +90,10 @@ class WorkOrder(OwnerPrivModel, Dated, Status, models.Model):
 
     APPROVAL_STATUSES = [
         ("Pending", "Pending"),
+        ("Reviewed", "Reviewed"),
         ("Approved", "Approved"),
+        ("Reviewer Rejected", "Reviewer Rejected"),
+        ("Approver Rejected", "Approver Rejected"),
         ("Rejected", "Rejected"),
     ]
 
@@ -100,7 +106,25 @@ class WorkOrder(OwnerPrivModel, Dated, Status, models.Model):
     type = models.CharField(
         max_length=50,
         choices=TYPE_CHOICES,
+        blank=True,
+        null=True,
         help_text="Type of the work order.",
+    )
+
+    source_work_request = models.ForeignKey(
+        'work.WorkRequest',
+        on_delete=models.SET_NULL,
+        blank=True, null=True,
+        related_name='derived_work_orders',
+        help_text="Work request this order was created from.",
+    )
+
+    source_ppm = models.ForeignKey(
+        'work.PPM',
+        on_delete=models.SET_NULL,
+        blank=True, null=True,
+        related_name='derived_work_orders',
+        help_text="PPM schedule this order was created from.",
     )
     
     work_order_number = models.CharField(
@@ -119,9 +143,18 @@ class WorkOrder(OwnerPrivModel, Dated, Status, models.Model):
     
     facility = models.ForeignKey(
         'facility.Facility',
-        on_delete=models.CASCADE,
+        on_delete=models.SET_NULL,
+        blank=True, null=True,
         related_name='work_orders_facility',
         help_text="Facility or location associated with the work order."
+    )
+
+    building = models.ForeignKey(
+        'facility.Building',
+        on_delete=models.SET_NULL,
+        blank=True, null=True,
+        related_name='work_orders_building',
+        help_text="Building associated with the work order."
     )
     
     apartment = models.ForeignKey(
@@ -134,16 +167,17 @@ class WorkOrder(OwnerPrivModel, Dated, Status, models.Model):
     )
     
     category = models.ForeignKey(
-        'accounts.Category',
-        on_delete=models.CASCADE,
+        'asset_inventory.AssetCategory',
+        on_delete=models.SET_NULL,
+        blank=True, null=True,
+        related_name='work_orders_category',
         help_text="Category of the work order."
     )
-    
+
     subcategory = models.ForeignKey(
-        'accounts.Subcategory',
-        on_delete=models.CASCADE,
-        blank=True,
-        null=True,
+        'asset_inventory.AssetSubCategory',
+        on_delete=models.SET_NULL,
+        blank=True, null=True,
         related_name='work_orders_subcategory',
         help_text="Subcategory of the work order."
     )
@@ -152,12 +186,14 @@ class WorkOrder(OwnerPrivModel, Dated, Status, models.Model):
        'accounts.Department',
         on_delete=models.CASCADE,
         null=True,
+        blank=True,
         help_text="Department handling the work order."
     )
     
     priority = models.CharField(
         max_length=50,
         choices=PRIORITY_CHOICES,
+        default='Medium',
         help_text="Priority level of the work order."
     )
     
@@ -225,14 +261,57 @@ class WorkOrder(OwnerPrivModel, Dated, Status, models.Model):
     )
     
     request_to = models.ForeignKey(
-        settings.AUTH_USER_MODEL, 
-        on_delete=models.CASCADE, 
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        blank=True, null=True,
+        related_name='work_orders_assigned_to',
         help_text="User to whom the approval request is sent.",
     )
+
+    approver = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        blank=True, null=True,
+        related_name='work_orders_to_approve',
+        help_text="User assigned to approve this work order.",
+    )
+
+    reviewers = models.ManyToManyField(
+        settings.AUTH_USER_MODEL,
+        blank=True,
+        related_name='work_orders_to_review',
+        help_text="Users assigned to review this work order.",
+    )
+
+    cost = models.DecimalField(
+        max_digits=10, decimal_places=2,
+        blank=True, null=True,
+        help_text="Estimated cost of the work order.",
+    )
     
+    is_reviewed = models.BooleanField(
+        default=False,
+        help_text="Indicates whether the work order has been reviewed."
+    )
+
     is_approved = models.BooleanField(
-        default=False, 
+        default=False,
         help_text="Indicates whether the request is approved."
+    )
+
+    reviewer_reason = models.TextField(
+        blank=True, null=True,
+        help_text="Reason provided when a reviewer rejects the work order."
+    )
+
+    approver_reason = models.TextField(
+        blank=True, null=True,
+        help_text="Reason provided when an approver rejects the work order."
+    )
+
+    digital_signature = models.CharField(
+        max_length=255, blank=True, null=True,
+        help_text="Approver's digital signature (full name) on final approval."
     )
     remark = models.TextField(
         blank=True, 
@@ -279,7 +358,7 @@ class WorkOrder(OwnerPrivModel, Dated, Status, models.Model):
     )
 
     approval_status = models.CharField(
-        max_length=10,
+        max_length=20,
         choices=APPROVAL_STATUSES,
         default="Pending",
         help_text="Approval status of the work order."
@@ -295,6 +374,11 @@ class WorkOrder(OwnerPrivModel, Dated, Status, models.Model):
     exclude_management_fee = models.BooleanField(
         default=False,
         help_text="Indicates if the management fee should be excluded."
+    )
+
+    allow_resubmission = models.BooleanField(
+        default=False,
+        help_text="Admin-controlled flag. When True, allows a new work order to be raised from the same source PPM or work request after rejection."
     )
 
     # files = models.ManyToManyField(
@@ -353,8 +437,7 @@ class WorkOrder(OwnerPrivModel, Dated, Status, models.Model):
     )
     
     def prepopulate_slug(self):
-        """Generate a unique slug from the work request type"""
-        base_slug = slugify(self.type)
+        base_slug = slugify(self.type or 'work-order')
         unique_slug = base_slug
         num = 1
         while WorkOrder.objects.filter(slug=unique_slug).exists():
@@ -380,11 +463,8 @@ class WorkOrder(OwnerPrivModel, Dated, Status, models.Model):
         super().save(*args, **kwargs)
     
     def __str__(self):
-        return f"Work Order: {self.type} - {self.requester}"
+        return f"Work Order: {self.type} - {self.work_order_number}"
 
     class Meta:
         verbose_name = "Work Order"
         verbose_name_plural = "Work Orders"
-
-    def __str__(self):
-        return self.title

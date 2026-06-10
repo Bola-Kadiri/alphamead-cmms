@@ -150,7 +150,7 @@ class PPMForm(forms.ModelForm):
             "description", "category", "subcategory", "frequency", "frequency_unit",
             "notify_before_due", "notify_unit", "send_reminder_every", "reminder_unit",
             "currency", "auto_create_work_order", "create_work_order_as_approved",
-            "assets", "facilities", "apartments", "items", "activities_safety_tips"
+            "assets", "facilities", "buildings", "items", "activities_safety_tips"
         ]
         widgets = {
             "description": forms.Textarea(attrs={"class": "form-control", "rows": 2, "placeholder": "Describe this maintenance task"}),
@@ -167,7 +167,7 @@ class PPMForm(forms.ModelForm):
             "create_work_order_as_approved": forms.CheckboxInput(attrs={"class": "form-check-input"}),
             "assets": forms.SelectMultiple(attrs={"class": "form-control select2", "multiple": "multiple"}),
             "facilities": forms.SelectMultiple(attrs={"class": "form-control select2", "multiple": "multiple"}),
-            "apartments": forms.SelectMultiple(attrs={"class": "form-control select2", "multiple": "multiple"}),
+            "buildings": forms.SelectMultiple(attrs={"class": "form-control select2", "multiple": "multiple"}),
             "items": forms.SelectMultiple(attrs={"class": "form-control select2", "multiple": "multiple"}),
             "activities_safety_tips": forms.Textarea(attrs={"class": "form-control", "rows": 3, "placeholder": "Provide safety tips or activity details"}),
         }

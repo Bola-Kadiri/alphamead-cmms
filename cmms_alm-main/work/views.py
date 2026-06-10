@@ -397,8 +397,8 @@ class PPMSettingView(View):
                 ppm_setting.assets.set(request.POST.getlist("assets"))
             if "facilities" in request.POST:
                 ppm_setting.facilities.set(request.POST.getlist("facilities"))
-            if "apartments" in request.POST:
-                ppm_setting.apartments.set(request.POST.getlist("apartments"))
+            if "buildings" in request.POST:
+                ppm_setting.buildings.set(request.POST.getlist("buildings"))
             if "items" in request.POST:
                 ppm_setting.items.set(request.POST.getlist("items"))
 

@@ -42,6 +42,7 @@ class RoleBasedPermission(BasePermission):
             'pending_ppm': ['view', 'edit'],
             'requisition': ['view', 'edit'],
             'ppm_setting': ['view', 'edit'],
+            'asset_register': ['view'],
             'comment': ['view', 'edit'],
         },
         'APPROVER': {
@@ -50,6 +51,7 @@ class RoleBasedPermission(BasePermission):
             'pending_ppm': ['view', 'edit'],
             'requisition': ['view', 'edit'],
             'ppm_setting': ['view', 'edit'],
+            'asset_register': ['view'],
             'comment': ['view', 'edit'],
         },
         'REQUESTER': {
@@ -58,6 +60,7 @@ class RoleBasedPermission(BasePermission):
             'pending_ppm': ['view', 'edit'],
             'requisition': ['view', 'edit'],
             'ppm_setting': ['view', 'edit'],
+            'asset_register': ['view'],
             'comment': ['view', 'edit'],
         },
         'REVIEWER': {
@@ -135,8 +138,25 @@ class RoleBasedPermission(BasePermission):
         if user_role not in self.ROLE_FEATURES:
             return False
 
-        # Check if the role has the required permission for the feature
-        required_action = 'edit' if request.method in ['POST', 'PUT', 'DELETE'] else 'view'
+        # Workflow actions use POST but are gated by role checks inside the view,
+        # not the generic 'edit' permission — only 'view' access is needed here.
+        approve_actions = {
+            # legacy names
+            'approve_request', 'reject_request', 'approve_order', 'approve', 'review', 'reject',
+            # work-request workflow actions
+            'cp_approve', 'cp_reject',
+            'reviewer_approve', 'reviewer_reject',
+            'final_approve', 'final_reject',
+            'resubmit',
+            # ppm / other
+            'approve_order',
+        }
+        view_action = getattr(view, 'action', None)
+        if view_action in approve_actions:
+            required_action = 'view'
+        else:
+            required_action = 'edit' if request.method in ['POST', 'PUT', 'PATCH', 'DELETE'] else 'view'
+
         return required_action in self.ROLE_FEATURES[user_role].get(feature, [])
     
 

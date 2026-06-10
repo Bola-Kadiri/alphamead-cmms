@@ -1,5 +1,6 @@
 import random
 from django.db import models
+from django.conf import settings
 from utils.models import UserPrivModel, Dated, Status, OwnerPrivModel
 
 
@@ -7,6 +8,12 @@ class PPM(OwnerPrivModel, Dated, Status, models.Model):
     """
     Represents a Planned Preventive Maintenance (PPM) schedule.
     """
+
+    APPROVAL_STATUSES = [
+        ("Pending", "Pending"),
+        ("Approved", "Approved"),
+        ("Rejected", "Rejected"),
+    ]
 
     FREQUENCY_UNIT_CHOICES = [
         ('Hours', 'Hour(s)'),
@@ -20,13 +27,13 @@ class PPM(OwnerPrivModel, Dated, Status, models.Model):
     )
 
     category = models.ForeignKey(
-        'accounts.Category',
+        'asset_inventory.AssetCategory',
         on_delete=models.CASCADE,
         help_text="Category of the maintenance task."
     )
 
     subcategory = models.ForeignKey(
-        'accounts.Subcategory',
+        'asset_inventory.AssetSubCategory',
         on_delete=models.SET_NULL,
         blank=True,
         null=True,
@@ -102,11 +109,11 @@ class PPM(OwnerPrivModel, Dated, Status, models.Model):
         help_text="Facilities associated with the maintenance."
     )
 
-    apartments = models.ManyToManyField(
-        'facility.Apartment',
+    buildings = models.ManyToManyField(
+        'facility.Building',
         blank=True,
         related_name='ppms',
-        help_text="Apartments or rooms associated with the maintenance."
+        help_text="Buildings associated with the maintenance."
     )
 
     items = models.ManyToManyField(
@@ -120,6 +127,28 @@ class PPM(OwnerPrivModel, Dated, Status, models.Model):
         blank=True,
         null=True,
         help_text="Activities or safety tips related to the maintenance task."
+    )
+
+    approver = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='ppm_approvals',
+        help_text="User responsible for approving this PPM."
+    )
+
+    approval_status = models.CharField(
+        max_length=10,
+        choices=APPROVAL_STATUSES,
+        default="Pending",
+        help_text="Approval status of the PPM schedule."
+    )
+
+    rejection_reason = models.TextField(
+        blank=True,
+        null=True,
+        help_text="Reason for rejecting the PPM schedule."
     )
 
     class Meta:
