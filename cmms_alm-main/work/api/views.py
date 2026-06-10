@@ -639,6 +639,18 @@ class WorkOrderViewSet(RoleBasedPermissionMixin, viewsets.ModelViewSet):
         serializer = self.get_serializer(instance)
         return Response(serializer.data, status=status.HTTP_200_OK)
 
+    @action(detail=False, methods=['get'], url_path='approvers')
+    def approvers(self, request):
+        users = User.objects.filter(roles='APPROVER')
+        data = [{"id": u.id, "name": u.name, "email": u.email} for u in users]
+        return Response(data)
+
+    @action(detail=False, methods=['get'], url_path='reviewers')
+    def reviewers(self, request):
+        users = User.objects.filter(roles='REVIEWER')
+        data = [{"id": u.id, "name": u.name, "email": u.email} for u in users]
+        return Response(data)
+
 
 class PaymentRequisitionViewSet(RoleBasedPermissionMixin, viewsets.ModelViewSet):
     queryset = PaymentRequisition.objects.all().order_by('-id')
