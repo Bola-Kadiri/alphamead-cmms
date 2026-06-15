@@ -480,6 +480,17 @@ class WorkOrderViewSet(RoleBasedPermissionMixin, viewsets.ModelViewSet):
     feature = "work_order"
     lookup_field = 'slug'
 
+    def get_queryset(self):
+        user = self.request.user
+        role = getattr(user, 'roles', '').strip().upper()
+        if role in ['SUPER ADMIN', 'ADMIN']:
+            return WorkOrder.objects.all().order_by('-id')
+        if role == 'REVIEWER':
+            return WorkOrder.objects.filter(reviewers=user).order_by('-id')
+        if role == 'APPROVER':
+            return WorkOrder.objects.filter(approver=user).order_by('-id')
+        return WorkOrder.objects.filter(owner=user).order_by('-id')
+
     def create(self, request, *args, **kwargs):
         print("=== WorkOrder POST data ===", dict(request.data))
         serializer = self.get_serializer(data=request.data)
@@ -802,6 +813,17 @@ class WorkOrderCompletionViewSet(RoleBasedPermissionMixin, viewsets.ModelViewSet
     serializer_class = WorkOrderCompletionSerializer
     permission_classes = [IsAuthenticated]
     feature = 'work_order'
+
+    def get_queryset(self):
+        user = self.request.user
+        role = getattr(user, 'roles', '').strip().upper()
+        if role in ['SUPER ADMIN', 'ADMIN']:
+            return WorkOrderCompletion.objects.all().order_by('-id')
+        if role == 'REVIEWER':
+            return WorkOrderCompletion.objects.filter(reviewers=user).order_by('-id')
+        if role == 'APPROVER':
+            return WorkOrderCompletion.objects.filter(approver=user).order_by('-id')
+        return WorkOrderCompletion.objects.filter(owner=user).order_by('-id')
 
     def perform_create(self, serializer):
         work_order = serializer.validated_data.get('work_order')

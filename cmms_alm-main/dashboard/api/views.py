@@ -14,38 +14,66 @@ class DashboardAPIView(APIView):
     def get(self, request):
         user = request.user
         today = timezone.now().date()
+        role = getattr(user, 'roles', '').strip().upper()
+
+        # ---- BUILD ROLE-SCOPED BASE QUERYSETS ----
+        if role in ['SUPER ADMIN', 'ADMIN']:
+            wr_qs = WorkRequest.objects
+            wo_qs = WorkOrder.objects
+            wcc_qs = WorkOrderCompletion.objects
+            inv_qs = Invoice.objects
+        elif role == 'PROCUREMENT AND STORE':
+            wr_qs = WorkRequest.objects.filter(request_to=user)
+            wo_qs = WorkOrder.objects.filter(owner=user)
+            wcc_qs = WorkOrderCompletion.objects.filter(owner=user)
+            inv_qs = Invoice.objects.filter(owner=user)
+        elif role == 'REVIEWER':
+            wr_qs = WorkRequest.objects.filter(reviewers=user)
+            wo_qs = WorkOrder.objects.filter(reviewers=user)
+            wcc_qs = WorkOrderCompletion.objects.filter(reviewers=user)
+            inv_qs = Invoice.objects.filter(reviewers=user)
+        elif role == 'APPROVER':
+            wr_qs = WorkRequest.objects.filter(approver=user)
+            wo_qs = WorkOrder.objects.filter(approver=user)
+            wcc_qs = WorkOrderCompletion.objects.filter(approver=user)
+            inv_qs = Invoice.objects.filter(approver=user)
+        else:
+            wr_qs = WorkRequest.objects.filter(owner=user)
+            wo_qs = WorkOrder.objects.filter(owner=user)
+            wcc_qs = WorkOrderCompletion.objects.filter(owner=user)
+            inv_qs = Invoice.objects.filter(owner=user)
 
         # ---- WORK REQUEST COUNTS ----
-        wr_pending = WorkRequest.objects.filter(
+        wr_pending = wr_qs.filter(
             approval_status__in=["Pending Review", "CP Approved", "Reviewed"]
         ).count()
-        wr_approved = WorkRequest.objects.filter(approval_status="Fully Approved").count()
-        wr_rejected = WorkRequest.objects.filter(
+        wr_approved = wr_qs.filter(approval_status="Fully Approved").count()
+        wr_rejected = wr_qs.filter(
             approval_status__in=["Rejected – Vendor Changed", "Reviewer Rejected", "Approver Rejected"]
         ).count()
 
         # ---- WORK ORDER COUNTS ----
-        wo_pending = WorkOrder.objects.filter(approval_status="Pending").count()
-        wo_approved = WorkOrder.objects.filter(approval_status="Approved").count()
-        wo_rejected = WorkOrder.objects.filter(approval_status="Rejected").count()
-        wo_overdue = WorkOrder.objects.filter(
+        wo_pending = wo_qs.filter(approval_status="Pending").count()
+        wo_approved = wo_qs.filter(approval_status="Approved").count()
+        wo_rejected = wo_qs.filter(approval_status="Rejected").count()
+        wo_overdue = wo_qs.filter(
             approval_status="Approved",
             expected_start_date__lt=today
         ).count()
 
         # ---- WORK COMPLETION COUNTS ----
-        wcc_pending = WorkOrderCompletion.objects.filter(approval_status='Pending').count()
-        wcc_reviewed = WorkOrderCompletion.objects.filter(approval_status='Reviewed').count()
-        wcc_approved = WorkOrderCompletion.objects.filter(approval_status='Approved').count()
-        wcc_rejected = WorkOrderCompletion.objects.filter(
+        wcc_pending = wcc_qs.filter(approval_status='Pending').count()
+        wcc_reviewed = wcc_qs.filter(approval_status='Reviewed').count()
+        wcc_approved = wcc_qs.filter(approval_status='Approved').count()
+        wcc_rejected = wcc_qs.filter(
             approval_status__in=['Reviewer Rejected', 'Approver Rejected']
         ).count()
 
         # ---- INVOICE COUNTS ----
-        inv_pending = Invoice.objects.filter(approval_status='Pending').count()
-        inv_reviewed = Invoice.objects.filter(approval_status='Reviewed').count()
-        inv_approved = Invoice.objects.filter(approval_status='Approved').count()
-        inv_rejected = Invoice.objects.filter(
+        inv_pending = inv_qs.filter(approval_status='Pending').count()
+        inv_reviewed = inv_qs.filter(approval_status='Reviewed').count()
+        inv_approved = inv_qs.filter(approval_status='Approved').count()
+        inv_rejected = inv_qs.filter(
             approval_status__in=['Reviewer Rejected', 'Approver Rejected']
         ).count()
 
