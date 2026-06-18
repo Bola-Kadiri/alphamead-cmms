@@ -1,0 +1,30 @@
+{% extends "emails/base_email.html" %}
+{% block content %}
+<h2>Work Request Ready for Your Review</h2>
+<p>The Procurement &amp; Store team has processed the work request below. It is now awaiting your review.</p>
+<div class="detail-box">
+  <table>
+    <tr><td>Reference</td><td>{{ instance.work_request_number }}</td></tr>
+    <tr><td>Type</td><td>{{ instance.type }}</td></tr>
+    <tr><td>Priority</td><td>{{ instance.priority }}</td></tr>
+    <tr><td>PO Number</td><td>{{ instance.po_number|default:"—" }}</td></tr>
+    <tr><td>PO Amount</td><td>{{ instance.currency }} {{ instance.po_amount|default:"—" }}</td></tr>
+    <tr><td>Status</td><td><span class="badge badge-reviewed">{{ instance.approval_status }}</span></td></tr>
+  </table>
+</div>
+<div style="border:1px solid #bbf7d0;border-radius:6px;margin:20px 0;overflow:hidden;">
+  <div style="background:#f0fdf4;padding:10px 16px;border-bottom:2px solid #bbf7d0;">
+    <span style="font-size:12px;font-weight:700;color:#166534;text-transform:uppercase;letter-spacing:0.5px;">Job Details</span>
+  </div>
+  <div style="padding:16px;">
+    <table style="width:100%;border-collapse:collapse;font-size:13px;">
+      <tr><td style="color:#6b7280;width:40%;font-weight:600;padding:5px 0;vertical-align:top;">Description</td><td style="padding:5px 0;vertical-align:top;">{{ instance.description|default:"—" }}</td></tr>
+      <tr><td style="color:#6b7280;width:40%;font-weight:600;padding:5px 0;vertical-align:top;">Category</td><td style="padding:5px 0;vertical-align:top;">{{ instance.category|default:"—" }}</td></tr>
+      <tr><td style="color:#6b7280;width:40%;font-weight:600;padding:5px 0;vertical-align:top;">Facility</td><td style="padding:5px 0;vertical-align:top;">{{ instance.facility|default:"—" }}</td></tr>
+      <tr><td style="color:#6b7280;width:40%;font-weight:600;padding:5px 0;vertical-align:top;">Requester</td><td style="padding:5px 0;vertical-align:top;">{{ instance.requester.get_full_name|default:instance.requester.email }}</td></tr>
+      <tr><td style="color:#6b7280;width:40%;font-weight:600;padding:5px 0;vertical-align:top;">Date Submitted</td><td style="padding:5px 0;vertical-align:top;">{{ instance.created_at|date:"d M Y" }}</td></tr>
+    </table>
+  </div>
+</div>
+<p>Please log in to AlphaCMMS to review this request.</p>
+{% endblock %}

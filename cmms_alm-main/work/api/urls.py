@@ -3,6 +3,7 @@
 from django.urls import path, include
 from rest_framework.routers import DefaultRouter
 from work.api.views import WorkRequestViewSet, WorkOrderViewSet, PaymentRequisitionViewSet, PaymentItemViewSet, CommentViewSet, PPMViewSet, WorkOrderCompletionViewSet, InvoiceViewSet
+from work.api.notification_views import NotificationViewSet
 
 router = DefaultRouter()
 router.register(r'work-requests', WorkRequestViewSet, basename='work-request')
@@ -13,6 +14,7 @@ router.register(r'payment-comments', CommentViewSet, basename='paymentcomment')
 router.register(r'ppm', PPMViewSet, basename='ppm')
 router.register(r'work-order-completions', WorkOrderCompletionViewSet, basename='workordercompletion')
 router.register(r'invoices', InvoiceViewSet, basename='invoice')
+router.register(r'notifications', NotificationViewSet, basename='notification')
 
 urlpatterns = [
     path('', include(router.urls)),

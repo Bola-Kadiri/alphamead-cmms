@@ -406,7 +406,7 @@ class WorkRequestViewSet(RoleBasedPermissionMixin, viewsets.ModelViewSet):
 
     @action(detail=False, methods=['get'], url_path='procurement-assigned')
     def procurement_assigned(self, request):
-        if request.user.roles != 'PROCUREMENT AND STORE':
+        if request.user.roles not in ('PROCUREMENT AND STORE', 'ADMIN', 'SUPER ADMIN'):
             return Response(
                 {"error": "Only users with PROCUREMENT AND STORE role can access this endpoint."},
                 status=status.HTTP_403_FORBIDDEN,
@@ -421,7 +421,7 @@ class WorkRequestViewSet(RoleBasedPermissionMixin, viewsets.ModelViewSet):
 
     @action(detail=False, methods=['get'], url_path='po-requisition')
     def po_requisition(self, request):
-        if request.user.roles != 'PROCUREMENT AND STORE':
+        if request.user.roles not in ('PROCUREMENT AND STORE', 'ADMIN', 'SUPER ADMIN'):
             return Response(
                 {"error": "Only users with PROCUREMENT AND STORE role can access this endpoint."},
                 status=status.HTTP_403_FORBIDDEN,
@@ -435,7 +435,7 @@ class WorkRequestViewSet(RoleBasedPermissionMixin, viewsets.ModelViewSet):
 
     @action(detail=True, methods=['put', 'patch'], url_path='update-requisition')
     def update_requisition(self, request, slug):
-        if request.user.roles != 'PROCUREMENT AND STORE':
+        if request.user.roles not in ('PROCUREMENT AND STORE', 'ADMIN', 'SUPER ADMIN'):
             return Response(
                 {"error": "Only users with PROCUREMENT AND STORE role can update work requests."},
                 status=status.HTTP_403_FORBIDDEN,

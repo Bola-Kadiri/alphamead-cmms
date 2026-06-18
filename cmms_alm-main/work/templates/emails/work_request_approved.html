@@ -1,0 +1,27 @@
+{% extends "emails/base_email.html" %}
+{% block content %}
+<h2>Your Work Request Has Been Approved</h2>
+<p>Great news! Your work request has been fully approved.</p>
+<div class="detail-box">
+  <table>
+    <tr><td>Reference</td><td>{{ instance.work_request_number }}</td></tr>
+    <tr><td>Type</td><td>{{ instance.type }}</td></tr>
+    <tr><td>Priority</td><td>{{ instance.priority }}</td></tr>
+    <tr><td>Status</td><td><span class="badge badge-approved">{{ instance.approval_status }}</span></td></tr>
+    {% if instance.fully_approved_at %}<tr><td>Approved At</td><td>{{ instance.fully_approved_at }}</td></tr>{% endif %}
+  </table>
+</div>
+<div style="border:1px solid #bbf7d0;border-radius:6px;margin:20px 0;overflow:hidden;">
+  <div style="background:#f0fdf4;padding:10px 16px;border-bottom:2px solid #bbf7d0;">
+    <span style="font-size:12px;font-weight:700;color:#166534;text-transform:uppercase;letter-spacing:0.5px;">Job Details</span>
+  </div>
+  <div style="padding:16px;">
+    <table style="width:100%;border-collapse:collapse;font-size:13px;">
+      <tr><td style="color:#6b7280;width:40%;font-weight:600;padding:5px 0;vertical-align:top;">Description</td><td style="padding:5px 0;vertical-align:top;">{{ instance.description|default:"—" }}</td></tr>
+      <tr><td style="color:#6b7280;width:40%;font-weight:600;padding:5px 0;vertical-align:top;">Category</td><td style="padding:5px 0;vertical-align:top;">{{ instance.category|default:"—" }}</td></tr>
+      <tr><td style="color:#6b7280;width:40%;font-weight:600;padding:5px 0;vertical-align:top;">Facility</td><td style="padding:5px 0;vertical-align:top;">{{ instance.facility|default:"—" }}</td></tr>
+    </table>
+  </div>
+</div>
+<p>Log in to AlphaCMMS to view the full details.</p>
+{% endblock %}

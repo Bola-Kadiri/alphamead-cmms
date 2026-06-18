@@ -1,5 +1,6 @@
 from rest_framework import serializers
 from django.contrib.contenttypes.models import ContentType
+from django.db import transaction
 from work.models import WorkRequest, PaymentItem, Comment, PaymentRequisition, PPM, WorkOrder, WorkOrderCompletion, Invoice, InvoiceLineItem
 from utils.models import FileAttachment
 
@@ -51,14 +52,13 @@ class WorkRequestSerializer(serializers.ModelSerializer):
         request_to_users = validated_data.pop('request_to', [])
         reviewers = validated_data.pop('reviewers', [])
 
-        instance = WorkRequest.objects.create(**validated_data)
-
-        if request_to_users:
-            instance.request_to.set(request_to_users)
-        if reviewers:
-            instance.reviewers.set(reviewers)
-
-        self._attach_files(instance, resource_uploads, 'work_request_resources')
+        with transaction.atomic():
+            instance = WorkRequest.objects.create(**validated_data)
+            if request_to_users:
+                instance.request_to.set(request_to_users)
+            if reviewers:
+                instance.reviewers.set(reviewers)
+            self._attach_files(instance, resource_uploads, 'work_request_resources')
         return instance
 
     def update(self, instance, validated_data):
@@ -156,10 +156,11 @@ class WorkOrderSerializer(serializers.ModelSerializer):
     def create(self, validated_data):
         resource_uploads = validated_data.pop('resources', [])
         reviewers = validated_data.pop('reviewers', [])
-        instance = WorkOrder.objects.create(**validated_data)
-        if reviewers:
-            instance.reviewers.set(reviewers)
-        self._attach_files(instance, resource_uploads, 'work_order_resources')
+        with transaction.atomic():
+            instance = WorkOrder.objects.create(**validated_data)
+            if reviewers:
+                instance.reviewers.set(reviewers)
+            self._attach_files(instance, resource_uploads, 'work_order_resources')
         return instance
 
     def update(self, instance, validated_data):
@@ -262,10 +263,11 @@ class WorkOrderCompletionSerializer(serializers.ModelSerializer):
     def create(self, validated_data):
         files = validated_data.pop('resources', [])
         reviewers = validated_data.pop('reviewers', [])
-        instance = WorkOrderCompletion.objects.create(**validated_data)
-        if reviewers:
-            instance.reviewers.set(reviewers)
-        self._attach_files(instance, files)
+        with transaction.atomic():
+            instance = WorkOrderCompletion.objects.create(**validated_data)
+            if reviewers:
+                instance.reviewers.set(reviewers)
+            self._attach_files(instance, files)
         return instance
 
     def update(self, instance, validated_data):
@@ -335,12 +337,13 @@ class InvoiceSerializer(serializers.ModelSerializer):
         files = validated_data.pop('attachments_files', [])
         reviewers = validated_data.pop('reviewers', [])
         items_data = validated_data.pop('items_data', [])
-        instance = Invoice.objects.create(**validated_data)
-        if reviewers:
-            instance.reviewers.set(reviewers)
-        for item in items_data:
-            InvoiceLineItem.objects.create(invoice=instance, **item)
-        self._attach_files(instance, files)
+        with transaction.atomic():
+            instance = Invoice.objects.create(**validated_data)
+            if reviewers:
+                instance.reviewers.set(reviewers)
+            for item in items_data:
+                InvoiceLineItem.objects.create(invoice=instance, **item)
+            self._attach_files(instance, files)
         return instance
 
     def update(self, instance, validated_data):

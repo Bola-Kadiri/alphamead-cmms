@@ -46,78 +46,107 @@
 
         <li class="nav-item dropdown">
 
-          <a class="nav-link nav-icon" href="#" data-bs-toggle="dropdown">
+          <a class="nav-link nav-icon" href="#" data-bs-toggle="dropdown" id="notif-bell">
             <i class="bi bi-bell"></i>
-            <span class="badge bg-primary badge-number">4</span>
+            {% if navbar_unread_count > 0 %}
+            <span class="badge bg-primary badge-number" id="notif-badge">{{ navbar_unread_count }}</span>
+            {% endif %}
           </a><!-- End Notification Icon -->
 
-          <ul class="dropdown-menu dropdown-menu-end dropdown-menu-arrow notifications">
-            <li class="dropdown-header">
-              You have 4 new notifications
-              <a href="#"><span class="badge rounded-pill bg-primary p-2 ms-2">View all</span></a>
+          <ul class="dropdown-menu dropdown-menu-end dropdown-menu-arrow notifications" style="min-width:360px; max-height:420px; overflow-y:auto;">
+            <li class="dropdown-header d-flex justify-content-between align-items-center px-3 py-2">
+              <span>
+                {% if navbar_unread_count > 0 %}
+                  You have <strong>{{ navbar_unread_count }}</strong> unread notification{{ navbar_unread_count|pluralize }}
+                {% else %}
+                  No new notifications
+                {% endif %}
+              </span>
+              {% if navbar_unread_count > 0 %}
+              <button class="btn btn-sm btn-link p-0 text-primary" id="mark-all-read-btn" style="font-size:12px;">Mark all read</button>
+              {% endif %}
             </li>
-            <li>
-              <hr class="dropdown-divider">
-            </li>
+            <li><hr class="dropdown-divider m-0"></li>
 
-            <li class="notification-item">
-              <i class="bi bi-exclamation-circle text-warning"></i>
-              <div>
-                <h4>Lorem Ipsum</h4>
-                <p>Quae dolorem earum veritatis oditseno</p>
-                <p>30 min. ago</p>
-              </div>
-            </li>
+            {% if navbar_notifications %}
+              {% for notif in navbar_notifications %}
+              <li class="notification-item px-3 py-2" id="notif-item-{{ notif.id }}" style="cursor:pointer;" onclick="markNotifRead({{ notif.id }}, this)">
+                {% if notif.notification_type == 'WORK_REQUEST' %}
+                  <i class="bi bi-file-text text-warning fs-5 me-2"></i>
+                {% elif notif.notification_type == 'WORK_ORDER' %}
+                  <i class="bi bi-clipboard-check text-primary fs-5 me-2"></i>
+                {% elif notif.notification_type == 'WCC' %}
+                  <i class="bi bi-check-circle text-success fs-5 me-2"></i>
+                {% elif notif.notification_type == 'PAYMENT_REQUISITION' %}
+                  <i class="bi bi-cash-stack text-info fs-5 me-2"></i>
+                {% else %}
+                  <i class="bi bi-bell text-secondary fs-5 me-2"></i>
+                {% endif %}
+                <div style="flex:1; min-width:0;">
+                  <h4 class="mb-0" style="font-size:13px; font-weight:600;">{{ notif.title }}</h4>
+                  <p class="mb-0 text-muted" style="font-size:12px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">{{ notif.message }}</p>
+                  <p class="mb-0 text-muted" style="font-size:11px;">{{ notif.created_at|timesince }} ago</p>
+                </div>
+              </li>
+              {% if not forloop.last %}<li><hr class="dropdown-divider m-0"></li>{% endif %}
+              {% endfor %}
+            {% else %}
+              <li class="text-center text-muted py-3" style="font-size:13px;">You're all caught up!</li>
+            {% endif %}
 
-            <li>
-              <hr class="dropdown-divider">
-            </li>
-
-            <li class="notification-item">
-              <i class="bi bi-x-circle text-danger"></i>
-              <div>
-                <h4>Atque rerum nesciunt</h4>
-                <p>Quae dolorem earum veritatis oditseno</p>
-                <p>1 hr. ago</p>
-              </div>
-            </li>
-
-            <li>
-              <hr class="dropdown-divider">
-            </li>
-
-            <li class="notification-item">
-              <i class="bi bi-check-circle text-success"></i>
-              <div>
-                <h4>Sit rerum fuga</h4>
-                <p>Quae dolorem earum veritatis oditseno</p>
-                <p>2 hrs. ago</p>
-              </div>
-            </li>
-
-            <li>
-              <hr class="dropdown-divider">
-            </li>
-
-            <li class="notification-item">
-              <i class="bi bi-info-circle text-primary"></i>
-              <div>
-                <h4>Dicta reprehenderit</h4>
-                <p>Quae dolorem earum veritatis oditseno</p>
-                <p>4 hrs. ago</p>
-              </div>
-            </li>
-
-            <li>
-              <hr class="dropdown-divider">
-            </li>
-            <li class="dropdown-footer">
-              <a href="#">Show all notifications</a>
+            <li><hr class="dropdown-divider m-0"></li>
+            <li class="dropdown-footer text-center py-2">
+              <a href="#" style="font-size:13px;">Show all notifications</a>
             </li>
 
           </ul><!-- End Notification Dropdown Items -->
 
         </li><!-- End Notification Nav -->
+
+        <script>
+          function getCsrfToken() {
+            const name = 'csrftoken';
+            const cookies = document.cookie.split(';');
+            for (let c of cookies) {
+              c = c.trim();
+              if (c.startsWith(name + '=')) return decodeURIComponent(c.slice(name.length + 1));
+            }
+            return '';
+          }
+
+          function markNotifRead(id, el) {
+            fetch('/work/api/notifications/' + id + '/read/', {
+              method: 'PATCH',
+              headers: { 'X-CSRFToken': getCsrfToken(), 'Content-Type': 'application/json' },
+              credentials: 'same-origin',
+            }).then(r => {
+              if (r.ok) {
+                el.style.opacity = '0.5';
+                el.style.pointerEvents = 'none';
+                const badge = document.getElementById('notif-badge');
+                if (badge) {
+                  const count = parseInt(badge.textContent) - 1;
+                  if (count <= 0) badge.remove();
+                  else badge.textContent = count;
+                }
+              }
+            });
+          }
+
+          const markAllBtn = document.getElementById('mark-all-read-btn');
+          if (markAllBtn) {
+            markAllBtn.addEventListener('click', function (e) {
+              e.preventDefault();
+              fetch('/work/api/notifications/read-all/', {
+                method: 'PATCH',
+                headers: { 'X-CSRFToken': getCsrfToken(), 'Content-Type': 'application/json' },
+                credentials: 'same-origin',
+              }).then(r => {
+                if (r.ok) location.reload();
+              });
+            });
+          }
+        </script>
 
         <li class="nav-item dropdown">
 

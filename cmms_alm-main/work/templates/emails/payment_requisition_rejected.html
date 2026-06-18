@@ -1,0 +1,15 @@
+{% extends "emails/base_email.html" %}
+{% block content %}
+<h2>Your Payment Requisition Has Been Rejected</h2>
+<p>Your payment requisition could not be approved at this time.</p>
+<div class="detail-box">
+  <table>
+    <tr><td>Reference</td><td>{{ instance.requisition_number|default:"—" }}</td></tr>
+    <tr><td>Pay To</td><td>{{ instance.pay_to }}</td></tr>
+    <tr><td>Expected Amount</td><td>{{ instance.expected_payment_amount }}</td></tr>
+    <tr><td>Status</td><td><span class="badge badge-rejected">Rejected</span></td></tr>
+    {% if instance.comment %}<tr><td>Comment</td><td>{{ instance.comment }}</td></tr>{% endif %}
+  </table>
+</div>
+<p>Please log in to AlphaCMMS to review the details and raise a new requisition if required.</p>
+{% endblock %}

@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>{% block subject %}AlphaCMMS Notification{% endblock %}</title>
+  <style>
+    body { margin: 0; padding: 0; font-family: Arial, sans-serif; background: #f4f4f4; color: #333; }
+    .wrapper { max-width: 600px; margin: 32px auto; background: #ffffff; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.08); }
+    .header { background: #166534; padding: 24px 32px; text-align: center; }
+    .header h1 { margin: 0; color: #ffffff; font-size: 22px; letter-spacing: 1px; }
+    .header p { margin: 4px 0 0; color: #bbf7d0; font-size: 13px; }
+    .body { padding: 32px; }
+    .body h2 { color: #166534; font-size: 18px; margin-top: 0; }
+    .body p { line-height: 1.7; font-size: 14px; }
+    .badge { display: inline-block; padding: 4px 12px; border-radius: 20px; font-size: 12px; font-weight: bold; margin: 4px 0; }
+    .badge-pending { background: #fef9c3; color: #854d0e; }
+    .badge-approved { background: #dcfce7; color: #166534; }
+    .badge-rejected { background: #fee2e2; color: #991b1b; }
+    .badge-reviewed { background: #dbeafe; color: #1e40af; }
+    .detail-box { background: #f9fafb; border: 1px solid #e5e7eb; border-radius: 6px; padding: 16px; margin: 20px 0; }
+    .detail-box table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    .detail-box td { padding: 6px 0; vertical-align: top; }
+    .detail-box td:first-child { color: #6b7280; width: 40%; font-weight: 600; }
+    .btn { display: inline-block; background: #166534; color: #ffffff !important; text-decoration: none; padding: 12px 28px; border-radius: 6px; font-size: 14px; font-weight: bold; margin-top: 20px; }
+    .footer { background: #f9fafb; border-top: 1px solid #e5e7eb; padding: 16px 32px; text-align: center; font-size: 12px; color: #9ca3af; }
+  </style>
+</head>
+<body>
+  <div class="wrapper">
+    <div class="header">
+      <h1>ALPHACMMS</h1>
+      <p>by Alpha Mead Group</p>
+    </div>
+    <div class="body">
+      {% block content %}{% endblock %}
+    </div>
+    {% if login_url %}
+    <div style="text-align: center; padding: 0 32px 24px;">
+      <a href="{{ login_url }}" class="btn">Login to AlphaCMMS</a>
+    </div>
+    {% endif %}
+    <div class="footer">
+      <p>This is an automated notification from AlphaCMMS. Please do not reply to this email.</p>
+      <p>&copy; Alpha Mead Group. All rights reserved.</p>
+    </div>
+  </div>
+</body>
+</html>
