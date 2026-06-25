@@ -48,3 +48,4 @@ uritemplate==4.1.1
 urllib3==2.2.3
 whitenoise==6.9.0
 django-modeltranslation==0.19.15
+django-anymail[resend]

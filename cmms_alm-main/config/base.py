@@ -29,6 +29,7 @@ INSTALLED_APPS = [
     'django.contrib.humanize',
     
     # third party apps
+    'anymail',
     "sslserver",
     "django_htmx",
     'jazzmin',
@@ -202,20 +203,14 @@ STATICFILES_FINDERS = (
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 # Email configuration
-EMAIL_BACKEND = config('EMAIL_BACKEND', default='django.core.mail.backends.smtp.EmailBackend')
-EMAIL_HOST = config('EMAIL_HOST', default='smtp.office365.com')
-EMAIL_PORT = config('EMAIL_PORT', default=587, cast=int)
+EMAIL_BACKEND = config('EMAIL_BACKEND', default='anymail.backends.resend.EmailBackend')
+DEFAULT_FROM_EMAIL = config('DEFAULT_FROM_EMAIL', default='cmms@alphamead.com')
 
-# Use cast=bool to ensure Django understands the True/False status
-EMAIL_USE_TLS = config('EMAIL_USE_TLS', default=True, cast=bool)
-EMAIL_USE_SSL = config('EMAIL_USE_SSL', default=False, cast=bool)
-
-EMAIL_HOST_USER = config('EMAIL_HOST_USER')
-EMAIL_HOST_PASSWORD = config('EMAIL_HOST_PASSWORD')
-DEFAULT_FROM_EMAIL = config('DEFAULT_FROM_EMAIL', default=EMAIL_HOST_USER)
+ANYMAIL = {
+    'RESEND_API_KEY': config('RESEND_API_KEY', default=''),
+}
 
 BASE_URL = config('BASE_URL', default='https://alpha-cmms.alphamead.com')
-EMAIL_TIMEOUT = config('EMAIL_TIMEOUT', default=30, cast=int)
 # --- Microsoft Graph API Email Configuration ---
 # --- Microsoft Graph API Email Configuration ---
 # EMAIL_BACKEND = 'django_o365mail.EmailBackend'
