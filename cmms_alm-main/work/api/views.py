@@ -33,18 +33,25 @@ class WorkRequestViewSet(RoleBasedPermissionMixin, viewsets.ModelViewSet):
     lookup_field = 'slug'
     lookup_value_regex = r'(?:work|procument)[a-z0-9\-]*'
 
+    def _base_queryset(self):
+        return WorkRequest.objects.select_related(
+            'requester', 'approver', 'category', 'subcategory',
+            'facility', 'asset', 'department', 'vendor', 'po_vendor',
+        ).prefetch_related('reviewers', 'request_to')
+
     def get_queryset(self):
         user = self.request.user
         role = getattr(user, 'roles', '').strip().upper()
+        qs = self._base_queryset()
         if role in ['SUPER ADMIN', 'ADMIN']:
-            return WorkRequest.objects.all().order_by('-id')
+            return qs.order_by('-id')
         if role == 'PROCUREMENT AND STORE':
-            return WorkRequest.objects.filter(request_to=user).order_by('-id')
+            return qs.filter(request_to=user).order_by('-id')
         if role == 'APPROVER':
-            return WorkRequest.objects.filter(approver=user).order_by('-id')
+            return qs.filter(approver=user).order_by('-id')
         if role == 'REVIEWER':
-            return WorkRequest.objects.filter(reviewers=user).order_by('-id')
-        return WorkRequest.objects.filter(owner=user).order_by('-id')
+            return qs.filter(reviewers=user).order_by('-id')
+        return qs.filter(owner=user).order_by('-id')
 
     def perform_create(self, serializer):
         allowed_roles = ['REQUESTER', 'ADMIN', 'SUPER ADMIN']
@@ -379,7 +386,7 @@ class WorkRequestViewSet(RoleBasedPermissionMixin, viewsets.ModelViewSet):
 
     @action(detail=False, methods=['get'], url_path='approved-work-requests')
     def approved_work_requests(self, request):
-        queryset = WorkRequest.objects.filter(
+        queryset = self._base_queryset().filter(
             approval_status='Fully Approved',
             derived_work_orders__isnull=True,
         ).order_by('-id')
@@ -411,7 +418,7 @@ class WorkRequestViewSet(RoleBasedPermissionMixin, viewsets.ModelViewSet):
                 {"error": "Only users with PROCUREMENT AND STORE role can access this endpoint."},
                 status=status.HTTP_403_FORBIDDEN,
             )
-        work_requests = WorkRequest.objects.filter(request_to=request.user).order_by('-id')
+        work_requests = self._base_queryset().filter(request_to=request.user).order_by('-id')
         page = self.paginate_queryset(work_requests)
         if page is not None:
             serializer = self.get_serializer(page, many=True)
@@ -427,7 +434,7 @@ class WorkRequestViewSet(RoleBasedPermissionMixin, viewsets.ModelViewSet):
                 status=status.HTTP_403_FORBIDDEN,
             )
         procurement_users = User.objects.filter(roles='PROCUREMENT AND STORE')
-        work_requests = WorkRequest.objects.filter(
+        work_requests = self._base_queryset().filter(
             request_to__in=procurement_users
         ).distinct().order_by('-id')
         serializer = self.get_serializer(work_requests, many=True)
@@ -480,16 +487,23 @@ class WorkOrderViewSet(RoleBasedPermissionMixin, viewsets.ModelViewSet):
     feature = "work_order"
     lookup_field = 'slug'
 
+    def _base_queryset(self):
+        return WorkOrder.objects.select_related(
+            'requester', 'request_to', 'approver',
+            'category', 'subcategory', 'facility', 'asset',
+        ).prefetch_related('reviewers')
+
     def get_queryset(self):
         user = self.request.user
         role = getattr(user, 'roles', '').strip().upper()
+        qs = self._base_queryset()
         if role in ['SUPER ADMIN', 'ADMIN']:
-            return WorkOrder.objects.all().order_by('-id')
+            return qs.order_by('-id')
         if role == 'REVIEWER':
-            return WorkOrder.objects.filter(reviewers=user).order_by('-id')
+            return qs.filter(reviewers=user).order_by('-id')
         if role == 'APPROVER':
-            return WorkOrder.objects.filter(approver=user).order_by('-id')
-        return WorkOrder.objects.filter(owner=user).order_by('-id')
+            return qs.filter(approver=user).order_by('-id')
+        return qs.filter(owner=user).order_by('-id')
 
     def create(self, request, *args, **kwargs):
         print("=== WorkOrder POST data ===", dict(request.data))
@@ -729,14 +743,18 @@ class PPMViewSet(RoleBasedPermissionMixin, viewsets.ModelViewSet):
     serializer_class = PPMSerializer
     feature = "ppm_setting"
 
+    def _base_queryset(self):
+        return PPM.objects.select_related('owner', 'approver', 'facility')
+
     def get_queryset(self):
         user = self.request.user
         role = getattr(user, 'roles', '').strip().upper()
+        qs = self._base_queryset()
         if role in ['SUPER ADMIN', 'ADMIN']:
-            return PPM.objects.all().order_by('-id')
+            return qs.order_by('-id')
         if role == 'APPROVER':
-            return PPM.objects.filter(approver=user).order_by('-id')
-        return PPM.objects.filter(owner=user).order_by('-id')
+            return qs.filter(approver=user).order_by('-id')
+        return qs.filter(owner=user).order_by('-id')
 
     def perform_create(self, serializer):
         serializer.save(owner=self.request.user)
@@ -814,16 +832,22 @@ class WorkOrderCompletionViewSet(RoleBasedPermissionMixin, viewsets.ModelViewSet
     permission_classes = [IsAuthenticated]
     feature = 'work_order'
 
+    def _base_queryset(self):
+        return WorkOrderCompletion.objects.select_related(
+            'owner', 'approver', 'work_order',
+        ).prefetch_related('reviewers')
+
     def get_queryset(self):
         user = self.request.user
         role = getattr(user, 'roles', '').strip().upper()
+        qs = self._base_queryset()
         if role in ['SUPER ADMIN', 'ADMIN']:
-            return WorkOrderCompletion.objects.all().order_by('-id')
+            return qs.order_by('-id')
         if role == 'REVIEWER':
-            return WorkOrderCompletion.objects.filter(reviewers=user).order_by('-id')
+            return qs.filter(reviewers=user).order_by('-id')
         if role == 'APPROVER':
-            return WorkOrderCompletion.objects.filter(approver=user).order_by('-id')
-        return WorkOrderCompletion.objects.filter(owner=user).order_by('-id')
+            return qs.filter(approver=user).order_by('-id')
+        return qs.filter(owner=user).order_by('-id')
 
     def perform_create(self, serializer):
         work_order = serializer.validated_data.get('work_order')
