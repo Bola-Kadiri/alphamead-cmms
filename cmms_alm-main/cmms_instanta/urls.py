@@ -13,6 +13,7 @@ from rest_framework_simplejwt.views import (
 )
 
 from utils.views import CustomTokenObtainPairView
+from accounts.api.views import PasswordResetView, PasswordResetConfirmView
 
 schema_view = get_schema_view(
    openapi.Info(
@@ -43,6 +44,8 @@ urlpatterns = [
     path('auth/token/', CustomTokenObtainPairView.as_view(), name='token_obtain_pair'),
     path('auth/token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
     path('auth/token/verify/', TokenVerifyView.as_view(), name='token_verify'),
+    path('auth/password-reset/', PasswordResetView.as_view(), name='password_reset'),
+    path('auth/password-reset/confirm/', PasswordResetConfirmView.as_view(), name='password_reset_confirm'),
 ]
 
 

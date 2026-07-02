@@ -64,3 +64,4 @@ EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
 # TENANT_ID = config('TENANT_ID')
 
 BASE_URL="http://localhost:8000"
+FRONTEND_URL = "http://localhost:5173"

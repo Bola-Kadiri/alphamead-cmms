@@ -211,6 +211,7 @@ ANYMAIL = {
 }
 
 BASE_URL = config('BASE_URL', default='https://alpha-cmms.alphamead.com')
+FRONTEND_URL = config('FRONTEND_URL', default='https://alpha-cmms.alphamead.com')
 # --- Microsoft Graph API Email Configuration ---
 # --- Microsoft Graph API Email Configuration ---
 # EMAIL_BACKEND = 'django_o365mail.EmailBackend'

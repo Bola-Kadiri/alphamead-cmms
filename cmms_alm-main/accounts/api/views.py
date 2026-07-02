@@ -2,23 +2,30 @@ from rest_framework import viewsets, status
 from rest_framework.response import Response
 from rest_framework.decorators import action
 from rest_framework.permissions import IsAuthenticated, AllowAny
+from rest_framework.views import APIView
 from django.contrib.auth.hashers import make_password
+from django.contrib.auth.tokens import default_token_generator
+from django.utils.encoding import force_bytes, force_str
+from django.utils.http import urlsafe_base64_encode, urlsafe_base64_decode
+from django.conf import settings
 from drf_yasg.utils import swagger_auto_schema
 from drf_yasg import openapi
+from mail_templated import EmailMessage
 
 from cmms_instanta.permissions import RoleBasedPermissionMixin
 
 from accounts.models import (
     User, Personnel, Vendor, Client, Category,
-    Subcategory, Department, BankAccount, UnitOfMeasurement, 
-    Onboarding, 
+    Subcategory, Department, BankAccount, UnitOfMeasurement,
+    Onboarding,
 )
 from .serializers import (
     UserSerializer, PersonnelSerializer, VendorSerializer,
     ClientSerializer, CategorySerializer, SubcategorySerializer,
-    BankAccountSerializer, UnitOfMeasurementSerializer, 
+    BankAccountSerializer, UnitOfMeasurementSerializer,
     SimpleUserSerializer, DepartmentSerializer,
-    OnboardingRetrieveSerializer, OnboardingCompleteSerializer
+    OnboardingRetrieveSerializer, OnboardingCompleteSerializer,
+    PasswordResetRequestSerializer, PasswordResetConfirmSerializer,
 )
 
 class OnboardingViewSet(viewsets.ViewSet):
@@ -217,4 +224,63 @@ class UnitOfMeasurementViewSet(viewsets.ModelViewSet):
 
     def perform_create(self, serializer):
         serializer.save(owner=self.request.user)
+
+
+class PasswordResetView(APIView):
+    permission_classes = [AllowAny]
+
+    def post(self, request):
+        serializer = PasswordResetRequestSerializer(data=request.data)
+        if not serializer.is_valid():
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+        email = serializer.validated_data['email']
+        # Always return the same message to avoid leaking whether the email exists
+        success_response = Response({'message': 'If an account with that email exists, a password reset link has been sent.'})
+
+        try:
+            user = User.objects.get(email=email, is_active=True)
+        except User.DoesNotExist:
+            return success_response
+
+        uid = urlsafe_base64_encode(force_bytes(user.pk))
+        token = default_token_generator.make_token(user)
+        frontend_url = getattr(settings, 'FRONTEND_URL', 'https://alpha-cmms.vercel.app')
+        reset_url = f"{frontend_url}/reset-password/{uid}/{token}"
+
+        try:
+            email_msg = EmailMessage(
+                template_name='password_reset_email.tpl',
+                context={'first_name': user.first_name, 'url': reset_url},
+                from_email=settings.DEFAULT_FROM_EMAIL,
+                to=[user.email],
+            )
+            email_msg.send()
+        except Exception:
+            pass
+
+        return success_response
+
+
+class PasswordResetConfirmView(APIView):
+    permission_classes = [AllowAny]
+
+    def post(self, request):
+        serializer = PasswordResetConfirmSerializer(data=request.data)
+        if not serializer.is_valid():
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            pk = force_str(urlsafe_base64_decode(serializer.validated_data['uid']))
+            user = User.objects.get(pk=pk)
+        except (TypeError, ValueError, OverflowError, User.DoesNotExist):
+            return Response({'error': 'Invalid reset link.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        if not default_token_generator.check_token(user, serializer.validated_data['token']):
+            return Response({'error': 'This reset link is invalid or has already been used.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        user.set_password(serializer.validated_data['new_password'])
+        user.save()
+
+        return Response({'message': 'Password reset successfully. You can now log in.'})
 
