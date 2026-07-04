@@ -89,10 +89,10 @@ class WorkRequestSerializer(serializers.ModelSerializer):
 
 
 class WorkOrderSerializer(serializers.ModelSerializer):
-    requester_detail = UserSerializer(source='requester', read_only=True)
-    request_to_detail = UserSerializer(source='request_to', read_only=True)
-    approver_detail = UserSerializer(source='approver', read_only=True)
-    reviewers_detail = UserSerializer(source='reviewers', many=True, read_only=True)
+    requester_detail = SimpleUserSerializer(source='requester', read_only=True)
+    request_to_detail = SimpleUserSerializer(source='request_to', read_only=True)
+    approver_detail = SimpleUserSerializer(source='approver', read_only=True)
+    reviewers_detail = SimpleUserSerializer(source='reviewers', many=True, read_only=True)
     category_detail = AssetCategorySerializer(source='category', read_only=True)
     subcategory_detail = AssetSubCategorySerializer(source='subcategory', read_only=True)
     facility_detail = FacilitySerializer(source='facility', read_only=True)
@@ -198,7 +198,7 @@ class CommentSerializer(serializers.ModelSerializer):
 
 class PaymentRequisitionSerializer(serializers.ModelSerializer):
     pay_to_detail = VendorSerializer(source='pay_to', read_only=True)
-    request_to_detail = UserSerializer(source='request_to', many=True, read_only=True)
+    request_to_detail = SimpleUserSerializer(source='request_to', many=True, read_only=True)
     work_orders_detail = WorkOrderSerializer(source='work_orders', many=True, read_only=True)
     items_detail = PaymentItemSerializer(source='items', many=True, read_only=True)
     attachment_data = FileAttachmentSerializer(source='attachment', many=True, read_only=True)
@@ -215,7 +215,7 @@ class PPMSerializer(serializers.ModelSerializer):
     assets_detail = AssetSerializer(source='assets', many=True, read_only=True)
     facilities_detail = FacilitySerializer(source='facilities', many=True, read_only=True)
     items_detail = PaymentItemSerializer(source='items', many=True, read_only=True)
-    approver_detail = UserSerializer(source='approver', read_only=True)
+    approver_detail = SimpleUserSerializer(source='approver', read_only=True)
 
     class Meta:
         model = PPM
@@ -224,8 +224,8 @@ class PPMSerializer(serializers.ModelSerializer):
 
 
 class WorkOrderCompletionSerializer(serializers.ModelSerializer):
-    approver_detail = UserSerializer(source='approver', read_only=True)
-    reviewers_detail = UserSerializer(source='reviewers', many=True, read_only=True)
+    approver_detail = SimpleUserSerializer(source='approver', read_only=True)
+    reviewers_detail = SimpleUserSerializer(source='reviewers', many=True, read_only=True)
     resources = serializers.ListField(child=serializers.FileField(), write_only=True, required=False)
     resources_data = FileAttachmentSerializer(many=True, read_only=True, source='resources')
 
@@ -289,9 +289,9 @@ class InvoiceLineItemSerializer(serializers.ModelSerializer):
 
 
 class InvoiceSerializer(serializers.ModelSerializer):
-    raised_by_detail = UserSerializer(source='raised_by', read_only=True)
-    approver_detail = UserSerializer(source='approver', read_only=True)
-    reviewers_detail = UserSerializer(source='reviewers', many=True, read_only=True)
+    raised_by_detail = SimpleUserSerializer(source='raised_by', read_only=True)
+    approver_detail = SimpleUserSerializer(source='approver', read_only=True)
+    reviewers_detail = SimpleUserSerializer(source='reviewers', many=True, read_only=True)
     items_detail = InvoiceLineItemSerializer(source='items', many=True, read_only=True)
     attachments_data = FileAttachmentSerializer(source='attachments', many=True, read_only=True)
 

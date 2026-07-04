@@ -491,7 +491,7 @@ class WorkOrderViewSet(RoleBasedPermissionMixin, viewsets.ModelViewSet):
         return WorkOrder.objects.select_related(
             'requester', 'request_to', 'approver',
             'category', 'subcategory', 'facility', 'asset',
-        ).prefetch_related('reviewers')
+        ).prefetch_related('reviewers', 'resources')
 
     def get_queryset(self):
         user = self.request.user
@@ -835,7 +835,7 @@ class WorkOrderCompletionViewSet(RoleBasedPermissionMixin, viewsets.ModelViewSet
     def _base_queryset(self):
         return WorkOrderCompletion.objects.select_related(
             'owner', 'approver', 'work_order',
-        ).prefetch_related('reviewers')
+        ).prefetch_related('reviewers', 'resources')
 
     def get_queryset(self):
         user = self.request.user
