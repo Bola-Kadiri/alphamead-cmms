@@ -5,7 +5,7 @@ from work.models import WorkRequest, PaymentItem, Comment, PaymentRequisition, P
 from utils.models import FileAttachment
 
 from accounts.api.serializers import (
-    UserSerializer, VendorSerializer
+    UserSerializer, SimpleUserSerializer, VendorSerializer
 )
 from facility.api.serializers import FacilitySerializer
 from asset_inventory.api.serializers import (AssetSerializer,
@@ -15,10 +15,10 @@ from utils.serializers import FileAttachmentSerializer
 
 
 class WorkRequestSerializer(serializers.ModelSerializer):
-    requester_detail = UserSerializer(source='requester', read_only=True)
-    request_to_detail = UserSerializer(source='request_to', many=True, read_only=True)
-    approver_detail = UserSerializer(source='approver', read_only=True)
-    reviewers_detail = UserSerializer(source='reviewers', many=True, read_only=True)
+    requester_detail = SimpleUserSerializer(source='requester', read_only=True)
+    request_to_detail = SimpleUserSerializer(source='request_to', many=True, read_only=True)
+    approver_detail = SimpleUserSerializer(source='approver', read_only=True)
+    reviewers_detail = SimpleUserSerializer(source='reviewers', many=True, read_only=True)
     category_detail = AssetCategorySerializer(source='category', read_only=True)
     subcategory_detail = AssetSubCategorySerializer(source='subcategory', read_only=True)
     facility_detail = FacilitySerializer(source='facility', read_only=True)

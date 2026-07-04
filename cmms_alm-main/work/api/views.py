@@ -37,7 +37,7 @@ class WorkRequestViewSet(RoleBasedPermissionMixin, viewsets.ModelViewSet):
         return WorkRequest.objects.select_related(
             'requester', 'approver', 'category', 'subcategory',
             'facility', 'asset', 'department', 'vendor', 'po_vendor',
-        ).prefetch_related('reviewers', 'request_to')
+        ).prefetch_related('reviewers', 'request_to', 'resources')
 
     def get_queryset(self):
         user = self.request.user
