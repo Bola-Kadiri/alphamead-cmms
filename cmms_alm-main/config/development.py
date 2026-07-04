@@ -3,6 +3,21 @@ import os
 
 DEBUG = True
 
+# Dev-only apps — not loaded in production
+INSTALLED_APPS += [
+    'debug_toolbar',
+    'django_htmx',
+    'django_extensions',
+]
+
+# Dev-only middleware — not loaded in production
+MIDDLEWARE += [
+    'django_htmx.middleware.HtmxMiddleware',
+    'debug_toolbar.middleware.DebugToolbarMiddleware',
+]
+
+INTERNAL_IPS = ['127.0.0.1']
+
 ALLOWED_HOSTS = ["*"]
 ALLOWED_HOSTS = ["127.0.0.1", "localhost", "0.0.0.0"]
 

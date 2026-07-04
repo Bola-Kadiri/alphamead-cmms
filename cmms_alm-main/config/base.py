@@ -31,16 +31,13 @@ INSTALLED_APPS = [
     # third party apps
     'anymail',
     "sslserver",
-    "django_htmx",
     'jazzmin',
     'rest_framework',
     'rest_framework_simplejwt',
     'drf_yasg',
-    "debug_toolbar",
     'mail_templated',
     'django_filters',
     'modeltranslation',
-    'django_extensions',
     'django_o365mail',
     # user defined apps
     'accounts',
@@ -57,8 +54,8 @@ INSTALLED_APPS = [
 
 MIDDLEWARE = [
     "corsheaders.middleware.CorsMiddleware",
-    'whitenoise.middleware.WhiteNoiseMiddleware',
     'django.middleware.security.SecurityMiddleware',
+    'whitenoise.middleware.WhiteNoiseMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.locale.LocaleMiddleware',
     'django.middleware.common.CommonMiddleware',
@@ -66,9 +63,6 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
-    "django_htmx.middleware.HtmxMiddleware",
-    
-    "debug_toolbar.middleware.DebugToolbarMiddleware",
 ]
 
 ROOT_URLCONF = 'cmms_instanta.urls'
