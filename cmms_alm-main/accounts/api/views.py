@@ -144,6 +144,7 @@ class VendorViewSet(viewsets.ModelViewSet):
     serializer_class = VendorSerializer
     permission_classes = [IsAuthenticated]
     lookup_field = 'slug'
+    pagination_class = None
 
     def perform_create(self, serializer):
         serializer.save(owner=self.request.user)
@@ -163,6 +164,7 @@ class CategoryViewSet(viewsets.ModelViewSet):
     queryset = Category.objects.all().order_by('-id')
     serializer_class = CategorySerializer
     permission_classes = [IsAuthenticated]
+    pagination_class = None
 
     def perform_create(self, serializer):
         serializer.save(owner=self.request.user)
@@ -192,6 +194,7 @@ class SubcategoryViewSet(viewsets.ModelViewSet):
     queryset = Subcategory.objects.all().order_by('-id')
     serializer_class = SubcategorySerializer
     permission_classes = [IsAuthenticated]
+    pagination_class = None
 
     def perform_create(self, serializer):
         serializer.save(owner=self.request.user)
@@ -211,6 +214,7 @@ class DepartmentViewSet(viewsets.ModelViewSet):
     queryset = Department.objects.all().order_by('-id')
     serializer_class = DepartmentSerializer
     permission_classes = [IsAuthenticated]
+    pagination_class = None
 
     def perform_create(self, serializer):
         serializer.save(owner=self.request.user)

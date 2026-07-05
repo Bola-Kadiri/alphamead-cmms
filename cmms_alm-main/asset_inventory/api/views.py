@@ -144,18 +144,21 @@ class AssetCategoryViewSet(viewsets.ModelViewSet):
     queryset = AssetCategory.objects.all().order_by('-id')
     serializer_class = AssetCategorySerializer
     feature = "asset_category"
+    pagination_class = None
 
 
 class AssetSubCategoryViewSet(viewsets.ModelViewSet):
     queryset = AssetSubCategory.objects.all().order_by('-id')
     serializer_class = AssetSubCategorySerializer
     feature = "asset_subcategory"
+    pagination_class = None
 
 class DepartmentViewSet(viewsets.ModelViewSet):
     queryset = Department.objects.all().order_by('-id')
     serializer_class = DepartmentSerializer
     # feature = "department_management"
     permission_classes = [IsAuthenticated]
+    pagination_class = None
 
     def perform_create(self, serializer):
         serializer.save(owner=self.request.user)

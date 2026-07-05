@@ -68,6 +68,7 @@ class BuildingViewSet(RoleBasedPermissionMixin, viewsets.ModelViewSet):
     queryset = Building.objects.all().order_by('-id')
     serializer_class = BuildingSerializer
     feature = "requisition"
+    pagination_class = None
     
     @action(detail=False, methods=['get'], url_path='zones-by-facility/(?P<facility_id>[^/.]+)')
     def zones_by_facility(self, request, facility_id=None):
