@@ -300,18 +300,10 @@ class WorkRequestViewSet(RoleBasedPermissionMixin, viewsets.ModelViewSet):
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
-        digital_signature = (request.data.get('digital_signature') or '').strip()
-        if not digital_signature:
-            return Response(
-                {"error": "digital_signature is required for final approval."},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
-
-        instance.digital_signature = digital_signature
         instance.fully_approved_at = timezone.now()
         instance.approval_status = 'Fully Approved'
         instance.is_locked = True
-        instance.save(update_fields=['digital_signature', 'fully_approved_at', 'approval_status', 'is_locked'])
+        instance.save(update_fields=['fully_approved_at', 'approval_status', 'is_locked'])
 
         serializer = self.get_serializer(instance)
         return Response(serializer.data, status=status.HTTP_200_OK)
@@ -585,16 +577,9 @@ class WorkOrderViewSet(RoleBasedPermissionMixin, viewsets.ModelViewSet):
                 {"error": "This work order has already been approved."},
                 status=status.HTTP_400_BAD_REQUEST,
             )
-        digital_signature = (request.data.get('digital_signature') or '').strip()
-        if not digital_signature:
-            return Response(
-                {"error": "digital_signature is required for final approval."},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
         instance.is_approved = True
         instance.approval_status = 'Approved'
-        instance.digital_signature = digital_signature
-        instance.save(update_fields=['is_approved', 'approval_status', 'digital_signature'])
+        instance.save(update_fields=['is_approved', 'approval_status'])
         serializer = self.get_serializer(instance)
         return Response(serializer.data, status=status.HTTP_200_OK)
 

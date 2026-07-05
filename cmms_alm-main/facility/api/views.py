@@ -35,6 +35,7 @@ class FacilityViewSet(RoleBasedPermissionMixin, viewsets.ModelViewSet):
     serializer_class = FacilitySerializer
     feature = "requisition"
     lookup_field = 'code'
+    pagination_class = None
     
     @action(detail=True, methods=['get'], url_path='buildings')
     def list_buildings(self, request, code=None):
