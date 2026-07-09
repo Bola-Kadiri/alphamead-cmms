@@ -43,7 +43,7 @@ class WorkRequestViewSet(RoleBasedPermissionMixin, viewsets.ModelViewSet):
         user = self.request.user
         role = getattr(user, 'roles', '').strip().upper()
         qs = self._base_queryset()
-        if role in ['SUPER ADMIN', 'ADMIN']:
+        if role in ['SUPER ADMIN', 'ADMIN', 'FINANCE']:
             return qs.order_by('-id')
         if role == 'PROCUREMENT AND STORE':
             return qs.filter(request_to=user).order_by('-id')
@@ -489,7 +489,7 @@ class WorkOrderViewSet(RoleBasedPermissionMixin, viewsets.ModelViewSet):
         user = self.request.user
         role = getattr(user, 'roles', '').strip().upper()
         qs = self._base_queryset()
-        if role in ['SUPER ADMIN', 'ADMIN']:
+        if role in ['SUPER ADMIN', 'ADMIN', 'FINANCE']:
             return qs.order_by('-id')
         if role == 'REVIEWER':
             return qs.filter(reviewers=user).order_by('-id')
@@ -826,7 +826,7 @@ class WorkOrderCompletionViewSet(RoleBasedPermissionMixin, viewsets.ModelViewSet
         user = self.request.user
         role = getattr(user, 'roles', '').strip().upper()
         qs = self._base_queryset()
-        if role in ['SUPER ADMIN', 'ADMIN']:
+        if role in ['SUPER ADMIN', 'ADMIN', 'FINANCE']:
             return qs.order_by('-id')
         if role == 'REVIEWER':
             return qs.filter(reviewers=user).order_by('-id')
@@ -982,7 +982,7 @@ class InvoiceViewSet(RoleBasedPermissionMixin, viewsets.ModelViewSet):
     def get_queryset(self):
         user = self.request.user
         role = getattr(user, 'roles', '').strip().upper()
-        if role in ['SUPER ADMIN', 'ADMIN']:
+        if role in ['SUPER ADMIN', 'ADMIN', 'FINANCE']:
             return Invoice.objects.all().order_by('-id')
         if role == 'APPROVER':
             return Invoice.objects.filter(approver=user).order_by('-id')

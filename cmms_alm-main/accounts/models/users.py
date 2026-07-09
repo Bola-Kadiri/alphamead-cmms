@@ -74,6 +74,7 @@ class User(AbstractBaseUser):
         ('REVIEWER', _('Reviewer')),
         ('APPROVER', _('Approver')),
         ('PROCUREMENT AND STORE', _('Procurement and store')),
+        ('FINANCE', _('Finance')),
     ]
     STATUS_CHOICES = [
         ('Active', _('Active')),

@@ -121,6 +121,14 @@ class RoleBasedPermission(BasePermission):
             'reference': ['view'],
             'comment': ['view'],
         },
+        'FINANCE': {
+            'work_request': ['view'],
+            'work_order': ['view'],
+            'requisition': ['view'],
+            'pending_ppm': ['view'],
+            'report': ['view'],
+            'comment': ['view'],
+        },
     }
 
     def has_permission(self, request, view):

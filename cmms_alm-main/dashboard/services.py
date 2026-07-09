@@ -1,6 +1,6 @@
 from datetime import timedelta
 from django.utils import timezone
-from work.models import WorkRequest, WorkOrder, WorkOrderCompletion, Invoice
+from work.models import WorkRequest, WorkOrder, WorkOrderCompletion, Invoice, PaymentRequisition
 
 
 def get_dashboard_data(user):
@@ -8,34 +8,39 @@ def get_dashboard_data(user):
     role = getattr(user, 'roles', '').strip().upper()
 
     # ---- ROLE-SCOPED BASE QUERYSETS (each user sees only their own data) ----
-    if role in ('SUPER ADMIN', 'ADMIN'):
+    if role in ('SUPER ADMIN', 'ADMIN', 'FINANCE'):
         wr_qs = WorkRequest.objects
         wo_qs = WorkOrder.objects
         wcc_qs = WorkOrderCompletion.objects
         inv_qs = Invoice.objects
+        pr_qs = PaymentRequisition.objects
     elif role == 'PROCUREMENT AND STORE':
         wr_qs = WorkRequest.objects.filter(request_to=user)
         wo_qs = WorkOrder.objects.filter(owner=user)
         wcc_qs = WorkOrderCompletion.objects.filter(owner=user)
         inv_qs = Invoice.objects.filter(owner=user)
+        pr_qs = PaymentRequisition.objects.filter(owner=user)
     elif role == 'REVIEWER':
         wr_qs = WorkRequest.objects.filter(reviewers=user)
         wo_qs = WorkOrder.objects.filter(reviewers=user)
         wcc_qs = WorkOrderCompletion.objects.filter(reviewers=user)
         inv_qs = Invoice.objects.filter(reviewers=user)
+        pr_qs = PaymentRequisition.objects.filter(owner=user)
     elif role == 'APPROVER':
         wr_qs = WorkRequest.objects.filter(approver=user)
         wo_qs = WorkOrder.objects.filter(approver=user)
         wcc_qs = WorkOrderCompletion.objects.filter(approver=user)
         inv_qs = Invoice.objects.filter(approver=user)
+        pr_qs = PaymentRequisition.objects.filter(request_to=user)
     else:
         wr_qs = WorkRequest.objects.filter(owner=user)
         wo_qs = WorkOrder.objects.filter(owner=user)
         wcc_qs = WorkOrderCompletion.objects.filter(owner=user)
         inv_qs = Invoice.objects.filter(owner=user)
+        pr_qs = PaymentRequisition.objects.filter(owner=user)
 
     # ---- WORK REQUEST: only show what is waiting for THIS role's action ----
-    if role in ('SUPER ADMIN', 'ADMIN'):
+    if role in ('SUPER ADMIN', 'ADMIN', 'FINANCE'):
         wr_pending = wr_qs.filter(
             approval_status__in=['Pending Review', 'CP Approved', 'Reviewed']
         ).count()
@@ -116,6 +121,10 @@ def get_dashboard_data(user):
         inv_action_count = inv_pending
         inv_action_label = 'New / Pending'
 
+    # ---- PAYMENT REQUISITION ----
+    pr_pending = pr_qs.filter(approval_status='request').count()
+    pr_approved = pr_qs.filter(approval_status='approve').count()
+
     # ---- CHART DATA (last 6 months, global counts) ----
     labels, wr_counts, wo_counts = [], [], []
     for i in range(5, -1, -1):
@@ -184,7 +193,10 @@ def get_dashboard_data(user):
                 {'label': 'Approved', 'count': inv_approved, 'icon': 'check-circle', 'color': 'green'},
                 {'label': 'Rejected', 'count': inv_rejected, 'icon': 'x-circle', 'color': 'red'},
             ],
-            'payment_requisition': [],
+            'payment_requisition': [
+                {'label': 'Pending Approval', 'count': pr_pending, 'icon': 'file-plus', 'color': 'blue'},
+                {'label': 'Approved', 'count': pr_approved, 'icon': 'check-circle', 'color': 'green'},
+            ],
         },
         'chart_data': {
             'labels': labels,
