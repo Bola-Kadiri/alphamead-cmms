@@ -83,24 +83,31 @@ class WorkRequestViewSet(RoleBasedPermissionMixin, viewsets.ModelViewSet):
             raise PermissionDenied("Only SUPER ADMIN can delete work requests.")
         instance.delete()
 
-    def update(self, request, *args, **kwargs):
+    def _save_and_resubmit_if_rejected(self, request, partial=False):
         instance = self.get_object()
         if instance.is_locked:
             return Response(
                 {"error": "This request is locked. It must be rejected before it can be edited."},
                 status=status.HTTP_403_FORBIDDEN,
             )
-        return super().update(request, *args, **kwargs)
+        was_rejected = instance.approval_status in REJECTED_STATUSES
+        kwargs = {'partial': partial}
+        serializer = self.get_serializer(instance, data=request.data, **kwargs)
+        serializer.is_valid(raise_exception=True)
+        self.perform_update(serializer)
+        if was_rejected:
+            instance.refresh_from_db()
+            instance.approval_status = 'Pending Review'
+            instance.is_locked = True
+            instance.save(update_fields=['approval_status', 'is_locked'])
+            serializer = self.get_serializer(instance)
+        return Response(serializer.data)
+
+    def update(self, request, *args, **kwargs):
+        return self._save_and_resubmit_if_rejected(request, partial=False)
 
     def partial_update(self, request, *args, **kwargs):
-        instance = self.get_object()
-        if instance.is_locked:
-            return Response(
-                {"error": "This request is locked. It must be rejected before it can be edited."},
-                status=status.HTTP_403_FORBIDDEN,
-            )
-        kwargs['partial'] = True
-        return super().update(request, *args, **kwargs)
+        return self._save_and_resubmit_if_rejected(request, partial=True)
 
     # ── Step 2: Procurement & Store ───────────────────────────────────────────
 

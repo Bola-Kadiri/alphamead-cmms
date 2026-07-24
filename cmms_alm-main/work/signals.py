@@ -165,6 +165,28 @@ def on_work_request_saved(sender, instance, created, **kwargs):
                     object_id=fresh.pk,
                 )
 
+            elif (
+                current == 'Pending Review'
+                and previous in ('Reviewer Rejected', 'Approver Rejected', 'Rejected – Vendor Changed')
+            ):
+                # Requester edited and resubmitted after rejection — notify Procurement & Store
+                recipients = list(fresh.request_to.all())
+                emails = _emails(fresh.request_to)
+                if emails:
+                    send_notification_email(
+                        subject=f'[AlphaCMMS] Work Request {fresh.work_request_number} — Updated & Awaiting Your Review',
+                        template='emails/work_request_pending_review.html',
+                        context=ctx,
+                        recipient_list=emails,
+                    )
+                create_in_app_notifications(
+                    recipients=recipients,
+                    title=f'Work Request {fresh.work_request_number} Updated & Resubmitted',
+                    message='The requester has updated this work request and it is awaiting your review.',
+                    notification_type='WORK_REQUEST',
+                    object_id=fresh.pk,
+                )
+
         except Exception as exc:
             logger.error('WorkRequest notification error (pk=%s): %s', instance.pk, exc)
 
