@@ -1,3 +1,4 @@
+from django.contrib.auth.signals import user_logged_in
 from django.contrib.contenttypes.models import ContentType
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 from rest_framework import serializers
@@ -37,4 +38,9 @@ class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
         token['name'] = f"{user.first_name} {user.last_name}"
         token['role'] = user.roles
         token['slug'] = user.slug
+        # A JWT login is a login too — emit the same signal the session
+        # based web login sends, so both paths feed report.signals'
+        # single login-tracking receiver (used by the User Facility
+        # Report's login count).
+        user_logged_in.send(sender=user.__class__, request=None, user=user)
         return token

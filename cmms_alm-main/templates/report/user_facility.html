@@ -15,25 +15,32 @@
         </span>
         <h3><a href="">User facility report</a></h3>
       </div>
-  
+
       <!----------User Facility Body------------------>
       <div class="userFacility-body">
         <div class="userFacility-body_heading">
           <div class="left-heading">
-            <i class="fa-solid fa-arrow-up-right-from-square export-icon" data-bs-toggle="tooltip" data-bs-placement="top" title="Export"></i>
+            <label for="userFacility-facility" class="label">Facility</label><br>
+            <select name="userFacility-facility" id="userFacility-facility" class="form-select" onchange="onFacilityChange()">
+              <option value="">All facilities</option>
+              {% for facility in facilities %}
+              <option value="{{ facility.id }}">{{ facility.name }}</option>
+              {% endfor %}
+            </select>
+            <i class="fa-solid fa-arrow-up-right-from-square export-icon" data-bs-toggle="tooltip" data-bs-placement="top" title="Export" onclick="exportVisibleRows()"></i>
           </div>
-  
+
           <div class="right-heading">
             <label for="userFacility-rows" class="label">No of rows</label><br>
             <select name="userFacility-rows" id="userFacility-rows" class="form-select" onchange="updateRows()">
               <option value="2">2</option>
               <option value="3">3</option>
               <option value="5">5</option>
-              <option value="10">10</option>
+              <option value="10" selected>10</option>
             </select>
           </div>
         </div>
-        
+
         <!-------User Facility Table------------->
         <div class="userFacility_table-container">
           <table class="userFacility-table" id="userFacility-table">
@@ -43,57 +50,188 @@
                 <th>First name</th>
                 <th>Last name</th>
                 <th>Email</th>
+                <th>Facility</th>
                 <th>Login count</th>
                 <th>Work request count</th>
                 <th>Visitor pass count</th>
                 <th>Item request count</th>
-              </tr>  
+              </tr>
             </thead>
-  
+
             <tbody id="userFacility-body"></tbody>
           </table>
         </div>
-  
+
         <div class="pager">
-  
+
           <div class="pager-details">
-            <h3>Showing 1 - 10 of 5853</h3>
+            <h3 id="userFacility-pager-details">Showing 0 - 0 of 0</h3>
           </div>
-  
-          <ul class="pagination pagination-sm justify-content-end">
-            <li class="page-item"><a class="page-link active" href="#">1</a></li>
-            <li class="page-item"><a class="page-link" href="#">2</a></li>
-            <li class="page-item"><a class="page-link" href="#">3</a></li>
-            <li class="page-item"><a class="page-link" href="#">4</a></li>
-            <li class="page-item"><a class="page-link" href="#">5</a></li>
-            <li class="page-item"><a class="page-link" href="#">6</a></li>
-            <li class="page-item"><a class="page-link" href="#">7</a></li>
-            <li class="page-item"><a class="page-link" href="#">8</a></li>
-            <li class="page-item"><a class="page-link" href="#">9</a></li>
-            <li class="page-item"><a class="page-link" href="#">10</a></li>
-            <li class="page-item"><a class="page-link" href="#">11</a></li>
-            <li class="page-item"><a class="page-link" href="#">12</a></li>
-            <li class="page-item"><a class="page-link" href="#">13</a></li>
-            <li class="page-item"><a class="page-link" href="#">14</a></li>
-            <li class="page-item"><a class="page-link" href="#">15</a></li>
-            <li class="page-item"><a class="page-link" href="#">16</a></li>
-            <li class="page-item"><a class="page-link" href="#">17</a></li>
-            <li class="page-item">
-              <a class="page-link" href="#" aria-label="Next">
-                <span aria-hidden="true">&raquo;</span>
-              </a>
-            </li>
+
+          <ul class="pagination pagination-sm justify-content-end" id="userFacility-pagination">
           </ul>
         </div>
       </div>
-  
+
       <!---------Loader----------->
-  
+
       <div class="loader" id="loader">
         <div class="spinner"></div>
       </div>
    </div>
   </main>
-  
+
+  <script>
+    (function () {
+      const API_URL = "{% url 'report:report_api:user-facility-report' %}";
+      const tableBody = document.getElementById('userFacility-body');
+      const pagerDetails = document.getElementById('userFacility-pager-details');
+      const paginationEl = document.getElementById('userFacility-pagination');
+      const loader = document.getElementById('loader');
+      const searchInput = document.getElementById('searchInput');
+      const facilitySelect = document.getElementById('userFacility-facility');
+      const rowsSelect = document.getElementById('userFacility-rows');
+
+      let currentPage = 1;
+      let searchDebounce = null;
+      let lastRows = [];
+
+      function escapeHtml(value) {
+        const div = document.createElement('div');
+        div.textContent = value == null ? '' : String(value);
+        return div.innerHTML;
+      }
+
+      function showLoader(show) {
+        // .loader is display:none by default in style.css — toggle the
+        // inline style directly rather than the `hidden` attribute,
+        // which a class-based display:none rule would otherwise outrank.
+        loader.style.display = show ? 'block' : 'none';
+      }
+
+      function buildQuery(page) {
+        const params = new URLSearchParams();
+        params.set('page', page);
+        params.set('page_size', rowsSelect.value);
+        if (searchInput.value.trim()) params.set('search', searchInput.value.trim());
+        if (facilitySelect.value) params.set('facility', facilitySelect.value);
+        return params.toString();
+      }
+
+      function renderRows(rows, offset) {
+        lastRows = rows;
+        if (!rows.length) {
+          tableBody.innerHTML = '<tr><td colspan="9" class="text-center">No users found.</td></tr>';
+          return;
+        }
+        tableBody.innerHTML = rows.map((row, i) => `
+          <tr>
+            <td>${offset + i + 1}</td>
+            <td>${escapeHtml(row.first_name)}</td>
+            <td>${escapeHtml(row.last_name)}</td>
+            <td>${escapeHtml(row.email)}</td>
+            <td>${escapeHtml((row.facilities || []).join(', ') || '—')}</td>
+            <td>${escapeHtml(row.login_count)}</td>
+            <td>${escapeHtml(row.work_request_count)}</td>
+            <td>${row.visitor_pass_count === null || row.visitor_pass_count === undefined ? 'N/A' : escapeHtml(row.visitor_pass_count)}</td>
+            <td>${escapeHtml(row.item_request_count)}</td>
+          </tr>
+        `).join('');
+      }
+
+      function renderPagination(count, pageSize, page) {
+        const totalPages = Math.max(1, Math.ceil(count / pageSize));
+        const start = count === 0 ? 0 : (page - 1) * pageSize + 1;
+        const end = Math.min(page * pageSize, count);
+        pagerDetails.textContent = `Showing ${start} - ${end} of ${count}`;
+
+        let html = '';
+        for (let p = 1; p <= totalPages; p++) {
+          html += `<li class="page-item"><a class="page-link${p === page ? ' active' : ''}" href="#" data-page="${p}">${p}</a></li>`;
+        }
+        paginationEl.innerHTML = html;
+        paginationEl.querySelectorAll('a.page-link').forEach((a) => {
+          a.addEventListener('click', (e) => {
+            e.preventDefault();
+            currentPage = parseInt(a.dataset.page, 10);
+            loadReport();
+          });
+        });
+      }
+
+      function loadReport() {
+        showLoader(true);
+        fetch(`${API_URL}?${buildQuery(currentPage)}`, {
+          credentials: 'same-origin',
+          headers: { 'Accept': 'application/json' },
+        })
+          .then((res) => {
+            if (!res.ok) throw new Error(`Request failed (${res.status})`);
+            return res.json();
+          })
+          .then((body) => {
+            if (!body.success) throw new Error(body.message || 'Failed to load report');
+            const data = body.data || {};
+            const results = data.results || [];
+            const count = data.count || 0;
+            const pageSize = parseInt(rowsSelect.value, 10);
+            renderRows(results, (currentPage - 1) * pageSize);
+            renderPagination(count, pageSize, currentPage);
+          })
+          .catch((err) => {
+            tableBody.innerHTML = `<tr><td colspan="9" class="text-center text-danger">${escapeHtml(err.message)}</td></tr>`;
+            pagerDetails.textContent = 'Showing 0 - 0 of 0';
+            paginationEl.innerHTML = '';
+          })
+          .finally(() => showLoader(false));
+      }
+
+      window.searchTable = function () {
+        clearTimeout(searchDebounce);
+        searchDebounce = setTimeout(() => {
+          currentPage = 1;
+          loadReport();
+        }, 300);
+      };
+
+      window.updateRows = function () {
+        currentPage = 1;
+        loadReport();
+      };
+
+      window.onFacilityChange = function () {
+        currentPage = 1;
+        loadReport();
+      };
+
+      window.exportVisibleRows = function () {
+        if (!lastRows.length) return;
+        const header = ['First name', 'Last name', 'Email', 'Facility', 'Login count', 'Work request count', 'Visitor pass count', 'Item request count'];
+        const csvRows = lastRows.map((row) => [
+          row.first_name, row.last_name, row.email, (row.facilities || []).join('; '),
+          row.login_count, row.work_request_count,
+          row.visitor_pass_count === null || row.visitor_pass_count === undefined ? 'N/A' : row.visitor_pass_count,
+          row.item_request_count,
+        ].map((v) => `"${String(v == null ? '' : v).replace(/"/g, '""')}"`).join(','));
+        const csv = [header.join(','), ...csvRows].join('\n');
+        const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.setAttribute('download', 'user_facility_report.csv');
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(url);
+      };
+
+      searchInput.addEventListener('keyup', (e) => {
+        if (e.key === 'Enter') { clearTimeout(searchDebounce); currentPage = 1; loadReport(); }
+        else window.searchTable();
+      });
+
+      loadReport();
+    })();
+  </script>
 
 {% endblock content %}

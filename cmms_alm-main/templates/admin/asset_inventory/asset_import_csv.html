@@ -1,0 +1,31 @@
+{% extends "admin/base_site.html" %}
+{% load i18n %}
+
+{% block breadcrumbs %}
+<div class="breadcrumbs">
+  <a href="{% url 'admin:index' %}">{% translate 'Home' %}</a>
+  &rsaquo; <a href="{% url 'admin:app_list' app_label=opts.app_label %}">{{ opts.app_config.verbose_name }}</a>
+  &rsaquo; <a href="{% url 'admin:asset_inventory_asset_changelist' %}">{{ opts.verbose_name_plural|capfirst }}</a>
+  &rsaquo; {% translate 'Import CSV' %}
+</div>
+{% endblock %}
+
+{% block content %}
+  <h1>{% translate "Import assets from CSV" %}</h1>
+  <p>
+    Upload a CSV with columns <code>site_code, zone_code, subzone_name, system_name,
+    component_name, description, asset_tag, qr_code, asset_status</code>.
+    Sites, zones and spaces referenced in the file are created automatically if
+    they don't already exist yet; existing assets are matched and updated by
+    <code>asset_tag</code>, so re-uploading the same file is safe.
+  </p>
+  <form method="post" enctype="multipart/form-data">
+    {% csrf_token %}
+    <div>
+      {{ form.as_p }}
+    </div>
+    <div class="submit-row">
+      <input type="submit" value="{% translate 'Import' %}" class="default">
+    </div>
+  </form>
+{% endblock %}

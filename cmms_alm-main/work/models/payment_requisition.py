@@ -56,13 +56,43 @@ class PaymentRequisition(OwnerPrivModel, Dated, Status, models.Model):
         help_text="Date of the payment record."
     )
 
+    PAYEE_TYPE_CHOICES = [
+        ("vendor", "Vendor"),
+        ("personnel", "Personnel"),
+        ("owner", "Owner"),
+    ]
+
+    payee_type = models.CharField(
+        max_length=20,
+        choices=PAYEE_TYPE_CHOICES,
+        blank=True, null=True,
+        help_text="Who this payment is made to: a Vendor, Personnel, or the requesting Owner."
+    )
+
     pay_to = models.ForeignKey(
         'accounts.Vendor',
         on_delete=models.CASCADE,
         related_name="payments_user",
-        help_text="User or entity to whom the payment is made."
+        blank=True, null=True,
+        help_text="Vendor to pay, when payee_type='vendor'."
     )
-    
+
+    payee_personnel = models.ForeignKey(
+        'accounts.Personnel',
+        on_delete=models.SET_NULL,
+        blank=True, null=True,
+        related_name="payment_requisitions",
+        help_text="Personnel to pay, when payee_type='personnel'."
+    )
+
+    payee_owner = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        blank=True, null=True,
+        related_name="owned_payment_requisitions",
+        help_text="Owner/requester to pay, when payee_type='owner'."
+    )
+
     requisition_number = models.CharField(
         max_length=255,
         blank=True, null=True

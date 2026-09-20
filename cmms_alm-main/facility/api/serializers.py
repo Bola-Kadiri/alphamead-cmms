@@ -96,8 +96,9 @@ class BuildingSimpleSerializer(serializers.ModelSerializer):
         fields = ['id', 'code', 'name']
 
 class SubsystemSerializer(serializers.ModelSerializer):
+    zone_detail = ZoneSimpleSerializer(source='zone', read_only=True)
     building_detail = BuildingSimpleSerializer(source='building', read_only=True)
-    
+
     class Meta:
         model = Subsystem
         # fields = [
@@ -105,10 +106,10 @@ class SubsystemSerializer(serializers.ModelSerializer):
         #     'created_at', 'updated_at'
         # ]
         fields = [
-            'id', 'name', 'building', 'building_detail',
+            'id', 'name', 'zone', 'zone_detail', 'building', 'building_detail',
             'created_at', 'updated_at'
         ]
-        read_only_fields = ['id', 'building_detail', 'created_at', 'updated_at']
+        read_only_fields = ['id', 'zone_detail', 'building_detail', 'created_at', 'updated_at']
 
 class SubsystemSimpleSerializer(serializers.ModelSerializer):
     class Meta:

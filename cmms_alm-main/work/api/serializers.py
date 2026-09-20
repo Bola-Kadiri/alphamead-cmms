@@ -5,16 +5,31 @@ from work.models import WorkRequest, PaymentItem, Comment, PaymentRequisition, P
 from utils.models import FileAttachment
 
 from accounts.api.serializers import (
-    UserSerializer, SimpleUserSerializer, VendorSerializer
+    UserSerializer, SimpleUserSerializer, VendorSerializer, PersonnelSerializer
 )
-from facility.api.serializers import FacilitySerializer
+from facility.api.serializers import FacilitySerializer, ZoneSerializer, SubsystemSerializer
+from facility.models import Facility, Zone, Subsystem
 from asset_inventory.api.serializers import (AssetSerializer,
                                              DepartmentSerializer, AssetSubCategorySerializer,
                                              AssetCategorySerializer)
+from asset_inventory.models import Asset
+from asset_inventory.models.assets_category import AssetCategory, AssetSubCategory
 from utils.serializers import FileAttachmentSerializer
+from cmms_instanta.permissions import accessible_facilities
 
 
 class WorkRequestSerializer(serializers.ModelSerializer):
+    # Explicitly required (the model itself allows blank/null so existing
+    # historical rows created before this rule aren't affected) — required
+    # on create, but DRF automatically skips it for a partial (PATCH) update
+    # that doesn't touch these fields.
+    facility = serializers.PrimaryKeyRelatedField(queryset=Facility.objects.all())
+    zone = serializers.PrimaryKeyRelatedField(queryset=Zone.objects.all())
+    subsystem = serializers.PrimaryKeyRelatedField(queryset=Subsystem.objects.all())
+    asset = serializers.PrimaryKeyRelatedField(queryset=Asset.objects.all())
+    category = serializers.PrimaryKeyRelatedField(queryset=AssetCategory.objects.all())
+    subcategory = serializers.PrimaryKeyRelatedField(queryset=AssetSubCategory.objects.all())
+
     requester_detail = SimpleUserSerializer(source='requester', read_only=True)
     request_to_detail = SimpleUserSerializer(source='request_to', many=True, read_only=True)
     approver_detail = SimpleUserSerializer(source='approver', read_only=True)
@@ -22,6 +37,8 @@ class WorkRequestSerializer(serializers.ModelSerializer):
     category_detail = AssetCategorySerializer(source='category', read_only=True)
     subcategory_detail = AssetSubCategorySerializer(source='subcategory', read_only=True)
     facility_detail = FacilitySerializer(source='facility', read_only=True)
+    zone_detail = ZoneSerializer(source='zone', read_only=True)
+    subsystem_detail = SubsystemSerializer(source='subsystem', read_only=True)
     asset_detail = AssetSerializer(source='asset', read_only=True)
     department_detail = DepartmentSerializer(source='department', read_only=True)
     vendor_detail = VendorSerializer(source='vendor', read_only=True)
@@ -31,6 +48,26 @@ class WorkRequestSerializer(serializers.ModelSerializer):
     resources = serializers.ListField(child=serializers.FileField(), write_only=True, required=False)
     resources_data = FileAttachmentSerializer(many=True, read_only=True, source='resources')
 
+    # Work Order auto-created once the request is Fully Approved (see
+    # WorkRequestViewSet._auto_create_work_order). Null until then.
+    derived_work_order = serializers.SerializerMethodField()
+
+    def get_derived_work_order(self, obj):
+        wo = (
+            obj.derived_work_orders
+            .exclude(approval_status__in=['Reviewer Rejected', 'Approver Rejected', 'Rejected'])
+            .order_by('id')
+            .first()
+        )
+        if not wo:
+            return None
+        return {
+            'id': wo.id,
+            'slug': wo.slug,
+            'work_order_number': wo.work_order_number,
+            'approval_status': wo.approval_status,
+        }
+
     class Meta:
         model = WorkRequest
         fields = '__all__'
@@ -39,13 +76,72 @@ class WorkRequestSerializer(serializers.ModelSerializer):
             # Detail expansions
             'requester_detail', 'request_to_detail', 'approver_detail', 'reviewers_detail',
             'category_detail', 'subcategory_detail', 'department_detail',
-            'facility_detail', 'asset_detail', 'resources_data',
-            'vendor_detail', 'po_vendor_detail',
+            'facility_detail', 'zone_detail', 'subsystem_detail', 'asset_detail', 'resources_data',
+            'vendor_detail', 'po_vendor_detail', 'derived_work_order',
             # Workflow state — managed exclusively by action endpoints
             'approval_status', 'is_locked', 'po_number', 'po_document', 'po_vendor', 'po_amount',
             'cp_reason', 'reviewer_reason', 'approver_reason',
             'digital_signature', 'fully_approved_at',
         ]
+
+    def validate(self, data):
+        facility = data.get('facility', getattr(self.instance, 'facility', None))
+        zone = data.get('zone', getattr(self.instance, 'zone', None))
+        subsystem = data.get('subsystem', getattr(self.instance, 'subsystem', None))
+        asset = data.get('asset', getattr(self.instance, 'asset', None))
+        category = data.get('category', getattr(self.instance, 'category', None))
+        subcategory = data.get('subcategory', getattr(self.instance, 'subcategory', None))
+
+        if zone and facility and zone.facility_id != facility.id:
+            raise serializers.ValidationError(
+                {'zone': 'Selected zone does not belong to the selected facility.'}
+            )
+        if subsystem and facility and subsystem.facility_id and subsystem.facility_id != facility.id:
+            raise serializers.ValidationError(
+                {'subsystem': 'Selected subzone does not belong to the selected facility.'}
+            )
+        if subsystem and zone and subsystem.zone_id and subsystem.zone_id != zone.id:
+            raise serializers.ValidationError(
+                {'subsystem': 'Selected subzone does not belong to the selected zone.'}
+            )
+        if subcategory and category and subcategory.asset_category_id != category.id:
+            raise serializers.ValidationError(
+                {'subcategory': 'Selected component does not belong to the selected system/category.'}
+            )
+
+        # Only flag a genuine contradiction — an asset whose own facility/zone/etc.
+        # is simply unset (common on assets created before this rule existed)
+        # is not treated as a mismatch.
+        if asset:
+            if asset.facility_id and facility and asset.facility_id != facility.id:
+                raise serializers.ValidationError(
+                    {'asset': 'Selected asset does not belong to the selected facility.'}
+                )
+            if asset.zone_id and zone and asset.zone_id != zone.id:
+                raise serializers.ValidationError(
+                    {'asset': 'Selected asset does not belong to the selected zone.'}
+                )
+            if asset.subsystem_id and subsystem and asset.subsystem_id != subsystem.id:
+                raise serializers.ValidationError(
+                    {'asset': 'Selected asset does not belong to the selected subzone.'}
+                )
+            if asset.category_id and category and asset.category_id != category.id:
+                raise serializers.ValidationError(
+                    {'asset': 'Selected asset does not belong to the selected system/category.'}
+                )
+            if asset.subcategory_id and subcategory and asset.subcategory_id != subcategory.id:
+                raise serializers.ValidationError(
+                    {'asset': 'Selected asset does not belong to the selected component.'}
+                )
+
+        request = self.context.get('request')
+        if facility and request is not None:
+            if not accessible_facilities(request.user).filter(pk=facility.pk).exists():
+                raise serializers.ValidationError(
+                    {'facility': 'You are not assigned to this facility.'}
+                )
+
+        return data
 
     def create(self, validated_data):
         resource_uploads = validated_data.pop('resources', [])
@@ -121,6 +217,9 @@ class WorkOrderSerializer(serializers.ModelSerializer):
             'requester_detail', 'request_to_detail', 'approver_detail', 'reviewers_detail',
             'category_detail', 'subcategory_detail', 'facility_detail', 'asset_detail',
             'resources_data', 'allow_resubmission',
+            # Closed/Pending/Rejected tracking — managed exclusively by the
+            # set-status action (which also drives the auto Payment Requisition).
+            'work_status',
         ]
 
     REJECTED_STATUSES = {'Reviewer Rejected', 'Approver Rejected'}
@@ -198,6 +297,8 @@ class CommentSerializer(serializers.ModelSerializer):
 
 class PaymentRequisitionSerializer(serializers.ModelSerializer):
     pay_to_detail = VendorSerializer(source='pay_to', read_only=True)
+    payee_personnel_detail = PersonnelSerializer(source='payee_personnel', read_only=True)
+    payee_owner_detail = SimpleUserSerializer(source='payee_owner', read_only=True)
     request_to_detail = SimpleUserSerializer(source='request_to', many=True, read_only=True)
     work_orders_detail = WorkOrderSerializer(source='work_orders', many=True, read_only=True)
     items_detail = PaymentItemSerializer(source='items', many=True, read_only=True)
@@ -207,6 +308,20 @@ class PaymentRequisitionSerializer(serializers.ModelSerializer):
         model = PaymentRequisition
         fields = '__all__'
         read_only_fields = ['id', 'requisition_number', 'attachment_data']
+
+    def validate(self, attrs):
+        # Only enforced when payee_type is explicitly set — existing clients that
+        # never send payee_type (and just set pay_to directly) are unaffected.
+        payee_type = attrs.get('payee_type', getattr(self.instance, 'payee_type', None))
+        field_by_type = {'vendor': 'pay_to', 'personnel': 'payee_personnel', 'owner': 'payee_owner'}
+        required_field = field_by_type.get(payee_type)
+        if required_field:
+            has_value = attrs.get(required_field, getattr(self.instance, required_field, None))
+            if not has_value:
+                raise serializers.ValidationError(
+                    {required_field: f"Required when payee_type is '{payee_type}'."}
+                )
+        return attrs
 
 
 class PPMSerializer(serializers.ModelSerializer):

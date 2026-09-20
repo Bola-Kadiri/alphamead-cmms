@@ -5,13 +5,16 @@ from rest_framework import viewsets, status
 from rest_framework.response import Response
 from rest_framework.decorators import action
 from rest_framework.permissions import IsAuthenticated
+from rest_framework.parsers import MultiPartParser, FormParser
 
 from rest_framework import serializers
 
 
-from cmms_instanta.permissions import RoleBasedPermissionMixin
+from cmms_instanta.permissions import RoleBasedPermissionMixin, accessible_facilities
 
 from ..models import Asset, Inventory, Warehouse, Transfer, Item, Store, ItemRequest, ItemRequestItem
+from asset_inventory.services import import_assets_from_csv
+from facility.models import Zone, Subsystem
 from accounts.models import Vendor, Category, Subcategory, Department
 from asset_inventory.models import MovementHistory
 from asset_inventory.models.inventory_reference import InventoryType, Manufacturer, ModelReference, InventoryReference
@@ -54,8 +57,56 @@ class AssetViewSet(RoleBasedPermissionMixin, viewsets.ModelViewSet):
 
     def perform_create(self, serializer):
         serializer.save(owner=self.request.user)
-        
-        
+
+    @action(detail=False, methods=['get'], url_path='by-facility/(?P<facility_id>[^/.]+)')
+    def by_facility(self, request, facility_id=None):
+        """
+        Get all assets for a specific facility/site (for cascading
+        site → zone → subzone → asset dropdowns, e.g. when raising a Work Request).
+        Scoped to facilities the requesting user can see.
+        """
+        if not accessible_facilities(request.user).filter(pk=facility_id).exists():
+            return Response([])
+        assets = self.queryset.filter(facility_id=facility_id)
+        serializer = self.get_serializer(assets, many=True)
+        return Response(serializer.data)
+
+    @action(detail=False, methods=['get'], url_path='by-zone/(?P<zone_id>[^/.]+)')
+    def by_zone(self, request, zone_id=None):
+        """Get all assets for a specific zone. Scoped to accessible facilities."""
+        if not Zone.objects.filter(pk=zone_id, facility__in=accessible_facilities(request.user)).exists():
+            return Response([])
+        assets = self.queryset.filter(zone_id=zone_id)
+        serializer = self.get_serializer(assets, many=True)
+        return Response(serializer.data)
+
+    @action(detail=False, methods=['get'], url_path='by-subsystem/(?P<subsystem_id>[^/.]+)')
+    def by_subsystem(self, request, subsystem_id=None):
+        """Get all assets for a specific subzone/space. Scoped to accessible facilities."""
+        if not Subsystem.objects.filter(pk=subsystem_id, facility__in=accessible_facilities(request.user)).exists():
+            return Response([])
+        assets = self.queryset.filter(subsystem_id=subsystem_id)
+        serializer = self.get_serializer(assets, many=True)
+        return Response(serializer.data)
+
+    @action(detail=False, methods=['post'], url_path='bulk-import', parser_classes=[MultiPartParser, FormParser])
+    def bulk_import(self, request):
+        """
+        Bulk-create sites, zones, spaces and assets from an uploaded CSV
+        (same access level as creating an asset: 'asset_register' edit).
+        """
+        upload = request.FILES.get('file')
+        if not upload:
+            return Response({"file": "A CSV file is required."}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            summary = import_assets_from_csv(upload, owner=request.user)
+        except ValueError as exc:
+            return Response({"detail": str(exc)}, status=status.HTTP_400_BAD_REQUEST)
+
+        return Response(summary, status=status.HTTP_201_CREATED)
+
+
 class InventoryViewSet(RoleBasedPermissionMixin, viewsets.ModelViewSet):
     queryset = Inventory.objects.all().order_by('-updated_at')
     serializer_class = InventorySerializer

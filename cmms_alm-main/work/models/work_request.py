@@ -160,6 +160,22 @@ class WorkRequest(OwnerPrivModel, Dated, models.Model):
         help_text="Building associated with the work request."
     )
 
+    zone = models.ForeignKey(
+        'facility.Zone',
+        on_delete=models.SET_NULL,
+        blank=True, null=True,
+        related_name='work_requests',
+        help_text="Zone associated with the work request."
+    )
+
+    subsystem = models.ForeignKey(
+        'facility.Subsystem',
+        on_delete=models.SET_NULL,
+        blank=True, null=True,
+        related_name='work_requests',
+        help_text="Subsystem (subzone/space) associated with the work request."
+    )
+
     asset = models.ForeignKey(
         'asset_inventory.Asset',
         on_delete=models.SET_NULL,

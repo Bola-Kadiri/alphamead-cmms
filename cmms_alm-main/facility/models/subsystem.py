@@ -14,12 +14,21 @@ class Subsystem(OwnerPrivModel, Dated, models.Model):
         max_length=255,
         help_text=_("Name of the space or sub-system.")
     )
-    
+
+    zone = models.ForeignKey(
+        'facility.Zone',
+        on_delete=models.SET_NULL,
+        related_name='subsystems',
+        blank=True, null=True,
+        help_text=_("Zone this space/sub-system belongs to (optional).")
+    )
+
     building = models.ForeignKey(
         'facility.Building',
-        on_delete=models.CASCADE,
+        on_delete=models.SET_NULL,
         related_name='spaces_subsystems',
-        help_text=_("Building or system to which this space or sub-system belongs.")
+        blank=True, null=True,
+        help_text=_("Building to which this space or sub-system belongs (optional — some sites track spaces directly under a zone with no building).")
     )
     
     facility = models.ForeignKey(

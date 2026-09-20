@@ -42,6 +42,11 @@ class Asset(OwnerPrivModel, Dated, models.Model):
         max_length=255,
         help_text=_("Name of the asset.")
     )
+    location = models.CharField(
+        max_length=255,
+        blank=True, null=True,
+        help_text=_("Free-text location description for this specific asset, where it differs from its subsystem's name.")
+    )
     asset_type = models.CharField(
         max_length=50,
         choices=[
@@ -95,6 +100,23 @@ class Asset(OwnerPrivModel, Dated, models.Model):
         max_length=255,
         unique=True,
         help_text=_("Unique asset tag identifier.")
+    )
+    qr_code = models.CharField(
+        max_length=255,
+        unique=True,
+        blank=True, null=True,
+        help_text=_("QR code identifier used to look up this asset on-site.")
+    )
+    status = models.CharField(
+        max_length=50,
+        choices=[
+            ("IN_SERVICE", _("In Service")),
+            ("OUT_OF_SERVICE", _("Out of Service")),
+            ("UNDER_MAINTENANCE", _("Under Maintenance")),
+            ("DECOMMISSIONED", _("Decommissioned")),
+        ],
+        default="IN_SERVICE",
+        help_text=_("Operational status of the asset.")
     )
     lifespan = models.CharField(
         max_length=255,

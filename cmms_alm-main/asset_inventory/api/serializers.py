@@ -1,7 +1,7 @@
 from rest_framework import serializers
 from ..models import Asset, Inventory, Warehouse, Item, ItemRequest, ItemRequestItem, Transfer, Store, MovementHistory
 from accounts.models import Vendor, Category, Subcategory, User, Department
-from facility.models import Facility, Building 
+from facility.models import Facility, Building, Zone, Subsystem
 
 from accounts.api.serializers import VendorSerializer,  SimpleUserSerializer
 from facility.api.serializers import FacilitySerializer, BuildingSerializer
@@ -95,6 +95,16 @@ class StoreSerializer(serializers.ModelSerializer):
         
         
 class AssetSerializer(TranslatableFieldMixin, serializers.ModelSerializer):
+    # Explicitly required (the model itself allows blank/null so existing
+    # historical rows created before this rule aren't affected) — required
+    # on create, but DRF automatically skips it for a partial (PATCH) update
+    # that doesn't touch these fields.
+    facility = serializers.PrimaryKeyRelatedField(queryset=Facility.objects.all())
+    zone = serializers.PrimaryKeyRelatedField(queryset=Zone.objects.all())
+    subsystem = serializers.PrimaryKeyRelatedField(queryset=Subsystem.objects.all())
+    category = serializers.PrimaryKeyRelatedField(queryset=AssetCategory.objects.all())
+    subcategory = serializers.PrimaryKeyRelatedField(queryset=AssetSubCategory.objects.all())
+
     category_detail = AssetCategorySerializer(source='category', read_only=True)
     subcategory_detail = AssetSubCategorySerializer(source='subcategory', read_only=True)
 
@@ -103,7 +113,33 @@ class AssetSerializer(TranslatableFieldMixin, serializers.ModelSerializer):
         fields = '__all__'
         read_only_fields = ['id', 'amount']
         translatable_fields = ('oem_warranty',)
-        
+
+    def validate(self, data):
+        facility = data.get('facility', getattr(self.instance, 'facility', None))
+        zone = data.get('zone', getattr(self.instance, 'zone', None))
+        subsystem = data.get('subsystem', getattr(self.instance, 'subsystem', None))
+        category = data.get('category', getattr(self.instance, 'category', None))
+        subcategory = data.get('subcategory', getattr(self.instance, 'subcategory', None))
+
+        if zone and facility and zone.facility_id != facility.id:
+            raise serializers.ValidationError(
+                {'zone': 'Selected zone does not belong to the selected facility.'}
+            )
+        if subsystem and facility and subsystem.facility_id and subsystem.facility_id != facility.id:
+            raise serializers.ValidationError(
+                {'subsystem': 'Selected subzone does not belong to the selected facility.'}
+            )
+        if subsystem and zone and subsystem.zone_id and subsystem.zone_id != zone.id:
+            raise serializers.ValidationError(
+                {'subsystem': 'Selected subzone does not belong to the selected zone.'}
+            )
+        if subcategory and category and subcategory.asset_category_id != category.id:
+            raise serializers.ValidationError(
+                {'subcategory': 'Selected component does not belong to the selected system/category.'}
+            )
+
+        return data
+
         
 class InventorySerializer(TranslatableFieldMixin, serializers.ModelSerializer):
     category_detail = AssetCategorySerializer(source='category', read_only=True)

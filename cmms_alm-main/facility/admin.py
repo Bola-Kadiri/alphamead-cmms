@@ -50,12 +50,20 @@ class FacilityAdmin(admin.ModelAdmin):
 #         }),
 #     )
 
+class SubsystemInline(admin.TabularInline):
+    model = Subsystem
+    fk_name = 'zone'
+    extra = 0
+    fields = ('name', 'building')
+    show_change_link = True
+
 @admin.register(Zone)
 class ZoneAdmin(admin.ModelAdmin):
     list_display = ('code', 'name', 'facility',  'created_at', 'updated_at')
     list_filter = ('facility',  'created_at', 'updated_at')
     search_fields = ('code', 'name', 'facility__name')
     readonly_fields = ('created_at', 'updated_at')
+    inlines = [SubsystemInline]
 
 @admin.register(Building)
 class BuildingAdmin(admin.ModelAdmin):
@@ -66,8 +74,8 @@ class BuildingAdmin(admin.ModelAdmin):
 
 @admin.register(Subsystem)
 class SubsystemAdmin(admin.ModelAdmin):
-    list_display = ('name', 'building',  'created_at', 'updated_at')
-    list_filter = ('building',  'created_at', 'updated_at')
-    search_fields = ('name', 'building__name')
+    list_display = ('name', 'facility', 'zone', 'building',  'created_at', 'updated_at')
+    list_filter = ('facility', 'zone', 'building',  'created_at', 'updated_at')
+    search_fields = ('name', 'zone__name', 'building__name')
     readonly_fields = ('created_at', 'updated_at')
 

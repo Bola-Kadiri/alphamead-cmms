@@ -364,6 +364,19 @@ class WorkOrder(OwnerPrivModel, Dated, Status, models.Model):
         help_text="Approval status of the work order."
     )
 
+    WORK_STATUS_CHOICES = [
+        ("pending", "Pending"),
+        ("closed", "Closed"),
+        ("rejected", "Rejected"),
+    ]
+
+    work_status = models.CharField(
+        max_length=20,
+        choices=WORK_STATUS_CHOICES,
+        default="pending",
+        help_text="Closed/Pending/Rejected tracking of the physical work, separate from approval_status. Managed via the set-status action.",
+    )
+
     currency = models.CharField(
         max_length=3,
         choices=CURRENCY_CHOICES,

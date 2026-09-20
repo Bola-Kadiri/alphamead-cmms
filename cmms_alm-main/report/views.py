@@ -1,11 +1,16 @@
+from django.contrib.auth.decorators import login_required
 from django.http import HttpResponse
 from django.shortcuts import render
 
+from facility.models import Facility
 
 
+@login_required
 def user_facility(request):
-
-    return render(request, 'report/user_facility.html' )
+    context = {
+        "facilities": Facility.objects.all().order_by('name'),
+    }
+    return render(request, 'report/user_facility.html', context)
 
 def scheduled(request):
 

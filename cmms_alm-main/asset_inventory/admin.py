@@ -1,7 +1,13 @@
-from django.contrib import admin
+from django.contrib import admin, messages
+from django.urls import path, reverse
+from django.shortcuts import render, redirect
+from django.http import HttpResponse
+
 from .models import Warehouse, Asset, Item, Transfer, Inventory, MovementHistory, Store, ItemRequest, ItemRequestItem
 from .models.inventory_reference import InventoryType, Manufacturer, ModelReference, InventoryReference
 from .models.assets_category import AssetCategory, AssetSubCategory
+from .forms import AssetForm, AssetImportForm
+from .services import import_assets_from_csv, format_import_summary, export_assets_to_csv
 
 
 @admin.register(Warehouse)
@@ -22,10 +28,13 @@ class WarehouseAdmin(admin.ModelAdmin):
 
 @admin.register(Asset)
 class AssetAdmin(admin.ModelAdmin):
+    form = AssetForm
+    actions = ['export_as_csv']
     list_display = (
         'asset_name',
         'asset_tag',
         'asset_type',
+        'status',
         'condition',
         'facility',
         'zone',
@@ -38,6 +47,7 @@ class AssetAdmin(admin.ModelAdmin):
     )
     list_filter = (
         'asset_type',
+        'status',
         'condition',
         'facility',
         'zone',
@@ -58,11 +68,13 @@ class AssetAdmin(admin.ModelAdmin):
             'fields': (
                 'asset_name',
                 'asset_type',
+                'status',
                 'condition',
                 'facility',
                 'zone',
                 'building',
                 'subsystem',
+                'location',
                 'category',
                 'subcategory',
             )
@@ -70,6 +82,7 @@ class AssetAdmin(admin.ModelAdmin):
         ('Identification & Purchase Info', {
             'fields': (
                 'asset_tag',
+                'qr_code',
                 'serial_number',
                 'purchase_date',
                 'purchased_amount',
@@ -78,8 +91,57 @@ class AssetAdmin(admin.ModelAdmin):
             )
         }),
     )
-    
-    
+
+    def get_urls(self):
+        urls = super().get_urls()
+        custom_urls = [
+            path(
+                'import-csv/',
+                self.admin_site.admin_view(self.import_csv_view),
+                name='asset_inventory_asset_import_csv',
+            ),
+        ]
+        return custom_urls + urls
+
+    def import_csv_view(self, request):
+        if not self.has_add_permission(request):
+            messages.error(request, "You do not have permission to import assets.")
+            return redirect(reverse('admin:asset_inventory_asset_changelist'))
+
+        if request.method == 'POST':
+            form = AssetImportForm(request.POST, request.FILES)
+            if form.is_valid():
+                try:
+                    summary = import_assets_from_csv(request.FILES['csv_file'], owner=request.user)
+                except ValueError as exc:
+                    messages.error(request, f"Import failed: {exc}")
+                else:
+                    messages.success(request, f"Import complete: {format_import_summary(summary)}")
+                    return redirect(reverse('admin:asset_inventory_asset_changelist'))
+        else:
+            form = AssetImportForm()
+
+        context = {
+            **self.admin_site.each_context(request),
+            'title': 'Import assets from CSV',
+            'form': form,
+            'opts': self.model._meta,
+        }
+        return render(request, 'admin/asset_inventory/asset_import_csv.html', context)
+
+    def export_as_csv(self, request, queryset):
+        """
+        Admin action: export the selected assets in the WBG CSV template
+        shape. Filter the changelist by 'facility' first, select all, then
+        run this action to export a single site's assets.
+        """
+        response = HttpResponse(content_type='text/csv')
+        response['Content-Disposition'] = 'attachment; filename="assets_export.csv"'
+        export_assets_to_csv(queryset, response)
+        return response
+    export_as_csv.short_description = "Export selected assets to CSV"
+
+
 admin.site.register(Item)
 admin.site.register(Inventory)    
 admin.site.register(ItemRequest)

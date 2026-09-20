@@ -1,5 +1,30 @@
 from rest_framework.permissions import BasePermission
 
+# Roles that can see every site regardless of their own facility assignments.
+UNRESTRICTED_FACILITY_ROLES = {'SUPER ADMIN', 'ADMIN'}
+
+
+def accessible_facilities(user):
+    """
+    The Facility queryset `user` is allowed to see. Privileged roles (and
+    anyone flagged access_to_all_facilities, or a Django superuser) see
+    every site; everyone else is scoped to `user.facility` — the
+    assignment already used by work/views.py's own facility dropdown.
+    """
+    from facility.models import Facility
+
+    if not getattr(user, 'is_authenticated', False):
+        return Facility.objects.none()
+
+    if (
+        user.is_superuser
+        or getattr(user, 'access_to_all_facilities', False)
+        or getattr(user, 'roles', None) in UNRESTRICTED_FACILITY_ROLES
+    ):
+        return Facility.objects.all()
+    return user.facility.all()
+
+
 class RoleBasedPermission(BasePermission):
     """Single permission class that checks access based on role and feature"""
     ROLE_FEATURES = {

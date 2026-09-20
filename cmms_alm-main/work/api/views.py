@@ -1,5 +1,7 @@
 # work/api/views.py
 
+import logging
+
 from rest_framework import viewsets, status, serializers as drf_serializers
 from rest_framework.exceptions import PermissionDenied
 from rest_framework.response import Response
@@ -17,14 +19,19 @@ from django.shortcuts import get_object_or_404
 from accounts.models import Personnel, Vendor
 from accounts.api.serializers import PersonnelSerializer, VendorSerializer
 
-from facility.models import Facility, Building
-from facility.api.serializers import BuildingSerializer
+from facility.models import Facility, Building, Zone, Subsystem
+from facility.api.serializers import BuildingSerializer, ZoneSerializer, SubsystemSerializer
 from asset_inventory.models import Asset
 from asset_inventory.api.serializers import AssetSerializer
 
 User = get_user_model()
 
+logger = logging.getLogger(__name__)
+
 REJECTED_STATUSES = {'Rejected – Vendor Changed', 'Reviewer Rejected', 'Approver Rejected'}
+
+# Work Order approval statuses that mean "this WR still has no live Work Order"
+_WO_DEAD_STATUSES = ['Reviewer Rejected', 'Approver Rejected', 'Rejected']
 
 
 class WorkRequestViewSet(RoleBasedPermissionMixin, viewsets.ModelViewSet):
@@ -285,12 +292,51 @@ class WorkRequestViewSet(RoleBasedPermissionMixin, viewsets.ModelViewSet):
 
     # ── Step 4: Final Approver ────────────────────────────────────────────────
 
+    def _auto_create_work_order(self, work_request, acting_user):
+        """
+        Spin up the Work Order that belongs to a just-approved Work Request so the
+        Requester gets a clickable work-order reference on the request page.
+
+        - Idempotent: returns the existing Work Order if this request already has
+          one that isn't in a dead/rejected state.
+        - Never raises: any failure is logged and swallowed so it can't block the
+          approval that triggered it.
+        """
+        try:
+            existing = work_request.derived_work_orders.exclude(
+                approval_status__in=_WO_DEAD_STATUSES
+            ).order_by('id')
+            if existing.exists():
+                return existing.first()
+
+            return WorkOrder.objects.create(
+                source_work_request=work_request,
+                type='FROM-WORK-REQUEST',
+                requester=work_request.requester or work_request.owner or acting_user,
+                owner=work_request.owner,
+                facility=work_request.facility,
+                building=work_request.building,
+                category=work_request.category,
+                subcategory=work_request.subcategory,
+                department=work_request.department,
+                asset=work_request.asset,
+                description=work_request.description,
+                priority=work_request.priority or 'Medium',
+                currency=work_request.currency or 'USD',
+            )
+        except Exception as exc:  # noqa: BLE001 — must not break the approval
+            logger.warning(
+                "Auto Work Order creation failed for WorkRequest %s: %s",
+                getattr(work_request, 'pk', None), exc,
+            )
+            return None
+
     @action(detail=True, methods=['post'], url_path='final-approve')
     def final_approve(self, request, slug=None):
         """
         Approver reviews the full package and gives executive sign-off with a digital
         signature. The request is atomically committed to the ledger and permanently locked.
-        Status → Fully Approved.
+        Status → Fully Approved. A linked Work Order is auto-created on approval.
         """
         allowed_roles = ['ADMIN', 'SUPER ADMIN', 'APPROVER']
         if request.user.roles not in allowed_roles:
@@ -311,6 +357,8 @@ class WorkRequestViewSet(RoleBasedPermissionMixin, viewsets.ModelViewSet):
         instance.approval_status = 'Fully Approved'
         instance.is_locked = True
         instance.save(update_fields=['fully_approved_at', 'approval_status', 'is_locked'])
+
+        self._auto_create_work_order(instance, request.user)
 
         serializer = self.get_serializer(instance)
         return Response(serializer.data, status=status.HTTP_200_OK)
@@ -478,6 +526,36 @@ class WorkRequestViewSet(RoleBasedPermissionMixin, viewsets.ModelViewSet):
         except Exception as e:
             return Response({"error": f"Error retrieving assets: {str(e)}"}, status=status.HTTP_400_BAD_REQUEST)
 
+    @action(detail=False, methods=['get'], url_path='zones-by-facility/(?P<facility_id>[^/.]+)')
+    def zones_by_facility(self, request, facility_id=None):
+        try:
+            facility = get_object_or_404(Facility, id=facility_id)
+            zones = Zone.objects.filter(facility=facility).order_by('-id')
+            serializer = ZoneSerializer(zones, many=True)
+            return Response(serializer.data)
+        except Exception as e:
+            return Response({"error": f"Error retrieving zones: {str(e)}"}, status=status.HTTP_400_BAD_REQUEST)
+
+    @action(detail=False, methods=['get'], url_path='subsystems-by-zone/(?P<zone_id>[^/.]+)')
+    def subsystems_by_zone(self, request, zone_id=None):
+        try:
+            zone = get_object_or_404(Zone, id=zone_id)
+            subsystems = Subsystem.objects.filter(zone=zone).order_by('-id')
+            serializer = SubsystemSerializer(subsystems, many=True)
+            return Response(serializer.data)
+        except Exception as e:
+            return Response({"error": f"Error retrieving subzones: {str(e)}"}, status=status.HTTP_400_BAD_REQUEST)
+
+    @action(detail=False, methods=['get'], url_path='assets-by-subsystem/(?P<subsystem_id>[^/.]+)')
+    def assets_by_subsystem(self, request, subsystem_id=None):
+        try:
+            subsystem = get_object_or_404(Subsystem, id=subsystem_id)
+            assets = Asset.objects.filter(subsystem=subsystem).order_by('-id')
+            serializer = AssetSerializer(assets, many=True)
+            return Response(serializer.data)
+        except Exception as e:
+            return Response({"error": f"Error retrieving assets: {str(e)}"}, status=status.HTTP_400_BAD_REQUEST)
+
 
 class WorkOrderViewSet(RoleBasedPermissionMixin, viewsets.ModelViewSet):
     queryset = WorkOrder.objects.all().order_by('-id')
@@ -617,6 +695,82 @@ class WorkOrderViewSet(RoleBasedPermissionMixin, viewsets.ModelViewSet):
         instance.save(update_fields=['approver_reason', 'approval_status'])
         serializer = self.get_serializer(instance)
         return Response(serializer.data, status=status.HTTP_200_OK)
+
+    # ── Work status: Closed / Pending / Rejected ────────────────────────────────
+
+    def _auto_create_payment_requisition(self, work_order, acting_user):
+        """
+        Draft Payment Requisition created when a Work Order is closed.
+
+        - Idempotent: returns the existing requisition if one is already linked
+          to this work order.
+        - Left blank (payee/vendor/expected date/remark) for the requester or
+          finance to fill in via the normal PaymentRequisitionViewSet endpoints.
+        - Never raises: any failure is logged and swallowed so it can't block
+          the status change that triggered it.
+        """
+        try:
+            existing = work_order.linked_payments.order_by('id').first()
+            if existing:
+                return existing
+
+            requisition = PaymentRequisition.objects.create(
+                requisition_date=timezone.now().date(),
+                owner=acting_user,
+            )
+            requisition.work_orders.add(work_order)
+            return requisition
+        except Exception as exc:
+            logger.warning(
+                "Auto Payment Requisition creation failed for WorkOrder %s: %s",
+                getattr(work_order, 'pk', None), exc,
+            )
+            return None
+
+    @action(detail=True, methods=['post'], url_path='set-status')
+    def set_status(self, request, slug=None):
+        """
+        Closed / Pending / Rejected tracking of the physical work — separate from
+        approval_status. Closing a Work Order auto-creates a draft Payment
+        Requisition linked to it (see _auto_create_payment_requisition).
+        """
+        allowed_roles = ['ADMIN', 'SUPER ADMIN', 'APPROVER']
+        if request.user.roles not in allowed_roles:
+            return Response(
+                {"error": "Only APPROVER, ADMIN, or SUPER ADMIN can change a work order's status."},
+                status=status.HTTP_403_FORBIDDEN,
+            )
+
+        instance = get_object_or_404(WorkOrder, slug=slug)
+
+        new_status = (request.data.get('work_status') or '').strip().lower()
+        valid_statuses = dict(WorkOrder.WORK_STATUS_CHOICES)
+        if new_status not in valid_statuses:
+            return Response(
+                {"error": f"work_status must be one of {list(valid_statuses)}."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        instance.work_status = new_status
+        update_fields = ['work_status']
+
+        reason = (request.data.get('reason') or '').strip()
+        if new_status == 'rejected' and reason:
+            instance.remark = reason
+            update_fields.append('remark')
+
+        instance.save(update_fields=update_fields)
+
+        requisition = None
+        if new_status == 'closed':
+            requisition = self._auto_create_payment_requisition(instance, request.user)
+
+        data = self.get_serializer(instance).data
+        data['payment_requisition'] = (
+            {'id': requisition.id, 'requisition_number': requisition.requisition_number}
+            if requisition else None
+        )
+        return Response(data, status=status.HTTP_200_OK)
 
     @action(detail=True, methods=['post'], url_path='approve')
     def approve_order(self, request, slug=None):

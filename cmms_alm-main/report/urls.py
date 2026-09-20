@@ -1,4 +1,4 @@
-from django.urls import path
+from django.urls import path, include
 from report import views
 
 app_name = "report"
@@ -8,5 +8,6 @@ urlpatterns = [
     path("user_audit/", views.user_audit, name="user_audit"),
     path("scheduled/", views.scheduled, name="scheduled"),
     path("usage_report/", views.usage_report, name="usage_report"),
+    path("api/", include("report.api.urls")),
 
 ]

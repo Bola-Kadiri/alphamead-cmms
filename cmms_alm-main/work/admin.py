@@ -1,20 +1,34 @@
+from django import forms
 from django.contrib import admin
 from .models import WorkRequest, WorkOrder, PaymentItem, PaymentRequisition, PPM
 from work.models import WorkOrderCompletion
 
+
+class WorkRequestAdminForm(forms.ModelForm):
+    class Meta:
+        model = WorkRequest
+        fields = '__all__'
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        for field_name in ('facility', 'zone', 'subsystem', 'asset', 'category', 'subcategory'):
+            self.fields[field_name].required = True
+
+
 class WorkRequestAdmin(admin.ModelAdmin):
-    list_display = ("type", "requester", "category", "facility", "created_at",)
-    search_fields = ("type", "requester__username", "category__name", "facility__name")
-    list_filter = ("category", "require_mobilization_fee", "facility", "created_at")
-    readonly_fields = ("slug",)  
+    form = WorkRequestAdminForm
+    list_display = ("type", "requester", "category", "facility", "zone", "subsystem", "created_at",)
+    search_fields = ("type", "requester__username", "category__name", "facility__name", "zone__name", "subsystem__name")
+    list_filter = ("category", "require_mobilization_fee", "facility", "zone", "created_at")
+    readonly_fields = ("slug",)
 
 admin.site.register(WorkRequest, WorkRequestAdmin)
 
 
 @admin.register(WorkOrder)
 class WorkOrderAdmin(admin.ModelAdmin):
-    list_display = ('id',  'type', 'priority', 'facility', 'requester', 'approval_status', 'expected_start_date')
-    list_filter = ('type', 'priority', 'approval_status', 'facility', 'department')
+    list_display = ('id',  'type', 'priority', 'facility', 'requester', 'approval_status', 'work_status', 'expected_start_date')
+    list_filter = ('type', 'priority', 'approval_status', 'work_status', 'facility', 'department')
     search_fields = ( 'work_order_number', 'requester__username', 'requester__email', 'facility__name')
     readonly_fields = ('work_order_number', 'slug')
     ordering = ('-expected_start_date',)
@@ -41,13 +55,13 @@ class PaymentRequisitionAdmin(admin.ModelAdmin):
     search_fields = ("requisition_number", "pay_to__username", "pay_to__email")
     list_filter = ("status", "approval_status", "retirement")
     ordering = ("-requisition_date",)
-    autocomplete_fields = ("pay_to", "request_to", "items", "work_orders")  # For better UX in selection fields
+    autocomplete_fields = ("pay_to", "payee_personnel", "payee_owner", "request_to", "items", "work_orders")  # For better UX in selection fields
     readonly_fields = ("requisition_number",)  # Prevent modification of generated requisition number
     filter_horizontal = ("items", "work_orders", "request_to")  # Better UI for ManyToMany fields
 
     fieldsets = (
         ("Payment Information", {
-            "fields": ("requisition_number", "requisition_date", "pay_to", "expected_payment_date", "expected_payment_amount", "withholding_tax"),
+            "fields": ("requisition_number", "requisition_date", "payee_type", "pay_to", "payee_personnel", "payee_owner", "expected_payment_date", "expected_payment_amount", "withholding_tax"),
         }),
         ("Details", {
             "fields": ("retirement", "remark", "comment"),
