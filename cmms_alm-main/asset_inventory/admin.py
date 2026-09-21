@@ -115,6 +115,14 @@ class AssetAdmin(admin.ModelAdmin):
                     summary = import_assets_from_csv(request.FILES['csv_file'], owner=request.user)
                 except ValueError as exc:
                     messages.error(request, f"Import failed: {exc}")
+                except Exception:
+                    import traceback
+                    traceback.print_exc()
+                    messages.error(
+                        request,
+                        "Import failed due to an unexpected server error. "
+                        "The full traceback has been written to the server log."
+                    )
                 else:
                     messages.success(request, f"Import complete: {format_import_summary(summary)}")
                     return redirect(reverse('admin:asset_inventory_asset_changelist'))
