@@ -171,11 +171,16 @@ def import_assets_from_csv(file_obj, owner=None):
 
             facility = facilities.get(site_code)
             if facility is None:
-                facility, was_created = Facility.objects.get_or_create(
-                    code=site_code,
-                    defaults={'name': site_code, 'owner': owner},
-                )
-                if was_created:
+                # Facility.code and Facility.name are both unique, and a site
+                # can already exist under a different code than its own name
+                # (e.g. created by hand in the admin, where a blank code
+                # auto-numbers). Match by either before creating, or this
+                # collides on the name uniqueness constraint.
+                facility = Facility.objects.filter(code=site_code).first()
+                if facility is None:
+                    facility = Facility.objects.filter(name=site_code).first()
+                if facility is None:
+                    facility = Facility.objects.create(code=site_code, name=site_code, owner=owner)
                     summary['facilities_created'] += 1
                 facilities[site_code] = facility
 
