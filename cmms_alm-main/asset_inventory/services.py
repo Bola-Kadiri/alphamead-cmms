@@ -9,6 +9,11 @@ Expected header:
 `location` is stored on the Asset itself (not the subzone), since a single
 subzone name can legitimately carry different location text per asset row.
 
+`asset_tag` is optional in the source file. When a row has no tag, one is
+deterministically derived from its own site/zone/subzone/component fields
+(see `_generate_asset_tag`), so re-importing the same file still maps each
+row back to the same asset instead of creating duplicates.
+
 Re-running the import is safe: assets are matched/updated by asset_tag,
 and sites/zones/spaces/categories are looked up before being created.
 """
@@ -38,6 +43,20 @@ ASSET_STATUS_CHOICES = {choice for choice, _label in Asset._meta.get_field('stat
 def _code_from(text, max_length=45):
     code = slugify(text).upper().replace('-', '_')[:max_length]
     return code or 'UNSPECIFIED'
+
+
+def _generate_asset_tag(site_code, zone_code, subzone_name, component_name, existing_tags):
+    """Derive an asset_tag from a row's own identifying fields when the source
+    file doesn't supply one, so re-importing the same file still maps each row
+    back to the same asset rather than creating a duplicate."""
+    base = 'GEN-' + _code_from(f"{site_code}-{zone_code}-{subzone_name}-{component_name}", max_length=50)
+    tag = base
+    suffix = 2
+    while tag in existing_tags:
+        tag = f"{base}_{suffix}"
+        suffix += 1
+    existing_tags.add(tag)
+    return tag
 
 
 def _unique_code(model, text, exclude_name):
@@ -112,6 +131,12 @@ def import_assets_from_csv(file_obj, owner=None):
     }
 
     with transaction.atomic():
+        # Tracks tags claimed *within this import* only, so that two distinct
+        # rows in the same file never generate the same tag. Deliberately not
+        # seeded from existing DB tags: a blank-tag row must be able to
+        # regenerate the same tag it got on a prior import of this same file,
+        # so it updates that asset instead of colliding with it.
+        batch_tags = set()
         for row_num, raw_row in enumerate(reader, start=2):
             if not raw_row or not any(raw_row):
                 continue
@@ -128,8 +153,8 @@ def import_assets_from_csv(file_obj, owner=None):
             qr_code = (row.get('qr_code') or '').strip() or None
             asset_status = (row.get('asset_status') or '').strip().upper() or 'IN_SERVICE'
 
-            if not site_code or not asset_tag:
-                raise ValueError(f"Row {row_num}: 'site_code' and 'asset_tag' are required.")
+            if not site_code:
+                raise ValueError(f"Row {row_num}: 'site_code' is required.")
             if not zone_code or not subzone_name or not system_name or not component_name:
                 raise ValueError(
                     f"Row {row_num}: 'zone_code', 'subzone_name', 'system_name' and "
@@ -138,6 +163,11 @@ def import_assets_from_csv(file_obj, owner=None):
                 )
             if asset_status not in ASSET_STATUS_CHOICES:
                 asset_status = 'IN_SERVICE'
+
+            if asset_tag:
+                batch_tags.add(asset_tag)
+            else:
+                asset_tag = _generate_asset_tag(site_code, zone_code, subzone_name, component_name, batch_tags)
 
             facility = facilities.get(site_code)
             if facility is None:
