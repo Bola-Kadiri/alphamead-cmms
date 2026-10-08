@@ -181,6 +181,10 @@ class RoleBasedPermission(BasePermission):
             'reviewer_approve', 'reviewer_reject',
             'final_approve', 'final_reject',
             'resubmit',
+            # payment-requisition workflow — FINANCE only has 'view' on the
+            # requisition feature; the real gate is the role check inside
+            # PaymentRequisitionViewSet.disburse itself.
+            'disburse',
             # ppm / other
             'approve_order',
         }

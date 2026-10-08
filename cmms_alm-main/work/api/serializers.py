@@ -1,7 +1,8 @@
 from rest_framework import serializers
 from django.contrib.contenttypes.models import ContentType
 from django.db import transaction
-from work.models import WorkRequest, PaymentItem, Comment, PaymentRequisition, PPM, WorkOrder, WorkOrderCompletion, Invoice, InvoiceLineItem
+from work.models import (WorkRequest, WorkRequestQuotationItem, PaymentItem, Comment, PaymentRequisition,
+                          PPM, WorkOrder, WorkOrderCompletion, Invoice, InvoiceLineItem)
 from utils.models import FileAttachment
 
 from accounts.api.serializers import (
@@ -18,15 +19,40 @@ from utils.serializers import FileAttachmentSerializer
 from cmms_instanta.permissions import accessible_facilities
 
 
+class WorkRequestQuotationItemSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = WorkRequestQuotationItem
+        fields = ['id', 'description', 'quantity', 'unit_cost_estimate', 'unit_cost_vendor', 'unit_cost_client', 'add_vat']
+
+    def to_representation(self, instance):
+        data = super().to_representation(instance)
+        request = self.context.get('request')
+        role = getattr(getattr(request, 'user', None), 'roles', None)
+        # Requester sees what the client is charged (client cost + VAT), not
+        # what Alphamead actually pays the vendor — estimate is the same
+        # kind of internal-cost figure, so it's hidden alongside it.
+        if role == 'REQUESTER':
+            data.pop('unit_cost_vendor', None)
+            data.pop('unit_cost_estimate', None)
+        return data
+
+
 class WorkRequestSerializer(serializers.ModelSerializer):
-    # Explicitly required (the model itself allows blank/null so existing
-    # historical rows created before this rule aren't affected) — required
-    # on create, but DRF automatically skips it for a partial (PATCH) update
-    # that doesn't touch these fields.
+    # facility/category are explicitly required (the model itself allows
+    # blank/null so existing historical rows created before this rule
+    # aren't affected) — required on create, but DRF automatically skips
+    # it for a partial (PATCH) update that doesn't touch these fields.
+    #
+    # zone/subsystem/asset are left optional (matching the model's own
+    # null=True) because most facilities in production have no zones,
+    # subsystems, or assets registered yet (checked directly against the
+    # data: 80/85 facilities have zero zones/subsystems, 78/85 have zero
+    # assets) — requiring them here made it impossible to create a work
+    # request against any of those facilities at all.
     facility = serializers.PrimaryKeyRelatedField(queryset=Facility.objects.all())
-    zone = serializers.PrimaryKeyRelatedField(queryset=Zone.objects.all())
-    subsystem = serializers.PrimaryKeyRelatedField(queryset=Subsystem.objects.all())
-    asset = serializers.PrimaryKeyRelatedField(queryset=Asset.objects.all())
+    zone = serializers.PrimaryKeyRelatedField(queryset=Zone.objects.all(), required=False, allow_null=True)
+    subsystem = serializers.PrimaryKeyRelatedField(queryset=Subsystem.objects.all(), required=False, allow_null=True)
+    asset = serializers.PrimaryKeyRelatedField(queryset=Asset.objects.all(), required=False, allow_null=True)
     category = serializers.PrimaryKeyRelatedField(queryset=AssetCategory.objects.all())
     subcategory = serializers.PrimaryKeyRelatedField(queryset=AssetSubCategory.objects.all())
 
@@ -43,6 +69,7 @@ class WorkRequestSerializer(serializers.ModelSerializer):
     department_detail = DepartmentSerializer(source='department', read_only=True)
     vendor_detail = VendorSerializer(source='vendor', read_only=True)
     po_vendor_detail = VendorSerializer(source='po_vendor', read_only=True)
+    technician_detail = SimpleUserSerializer(source='technician', read_only=True)
 
     # Upload fields
     resources = serializers.ListField(child=serializers.FileField(), write_only=True, required=False)
@@ -51,6 +78,14 @@ class WorkRequestSerializer(serializers.ModelSerializer):
     # Work Order auto-created once the request is Fully Approved (see
     # WorkRequestViewSet._auto_create_work_order). Null until then.
     derived_work_order = serializers.SerializerMethodField()
+
+    # Quotation lines entered by Procurement & Store on cp-approve, and the
+    # totals/margin derived from them (see WorkRequest.total_cost_vendor/
+    # total_cost_client/margin properties).
+    quotation_items = WorkRequestQuotationItemSerializer(many=True, read_only=True)
+    total_cost_vendor = serializers.DecimalField(max_digits=18, decimal_places=2, read_only=True)
+    total_cost_client = serializers.DecimalField(max_digits=18, decimal_places=2, read_only=True)
+    margin = serializers.DecimalField(max_digits=18, decimal_places=2, read_only=True)
 
     def get_derived_work_order(self, obj):
         wo = (
@@ -77,12 +112,24 @@ class WorkRequestSerializer(serializers.ModelSerializer):
             'requester_detail', 'request_to_detail', 'approver_detail', 'reviewers_detail',
             'category_detail', 'subcategory_detail', 'department_detail',
             'facility_detail', 'zone_detail', 'subsystem_detail', 'asset_detail', 'resources_data',
-            'vendor_detail', 'po_vendor_detail', 'derived_work_order',
+            'vendor_detail', 'po_vendor_detail', 'technician_detail', 'derived_work_order',
+            'quotation_items', 'total_cost_vendor', 'total_cost_client', 'margin',
             # Workflow state — managed exclusively by action endpoints
             'approval_status', 'is_locked', 'po_number', 'po_document', 'po_vendor', 'po_amount',
             'cp_reason', 'reviewer_reason', 'approver_reason',
             'digital_signature', 'fully_approved_at',
         ]
+
+    def to_representation(self, instance):
+        data = super().to_representation(instance)
+        request = self.context.get('request')
+        role = getattr(getattr(request, 'user', None), 'roles', None)
+        # Requester sees client cost + margin, not what Alphamead pays the
+        # vendor — see WorkRequestQuotationItemSerializer for the per-line
+        # equivalent.
+        if role == 'REQUESTER':
+            data.pop('total_cost_vendor', None)
+        return data
 
     def validate(self, data):
         facility = data.get('facility', getattr(self.instance, 'facility', None))
@@ -198,15 +245,66 @@ class WorkOrderSerializer(serializers.ModelSerializer):
     resources_data = FileAttachmentSerializer(many=True, read_only=True, source='resources')
     source_work_request_detail = serializers.SerializerMethodField()
 
+    # Closure fields — set exclusively via the `set-status` action (see
+    # WorkOrderViewSet.set_status), never via the generic update endpoint.
+    vendor_detail = VendorSerializer(source='vendor', read_only=True)
+    technician_detail = SimpleUserSerializer(source='technician', read_only=True)
+
+    # The WCC submitted against this Work Order (see WorkOrderCompletion),
+    # and the Payment Requisition raised from it — both null until they
+    # exist. Lets the Work Order page link straight to each one.
+    latest_completion = serializers.SerializerMethodField()
+    linked_payment_requisition = serializers.SerializerMethodField()
+
     def get_source_work_request_detail(self, obj):
         wr = obj.source_work_request
         if not wr:
             return None
+        # The Work Order's own "Quotation" and "File attachments" sections
+        # show the same quotation/PO/invoice/attachment data the source Work
+        # Request itself does — it's never re-entered on the Work Order, so
+        # without this it always reads empty there. Same Requester-facing
+        # cost masking as WorkRequestSerializer/WorkRequestQuotationItemSerializer.
+        request = self.context.get('request')
+        role = getattr(getattr(request, 'user', None), 'roles', None)
+        quotation_items = WorkRequestQuotationItemSerializer(
+            wr.quotation_items.all(), many=True, context=self.context
+        ).data
         return {
             'id': wr.id,
             'work_request_number': wr.work_request_number,
             'po_number': wr.po_number,
             'po_document': wr.po_document.url if wr.po_document and wr.po_document.name else None,
+            'vendor_invoice': wr.vendor_invoice.url if wr.vendor_invoice and wr.vendor_invoice.name else None,
+            'attachment': wr.attachment.url if wr.attachment and wr.attachment.name else None,
+            'invoice_no': wr.invoice_no,
+            'quotation_items': quotation_items,
+            'total_cost_vendor': None if role == 'REQUESTER' else str(wr.total_cost_vendor),
+            'total_cost_client': str(wr.total_cost_client),
+            'margin': None if role == 'REQUESTER' else str(wr.margin),
+        }
+
+    def get_latest_completion(self, obj):
+        completion = obj.completions.order_by('-id').first()
+        if not completion:
+            return None
+        return {
+            'id': completion.id,
+            'wcc_number': completion.wcc_number,
+            'approval_status': completion.approval_status,
+        }
+
+    def get_linked_payment_requisition(self, obj):
+        requisition = obj.linked_payments.order_by('id').first()
+        if not requisition:
+            return None
+        return {
+            'id': requisition.id,
+            'requisition_number': requisition.requisition_number,
+            # 'request' | 'approve' | 'reject' — closing requires 'approve'
+            # (see WorkOrderViewSet.set_status); surfaced so the frontend can
+            # explain why the Close button is still blocked.
+            'approval_status': requisition.approval_status,
         }
 
     class Meta:
@@ -216,10 +314,12 @@ class WorkOrderSerializer(serializers.ModelSerializer):
             'id', 'slug', 'work_order_number', 'owner', 'requester',
             'requester_detail', 'request_to_detail', 'approver_detail', 'reviewers_detail',
             'category_detail', 'subcategory_detail', 'facility_detail', 'asset_detail',
-            'resources_data', 'allow_resubmission',
-            # Closed/Pending/Rejected tracking — managed exclusively by the
-            # set-status action (which also drives the auto Payment Requisition).
-            'work_status',
+            'resources_data', 'allow_resubmission', 'vendor_detail', 'technician_detail',
+            'latest_completion', 'linked_payment_requisition',
+            # Closed/Pending/Rejected tracking, and the closure fields it sets —
+            # managed exclusively by the set-status action (which also drives
+            # the auto Payment Requisition).
+            'work_status', 'vendor', 'technician', 'rating', 'started_at', 'completed_at',
         ]
 
     REJECTED_STATUSES = {'Reviewer Rejected', 'Approver Rejected'}
@@ -303,13 +403,29 @@ class PaymentRequisitionSerializer(serializers.ModelSerializer):
     work_orders_detail = WorkOrderSerializer(source='work_orders', many=True, read_only=True)
     items_detail = PaymentItemSerializer(source='items', many=True, read_only=True)
     attachment_data = FileAttachmentSerializer(source='attachment', many=True, read_only=True)
+    disbursed_by_detail = SimpleUserSerializer(source='disbursed_by', read_only=True)
+    closed_by_detail = SimpleUserSerializer(source='closed_by', read_only=True)
 
     class Meta:
         model = PaymentRequisition
         fields = '__all__'
-        read_only_fields = ['id', 'requisition_number', 'attachment_data']
+        read_only_fields = [
+            'id', 'requisition_number', 'attachment_data',
+            # Disbursement — managed exclusively by the `disburse` action.
+            'is_disbursed', 'disbursed_at', 'disbursed_by', 'disbursed_by_detail',
+            # Close-out — managed exclusively by the `close` action.
+            'is_closed', 'closed_at', 'closed_by', 'closed_by_detail',
+        ]
 
     def validate(self, attrs):
+        # Once disbursed, the record is a closed financial event — no field
+        # may change (including via a partial update), matching the
+        # `disburse` action's own guard for the direct-write path.
+        if self.instance is not None and self.instance.is_disbursed:
+            raise serializers.ValidationError(
+                "This payment requisition has already been disbursed and is permanently locked."
+            )
+
         # Only enforced when payee_type is explicitly set — existing clients that
         # never send payee_type (and just set pay_to directly) are unaffected.
         payee_type = attrs.get('payee_type', getattr(self.instance, 'payee_type', None))
@@ -343,12 +459,18 @@ class WorkOrderCompletionSerializer(serializers.ModelSerializer):
     reviewers_detail = SimpleUserSerializer(source='reviewers', many=True, read_only=True)
     resources = serializers.ListField(child=serializers.FileField(), write_only=True, required=False)
     resources_data = FileAttachmentSerializer(many=True, read_only=True, source='resources')
+    # Was referenced by the frontend but never actually declared here, so it
+    # was always undefined — added so the WCC page can show real Work Order
+    # info (and, via its own latest_completion/linked_payment_requisition,
+    # let the WCC and Payment Requisition nest as nearby accordion sections).
+    work_order_detail = WorkOrderSerializer(source='work_order', read_only=True)
 
     class Meta:
         model = WorkOrderCompletion
         fields = '__all__'
         read_only_fields = ['id', 'owner', 'created_at', 'updated_at', 'approval_status', 'is_reviewed',
-                            'reviewer_notes', 'approver_notes', 'approver_detail', 'reviewers_detail', 'resources_data']
+                            'reviewer_notes', 'approver_notes', 'approver_detail', 'reviewers_detail',
+                            'resources_data', 'work_order_detail']
 
     def validate_work_order(self, value):
         ACTIVE_STATUSES = {'Pending', 'Reviewed', 'Approved'}
@@ -362,7 +484,7 @@ class WorkOrderCompletionSerializer(serializers.ModelSerializer):
             existing = qs.first()
             raise serializers.ValidationError(
                 f"A Work Completion Certificate already exists for this Work Order "
-                f"(WCC-{existing.pk}, status: {existing.approval_status}). "
+                f"(WCC-{existing.wcc_number or existing.pk}, status: {existing.approval_status}). "
                 "Resolve or reject the existing WCC before creating a new one."
             )
         return value

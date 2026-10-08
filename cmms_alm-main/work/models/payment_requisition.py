@@ -50,6 +50,7 @@ class PaymentRequisition(OwnerPrivModel, Dated, Status, models.Model):
     APPROVAL_STATUS_CHOICES = [
         ("request", "Request Approval"),
         ("approve", "Approve"),
+        ("reject", "Reject"),
     ]
 
     requisition_date = models.DateField(
@@ -168,14 +169,57 @@ class PaymentRequisition(OwnerPrivModel, Dated, Status, models.Model):
         default=0.00,
         help_text="Expected payment amount for this requisition."
     )
-    
-    
+
+    # ── Finance disbursement — set exclusively via the `disburse` action.
+    # Once disbursed, the record is a closed financial event and locked
+    # against further edits (enforced in PaymentRequisitionSerializer). ──────
+
+    is_disbursed = models.BooleanField(
+        default=False,
+        help_text="Whether Finance has disbursed this payment. Locks the record once True.",
+    )
+
+    disbursed_at = models.DateTimeField(
+        blank=True, null=True,
+        help_text="When Finance disbursed this payment.",
+    )
+
+    disbursed_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        blank=True, null=True,
+        related_name='disbursed_payment_requisitions',
+        help_text="Finance user who disbursed this payment.",
+    )
+
+    # ── Requester close-out — set exclusively via the `close` action, once
+    # Finance has already disbursed the payment. Separate from is_disbursed:
+    # disbursing is Finance confirming money moved; closing is the
+    # Requester confirming the loop is done and archiving the record. ──────
+
+    is_closed = models.BooleanField(
+        default=False,
+        help_text="Whether the Requester has closed this requisition out, after disbursement.",
+    )
+
+    closed_at = models.DateTimeField(
+        blank=True, null=True,
+        help_text="When the Requester closed this requisition.",
+    )
+
+    closed_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        blank=True, null=True,
+        related_name='closed_payment_requisitions',
+        help_text="Requester (or Admin) who closed this requisition.",
+    )
+
     @property
     def total_item_cost(self):
         total_cost = 0
-        if self.items:
-            for item in self.items:
-                total_cost += item.amount
+        for item in self.items.all():
+            total_cost += item.amount
         return total_cost
     
     

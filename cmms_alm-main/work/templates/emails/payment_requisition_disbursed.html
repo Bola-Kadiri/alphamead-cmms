@@ -1,0 +1,16 @@
+{% extends "emails/base_email.html" %}
+{% block content %}
+<h2>Payment Disbursed</h2>
+<p>Finance has disbursed the payment below. This record is now permanently locked.</p>
+<div class="detail-box">
+  <table>
+    <tr><td>Reference</td><td>{{ instance.requisition_number|default:"—" }}</td></tr>
+    <tr><td>Pay To</td><td>{{ instance.pay_to|default:"—" }}</td></tr>
+    <tr><td>Amount</td><td>{{ instance.expected_payment_amount }}</td></tr>
+    <tr><td>Disbursed At</td><td>{{ instance.disbursed_at|date:"d M Y H:i" }}</td></tr>
+    <tr><td>Disbursed By</td><td>{{ instance.disbursed_by.get_full_name|default:instance.disbursed_by.email }}</td></tr>
+    <tr><td>Status</td><td><span class="badge badge-approved">Disbursed</span></td></tr>
+  </table>
+</div>
+<p>Please log in to AlphaCMMS to view the full audit trail for this payment.</p>
+{% endblock %}

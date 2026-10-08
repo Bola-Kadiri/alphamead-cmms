@@ -1,3 +1,5 @@
+import random
+
 from django.db import models
 from django.conf import settings
 from django.contrib.contenttypes.fields import GenericRelation
@@ -14,6 +16,12 @@ class WorkOrderCompletion(OwnerPrivModel, Dated, models.Model):
         ('Reviewer Rejected', 'Reviewer Rejected'),
         ('Approver Rejected', 'Approver Rejected'),
     ]
+
+    wcc_number = models.CharField(
+        max_length=7,
+        blank=True,
+        help_text="Unique 7-digit WCC number, auto-generated on submission.",
+    )
 
     work_order = models.ForeignKey(
         WorkOrder, on_delete=models.CASCADE, related_name='completions'
@@ -62,9 +70,21 @@ class WorkOrderCompletion(OwnerPrivModel, Dated, models.Model):
             existing = qs.first()
             raise ValidationError(
                 f"A Work Completion Certificate already exists for this Work Order "
-                f"(WCC-{existing.pk}, status: {existing.approval_status}). "
+                f"(WCC-{existing.wcc_number or existing.pk}, status: {existing.approval_status}). "
                 "Resolve or reject the existing WCC before creating a new one."
             )
+
+    def generate_unique_wcc_number(self):
+        """Generate a unique 7-digit WCC number — same scheme as WorkOrder's own number."""
+        while True:
+            number = str(random.randint(1000000, 9999999))
+            if not WorkOrderCompletion.objects.filter(wcc_number=number).exists():
+                return number
+
+    def save(self, *args, **kwargs):
+        if not self.wcc_number:
+            self.wcc_number = self.generate_unique_wcc_number()
+        super().save(*args, **kwargs)
 
     def __str__(self):
         return f"Completion for {self.work_order}"

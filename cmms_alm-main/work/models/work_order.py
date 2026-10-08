@@ -448,7 +448,41 @@ class WorkOrder(OwnerPrivModel, Dated, Status, models.Model):
         blank=True, null=True,
         help_text="Invoice number associated with the work order."
     )
-    
+
+    # ── Closure fields — set via the `close` action, gated on an Approved
+    # WorkOrderCompletion (WCC) existing for this work order ──────────────────
+
+    vendor = models.ForeignKey(
+        'accounts.Vendor',
+        on_delete=models.SET_NULL,
+        blank=True, null=True,
+        related_name='work_orders',
+        help_text="Vendor carrying out the work. Optional until closing, required to close.",
+    )
+
+    technician = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        blank=True, null=True,
+        related_name='work_orders_as_technician',
+        help_text="Technician carrying out the work. Optional until closing, required to close.",
+    )
+
+    rating = models.PositiveSmallIntegerField(
+        blank=True, null=True,
+        help_text="Star rating (1-5) given to the completed work order.",
+    )
+
+    started_at = models.DateTimeField(
+        blank=True, null=True,
+        help_text="When physical work actually started (set on closing).",
+    )
+
+    completed_at = models.DateTimeField(
+        blank=True, null=True,
+        help_text="When physical work actually completed (set on closing).",
+    )
+
     def prepopulate_slug(self):
         base_slug = slugify(self.type or 'work-order')
         unique_slug = base_slug

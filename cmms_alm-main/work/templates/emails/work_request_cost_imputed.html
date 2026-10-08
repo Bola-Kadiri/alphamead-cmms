@@ -1,0 +1,15 @@
+{% extends "emails/base_email.html" %}
+{% block content %}
+<h2>Your Work Request Has Been Priced</h2>
+<p>Procurement &amp; Store has attached a cost to your work request. It is now with the Reviewer.</p>
+<div class="detail-box">
+  <table>
+    <tr><td>Reference</td><td>{{ instance.work_request_number }}</td></tr>
+    <tr><td>PO Number</td><td>{{ instance.po_number|default:"—" }}</td></tr>
+    <tr><td>Cost to Alphamead</td><td>{{ instance.currency }} {{ instance.total_cost_vendor|default:instance.po_amount|default:"—" }}</td></tr>
+    <tr><td>Cost to Client</td><td>{{ instance.currency }} {{ instance.total_cost_client|default:"—" }}</td></tr>
+    <tr><td>Status</td><td><span class="badge badge-reviewed">{{ instance.approval_status }}</span></td></tr>
+  </table>
+</div>
+<p>Please log in to AlphaCMMS to track this request through review and approval.</p>
+{% endblock %}

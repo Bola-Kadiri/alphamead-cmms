@@ -193,6 +193,17 @@ class WorkRequest(OwnerPrivModel, Dated, models.Model):
         help_text="Original vendor from the Requester's invoice."
     )
 
+    # Technician the Requester assigns as a "resource" once Procurement &
+    # Store has imputed cost (see WorkRequestViewSet.assign_resources).
+    # Optional here, carried forward onto the auto-created Work Order.
+    technician = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        blank=True, null=True,
+        related_name='work_requests_as_technician',
+        help_text="Technician assigned as a resource on this request. Optional until Work Order closing.",
+    )
+
     # ── Workflow state fields (managed by action endpoints only) ──────────────
 
     approval_status = models.CharField(
@@ -358,5 +369,70 @@ class WorkRequest(OwnerPrivModel, Dated, models.Model):
             self.work_request_number = self.generate_unique_work_request_number()
         super().save(*args, **kwargs)
 
+    @property
+    def total_cost_vendor(self):
+        return sum(
+            (item.quantity * item.unit_cost_vendor for item in self.quotation_items.all()),
+            models.DecimalField().to_python(0),
+        )
+
+    @property
+    def total_cost_client(self):
+        return sum(
+            (item.quantity * item.unit_cost_client for item in self.quotation_items.all()),
+            models.DecimalField().to_python(0),
+        )
+
+    @property
+    def margin(self):
+        return self.total_cost_client - self.total_cost_vendor
+
     def __str__(self):
         return f"Work Request: {self.type} - {self.requester}"
+
+
+class WorkRequestQuotationItem(models.Model):
+    """
+    A single priced line on a work request's quotation, entered by
+    Procurement & Store during cp_approve. Vendor cost and client cost are
+    tracked separately so total_cost_vendor/total_cost_client/margin on the
+    parent WorkRequest can be derived without duplicating stored totals.
+    """
+    work_request = models.ForeignKey(
+        WorkRequest,
+        on_delete=models.CASCADE,
+        related_name='quotation_items',
+        help_text="Work request this quotation line belongs to.",
+    )
+    description = models.CharField(
+        max_length=255,
+        help_text="Description of the item or service.",
+    )
+    quantity = models.DecimalField(
+        max_digits=10, decimal_places=2, default=1,
+        help_text="Quantity of the item.",
+    )
+    # CP's initial ballpark figure before negotiating/confirming — reference
+    # only. It never feeds total_cost_vendor/margin; unit_cost_vendor (the
+    # "approved" price) does. Matches the reference product's three-column
+    # quotation layout (estimate / approved / to client).
+    unit_cost_estimate = models.DecimalField(
+        max_digits=18, decimal_places=2,
+        blank=True, null=True,
+        help_text="CP's initial estimated unit cost, before final negotiation. Reference only.",
+    )
+    unit_cost_vendor = models.DecimalField(
+        max_digits=18, decimal_places=2,
+        help_text="Approved/locked-in unit cost payable to the vendor (cost to Alphamead). Feeds total_cost_vendor.",
+    )
+    unit_cost_client = models.DecimalField(
+        max_digits=18, decimal_places=2,
+        help_text="Unit price charged to the client.",
+    )
+    add_vat = models.BooleanField(
+        default=False,
+        help_text="Whether VAT applies to this line.",
+    )
+
+    def __str__(self):
+        return f"{self.description} ({self.work_request.work_request_number})"

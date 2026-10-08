@@ -1,0 +1,18 @@
+{% extends "emails/base_email.html" %}
+{% block content %}
+<h2>You've Been Assigned as Approver</h2>
+<p>You have been assigned as the approver for a work order. You'll be notified again once it's been reviewed and is ready for your final approval.</p>
+<div class="detail-box">
+  <table>
+    <tr><td>WO Number</td><td>{{ instance.work_order_number }}</td></tr>
+    <tr><td>Type</td><td>{{ instance.type }}</td></tr>
+    <tr><td>Priority</td><td>{{ instance.priority }}</td></tr>
+    <tr><td>Requester</td><td>{{ instance.requester.get_full_name|default:instance.requester.email }}</td></tr>
+    <tr><td>Facility</td><td>{{ instance.facility|default:"—" }}</td></tr>
+    <tr><td>Description</td><td>{{ instance.description|default:"—" }}</td></tr>
+    <tr><td>Cost</td><td>{{ instance.currency }} {{ instance.cost|default:"—" }}</td></tr>
+    <tr><td>Status</td><td><span class="badge badge-pending">{{ instance.approval_status }}</span></td></tr>
+  </table>
+</div>
+<p>Please log in to AlphaCMMS to track this work order.</p>
+{% endblock %}

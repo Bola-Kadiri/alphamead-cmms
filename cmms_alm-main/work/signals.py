@@ -11,8 +11,9 @@ Strategy
 """
 
 import logging
+from django.contrib.auth import get_user_model
 from django.db import transaction
-from django.db.models.signals import pre_save, post_save
+from django.db.models.signals import pre_save, post_save, m2m_changed
 from django.dispatch import receiver
 
 from work.models.work_request import WorkRequest
@@ -22,6 +23,7 @@ from work.models.payment_requisition import PaymentRequisition
 from work.utils.email_service import send_notification_email, create_in_app_notifications
 
 logger = logging.getLogger(__name__)
+User = get_user_model()
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -79,9 +81,18 @@ def on_work_request_saved(sender, instance, created, **kwargs):
             ctx = {'instance': fresh}
 
             if created:
-                # Notify Procurement & Store + Reviewers
-                recipients = list(fresh.request_to.all()) + list(fresh.reviewers.all())
-                emails = _emails(fresh.request_to) + _emails(fresh.reviewers)
+                # Nobody is routed at creation any more, so route the
+                # notification instead: if no Procurement & Store handler
+                # was set, broadcast to every PROCUREMENT AND STORE user —
+                # whoever picks it up first claims it (see save_quotation /
+                # cp_approve). Reviewers aren't chosen until after
+                # Procurement & Store has priced it, so there's normally
+                # none to notify yet.
+                procurement_recipients = list(fresh.request_to.all())
+                if not procurement_recipients:
+                    procurement_recipients = list(User.objects.filter(roles='PROCUREMENT AND STORE'))
+                recipients = procurement_recipients + list(fresh.reviewers.all())
+                emails = [u.email for u in procurement_recipients if u.email] + _emails(fresh.reviewers)
                 if emails:
                     send_notification_email(
                         subject=f'[AlphaCMMS] New Work Request {fresh.work_request_number} — Action Required',
@@ -113,6 +124,23 @@ def on_work_request_saved(sender, instance, created, **kwargs):
                     recipients=_users(fresh.reviewers),
                     title=f'Work Request {fresh.work_request_number} Ready for Review',
                     message='Procurement & Store has processed a work request awaiting your review.',
+                    notification_type='WORK_REQUEST',
+                    object_id=fresh.pk,
+                )
+                # Also tell the Requester their cost has been imputed —
+                # separate from the Reviewer notification above.
+                requester_emails = _emails(fresh.requester)
+                if requester_emails:
+                    send_notification_email(
+                        subject=f'[AlphaCMMS] Work Request {fresh.work_request_number} — Cost Imputed',
+                        template='emails/work_request_cost_imputed.html',
+                        context=ctx,
+                        recipient_list=requester_emails,
+                    )
+                create_in_app_notifications(
+                    recipients=_users(fresh.requester),
+                    title=f'Work Request {fresh.work_request_number} — Cost Imputed',
+                    message='Procurement & Store has priced your work request.',
                     notification_type='WORK_REQUEST',
                     object_id=fresh.pk,
                 )
@@ -189,6 +217,48 @@ def on_work_request_saved(sender, instance, created, **kwargs):
 
         except Exception as exc:
             logger.error('WorkRequest notification error (pk=%s): %s', instance.pk, exc)
+
+    transaction.on_commit(_notify)
+
+
+@receiver(m2m_changed, sender=WorkRequest.reviewers.through)
+def on_work_request_reviewers_changed(sender, instance, action, pk_set, **kwargs):
+    """
+    Reviewer + Approver aren't chosen at creation any more — the Requester
+    adds them later, via Edit, once Procurement & Store has priced the
+    request (status stays 'CP Approved' throughout that edit, so the
+    status-transition notification above never fires for it). This fires
+    on that specific M2M write instead, which post_save can't observe
+    reliably since DRF's serializer.update() calls reviewers.set() after
+    instance.save() already ran.
+    """
+    if action != 'post_add' or not pk_set:
+        return
+    if instance.approval_status != 'CP Approved':
+        return
+
+    def _notify():
+        try:
+            fresh = WorkRequest.objects.get(pk=instance.pk)
+            new_reviewers = list(User.objects.filter(pk__in=pk_set))
+            emails = [u.email for u in new_reviewers if u.email]
+            ctx = {'instance': fresh}
+            if emails:
+                send_notification_email(
+                    subject=f'[AlphaCMMS] Work Request {fresh.work_request_number} — Ready for Review',
+                    template='emails/work_request_cp_approved.html',
+                    context=ctx,
+                    recipient_list=emails,
+                )
+            create_in_app_notifications(
+                recipients=new_reviewers,
+                title=f'Work Request {fresh.work_request_number} Ready for Review',
+                message='A work request has been routed to you for review.',
+                notification_type='WORK_REQUEST',
+                object_id=fresh.pk,
+            )
+        except Exception as exc:
+            logger.error('WorkRequest reviewer-assignment notification error (pk=%s): %s', instance.pk, exc)
 
     transaction.on_commit(_notify)
 
@@ -288,6 +358,54 @@ def on_work_order_saved(sender, instance, created, **kwargs):
 
         except Exception as exc:
             logger.error('WorkOrder notification error (pk=%s): %s', instance.pk, exc)
+
+    transaction.on_commit(_notify)
+
+
+# work_status (Closed/Pending/Rejected) is tracked separately from
+# approval_status — see WorkOrderViewSet.set_status — so it needs its own
+# change-detection cache to notify on closing.
+
+@receiver(pre_save, sender=WorkOrder)
+def cache_work_order_work_status(sender, instance, **kwargs):
+    if instance.pk:
+        try:
+            prev = sender.objects.values_list('work_status', flat=True).get(pk=instance.pk)
+            _prev_status[_cache_key('wo_work_status', instance.pk)] = prev
+        except sender.DoesNotExist:
+            pass
+
+
+@receiver(post_save, sender=WorkOrder)
+def on_work_order_work_status_saved(sender, instance, created, **kwargs):
+    key = _cache_key('wo_work_status', instance.pk)
+    previous = _prev_status.pop(key, None)
+    current = instance.work_status
+
+    if created or previous == current or current != 'closed':
+        return
+
+    def _notify():
+        try:
+            fresh = WorkOrder.objects.select_related('requester').get(pk=instance.pk)
+            ctx = {'instance': fresh}
+            emails = _emails(fresh.requester)
+            if emails:
+                send_notification_email(
+                    subject=f'[AlphaCMMS] Work Order {fresh.work_order_number} — Closed',
+                    template='emails/work_order_closed.html',
+                    context=ctx,
+                    recipient_list=emails,
+                )
+            create_in_app_notifications(
+                recipients=_users(fresh.requester),
+                title=f'Work Order {fresh.work_order_number} Closed',
+                message='The work order has been closed and a payment requisition has been raised.',
+                notification_type='WORK_ORDER',
+                object_id=fresh.pk,
+            )
+        except Exception as exc:
+            logger.error('WorkOrder closure notification error (pk=%s): %s', instance.pk, exc)
 
     transaction.on_commit(_notify)
 
@@ -453,7 +571,71 @@ def on_payment_requisition_saved(sender, instance, created, **kwargs):
                     object_id=fresh.pk,
                 )
 
+            elif current == 'reject':
+                emails = _emails(fresh.owner)
+                send_notification_email(
+                    subject=f'[AlphaCMMS] Payment Requisition {fresh.requisition_number or fresh.pk} — Rejected',
+                    template='emails/payment_requisition_rejected.html',
+                    context=ctx,
+                    recipient_list=emails,
+                )
+                create_in_app_notifications(
+                    recipients=_users(fresh.owner),
+                    title=f'Payment Requisition Rejected: {fresh.requisition_number or fresh.pk}',
+                    message='Your payment requisition has been rejected.',
+                    notification_type='PAYMENT_REQUISITION',
+                    object_id=fresh.pk,
+                )
+
         except Exception as exc:
             logger.error('PaymentRequisition notification error (pk=%s): %s', instance.pk, exc)
+
+    transaction.on_commit(_notify)
+
+
+# is_disbursed is a separate boolean, not part of approval_status — see
+# PaymentRequisitionViewSet.disburse — so it needs its own change-detection
+# cache to notify once Finance disburses.
+
+@receiver(pre_save, sender=PaymentRequisition)
+def cache_payment_requisition_disbursed(sender, instance, **kwargs):
+    if instance.pk:
+        try:
+            prev = sender.objects.values_list('is_disbursed', flat=True).get(pk=instance.pk)
+            _prev_status[_cache_key('pr_disbursed', instance.pk)] = prev
+        except sender.DoesNotExist:
+            pass
+
+
+@receiver(post_save, sender=PaymentRequisition)
+def on_payment_requisition_disbursed(sender, instance, created, **kwargs):
+    key = _cache_key('pr_disbursed', instance.pk)
+    previous = _prev_status.pop(key, None)
+    current = instance.is_disbursed
+
+    if created or previous == current or not current:
+        return
+
+    def _notify():
+        try:
+            fresh = PaymentRequisition.objects.select_related('owner').get(pk=instance.pk)
+            ctx = {'instance': fresh}
+            emails = _emails(fresh.owner)
+            if emails:
+                send_notification_email(
+                    subject=f'[AlphaCMMS] Payment Requisition {fresh.requisition_number or fresh.pk} — Disbursed',
+                    template='emails/payment_requisition_disbursed.html',
+                    context=ctx,
+                    recipient_list=emails,
+                )
+            create_in_app_notifications(
+                recipients=_users(fresh.owner),
+                title=f'Payment Requisition Disbursed: {fresh.requisition_number or fresh.pk}',
+                message='Finance has disbursed this payment. The record is now locked.',
+                notification_type='PAYMENT_REQUISITION',
+                object_id=fresh.pk,
+            )
+        except Exception as exc:
+            logger.error('PaymentRequisition disbursement notification error (pk=%s): %s', instance.pk, exc)
 
     transaction.on_commit(_notify)

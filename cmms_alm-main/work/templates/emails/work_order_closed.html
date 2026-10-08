@@ -1,0 +1,16 @@
+{% extends "emails/base_email.html" %}
+{% block content %}
+<h2>Work Order Closed</h2>
+<p>The work order below has been closed. A payment requisition has been raised against it.</p>
+<div class="detail-box">
+  <table>
+    <tr><td>WO Number</td><td>{{ instance.work_order_number }}</td></tr>
+    <tr><td>Vendor</td><td>{{ instance.vendor|default:"—" }}</td></tr>
+    <tr><td>Technician</td><td>{{ instance.technician.get_full_name|default:instance.technician.email|default:"—" }}</td></tr>
+    <tr><td>Rating</td><td>{{ instance.rating|default:"—" }} / 5</td></tr>
+    <tr><td>Started</td><td>{{ instance.started_at|date:"d M Y H:i"|default:"—" }}</td></tr>
+    <tr><td>Completed</td><td>{{ instance.completed_at|date:"d M Y H:i"|default:"—" }}</td></tr>
+  </table>
+</div>
+<p>Please log in to AlphaCMMS to review the completion record and the linked payment requisition.</p>
+{% endblock %}
