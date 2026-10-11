@@ -142,3 +142,7 @@ sg.py
 
 
 .codegpt
+# User uploads (MEDIA_ROOT) — live on the server only, never in git.
+# Exception: avatar.png is the default profile image used by the User/Personnel models.
+media_cdn/*
+!media_cdn/avatar.png
