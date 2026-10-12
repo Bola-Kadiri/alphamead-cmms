@@ -2,6 +2,7 @@ from rest_framework import viewsets, status
 from rest_framework.response import Response
 from rest_framework.decorators import action
 from rest_framework.permissions import IsAuthenticated, AllowAny
+from rest_framework.parsers import MultiPartParser, FormParser
 from rest_framework.views import APIView
 from django.contrib.auth.hashers import make_password
 from django.contrib.auth.tokens import default_token_generator
@@ -12,7 +13,11 @@ from drf_yasg.utils import swagger_auto_schema
 from drf_yasg import openapi
 from mail_templated import EmailMessage
 
-from cmms_instanta.permissions import RoleBasedPermissionMixin
+from cmms_instanta.permissions import RoleBasedPermissionMixin, SuperAdminWriteOrReadOnly
+from accounts.vendor_import import (
+    import_vendors_from_csv, TEMPLATE_HEADER as VENDOR_TEMPLATE_HEADER, TEMPLATE_ROWS as VENDOR_TEMPLATE_ROWS,
+)
+from utils.csv_import import csv_template_response, is_super_admin
 
 from accounts.models import (
     User, Personnel, Vendor, Client, Category,
@@ -142,12 +147,36 @@ class PersonnelViewSet(viewsets.ModelViewSet):
 class VendorViewSet(viewsets.ModelViewSet):
     queryset = Vendor.objects.all().order_by('-id')
     serializer_class = VendorSerializer
-    permission_classes = [IsAuthenticated]
+    # Bank details drive payments: everyone can view, only a Super Admin can change.
+    permission_classes = [SuperAdminWriteOrReadOnly]
     lookup_field = 'slug'
     pagination_class = None
 
     def perform_create(self, serializer):
         serializer.save(owner=self.request.user)
+
+    @action(detail=False, methods=['post'], url_path='bulk-import', parser_classes=[MultiPartParser, FormParser])
+    def bulk_import(self, request):
+        """
+        Super Admin: bulk-add vendors / payees (e.g. EKEDC, LAWMA) from a CSV.
+        `dry_run=true` previews without saving; nothing is saved if any row has an error.
+        """
+        if not is_super_admin(request.user):
+            return Response({"detail": "Only a Super Admin can bulk upload vendors."}, status=status.HTTP_403_FORBIDDEN)
+        upload = request.FILES.get('file')
+        if not upload:
+            return Response({"detail": "A CSV file is required."}, status=status.HTTP_400_BAD_REQUEST)
+        dry_run = str(request.data.get('dry_run', 'true')).lower() in ('true', '1', 'yes')
+        try:
+            result = import_vendors_from_csv(upload, owner=request.user, dry_run=dry_run)
+        except ValueError as exc:
+            return Response({"detail": str(exc)}, status=status.HTTP_400_BAD_REQUEST)
+        response_status = status.HTTP_200_OK if (dry_run or not result['errors']) else status.HTTP_400_BAD_REQUEST
+        return Response(result, status=response_status)
+
+    @action(detail=False, methods=['get'], url_path='bulk-import-template')
+    def bulk_import_template(self, request):
+        return csv_template_response('vendors_template.csv', VENDOR_TEMPLATE_HEADER, VENDOR_TEMPLATE_ROWS)
 
 
 class ClientViewSet(viewsets.ModelViewSet):

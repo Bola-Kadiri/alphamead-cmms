@@ -1,4 +1,4 @@
-from rest_framework.permissions import BasePermission
+from rest_framework.permissions import SAFE_METHODS, BasePermission
 
 # Roles that can see every site regardless of their own facility assignments.
 UNRESTRICTED_FACILITY_ROLES = {'SUPER ADMIN', 'ADMIN'}
@@ -23,6 +23,24 @@ def accessible_facilities(user):
     ):
         return Facility.objects.all()
     return user.facility.all()
+
+
+class SuperAdminWriteOrReadOnly(BasePermission):
+    """
+    Reference data that drives payments (categories/subcategories — including
+    the known-cost tick — and vendors with their bank details): every logged-in
+    user can view it (the work order forms need it), but only a Super Admin can
+    add, edit or delete it.
+    """
+    message = "Only a Super Admin can add, edit or delete this."
+
+    def has_permission(self, request, view):
+        user = request.user
+        if not (user and user.is_authenticated):
+            return False
+        if request.method in SAFE_METHODS:
+            return True
+        return user.is_superuser or getattr(user, 'roles', None) == 'SUPER ADMIN'
 
 
 class RoleBasedPermission(BasePermission):

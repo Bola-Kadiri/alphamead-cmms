@@ -226,7 +226,8 @@ class InventoryReferenceAdmin(admin.ModelAdmin):
 
 @admin.register(AssetCategory)
 class AssetCategoryAdmin(admin.ModelAdmin):
-    list_display = ("type", "code", "name", "salvage_value_percent", "useful_life_year")
+    list_display = ("type", "code", "name", "is_known_cost", "salvage_value_percent", "useful_life_year")
+    list_filter = ("is_known_cost",)
     search_fields = ("type", "code", "name")
 
 @admin.register(AssetSubCategory)

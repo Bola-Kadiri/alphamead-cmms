@@ -249,6 +249,8 @@ class WorkOrderSerializer(serializers.ModelSerializer):
     # WorkOrderViewSet.set_status), never via the generic update endpoint.
     vendor_detail = VendorSerializer(source='vendor', read_only=True)
     technician_detail = SimpleUserSerializer(source='technician', read_only=True)
+    # Raise Payment payee (type RAISE-PAYMENT).
+    payee_detail = VendorSerializer(source='payee', read_only=True)
 
     # The WCC submitted against this Work Order (see WorkOrderCompletion),
     # and the Payment Requisition raised from it — both null until they
@@ -305,6 +307,10 @@ class WorkOrderSerializer(serializers.ModelSerializer):
             # (see WorkOrderViewSet.set_status); surfaced so the frontend can
             # explain why the Close button is still blocked.
             'approval_status': requisition.approval_status,
+            # Raise Payment work orders show their payment progress on the work order.
+            'is_disbursed': requisition.is_disbursed,
+            'disbursed_at': requisition.disbursed_at,
+            'is_closed': requisition.is_closed,
         }
 
     class Meta:
@@ -315,7 +321,7 @@ class WorkOrderSerializer(serializers.ModelSerializer):
             'requester_detail', 'request_to_detail', 'approver_detail', 'reviewers_detail',
             'category_detail', 'subcategory_detail', 'facility_detail', 'asset_detail',
             'resources_data', 'allow_resubmission', 'vendor_detail', 'technician_detail',
-            'latest_completion', 'linked_payment_requisition',
+            'latest_completion', 'linked_payment_requisition', 'payee_detail',
             # Closed/Pending/Rejected tracking, and the closure fields it sets —
             # managed exclusively by the set-status action (which also drives
             # the auto Payment Requisition).
@@ -351,6 +357,93 @@ class WorkOrderSerializer(serializers.ModelSerializer):
                     "An Admin must unlock resubmission on the rejected work order before a new one can be raised."
                 )
         return value
+
+    def validate(self, attrs):
+        """
+        Raise Payment (known-cost bills: EKEDC, waste…) skips the work request,
+        PO and WCC, so the work order itself must carry everything the payment
+        needs — and the bill as evidence. Other work order types are untouched,
+        and so are Raise Payment work orders created before this flow existed
+        (no payee — see WorkOrder.uses_raise_payment_flow).
+        """
+        instance = self.instance
+        current_type = getattr(instance, 'type', None)
+        new_type = attrs.get('type', current_type)
+        raise_payment = WorkOrder.RAISE_PAYMENT
+
+        if instance is not None and instance.uses_raise_payment_flow and new_type != raise_payment:
+            raise serializers.ValidationError(
+                {'type': "A Raise Payment work order's type can't be changed."}
+            )
+        if new_type != raise_payment:
+            return attrs
+
+        is_legacy_edit = (
+            instance is not None and current_type == raise_payment
+            and instance.payee_id is None and 'payee' not in attrs
+        )
+        if is_legacy_edit:
+            return attrs
+
+        if instance is not None and instance.uses_raise_payment_flow and instance.approval_status == 'Approved':
+            raise serializers.ValidationError(
+                "This Raise Payment work order is approved and its payment has been raised; it can no longer be edited."
+            )
+
+        def value(field):
+            return attrs[field] if field in attrs else getattr(instance, field, None)
+
+        errors = {}
+        category = value('category')
+        if not category:
+            errors['category'] = "Select the bill category (e.g. PHCN/Power Payment)."
+        elif not category.is_known_cost:
+            errors['category'] = (
+                f"'{category.name}' is not on the known-cost list. Raise Payment is only for "
+                "categories an Admin has marked as known-cost; other jobs must start from a work request."
+            )
+        # The bill type (e.g. EKEDC) must be a subcategory of the chosen category.
+        subcategory = value('subcategory')
+        if not subcategory:
+            errors['subcategory'] = "Select the bill type (e.g. EKEDC)."
+        elif category and subcategory.asset_category_id != category.pk:
+            errors['subcategory'] = f"'{subcategory.name}' is not under '{category.name}'."
+        elif not subcategory.is_active:
+            errors['subcategory'] = f"'{subcategory.name}' is inactive."
+        if not value('facility'):
+            errors['facility'] = "Select the facility this bill is for."
+        if not value('payee'):
+            errors['payee'] = "Select who is being paid (e.g. EKEDC)."
+        cost = value('cost')
+        if cost is None or cost <= 0:
+            errors['cost'] = "Enter the bill amount."
+        if value('source_work_request') or value('source_ppm'):
+            errors['type'] = "A Raise Payment work order is raised directly, not from a work request or PPM."
+        has_bill = bool(attrs.get('resources')) or (instance is not None and instance.resources.exists())
+        if not has_bill:
+            errors['resources'] = "Attach the bill. It is the evidence for this payment."
+
+        # Duplicate-payment guard: the same bill (payee + bill number) can only
+        # be raised once, unless the earlier one was rejected.
+        bill_number = (value('invoice_no') or '').strip()
+        payee = value('payee')
+        if not bill_number:
+            errors['invoice_no'] = "Enter the bill / invoice number."
+        elif payee:
+            duplicate = WorkOrder.objects.filter(
+                type=raise_payment, payee=payee, invoice_no__iexact=bill_number,
+            ).exclude(approval_status__in=self.REJECTED_STATUSES | {'Rejected'})
+            if instance is not None:
+                duplicate = duplicate.exclude(pk=instance.pk)
+            duplicate = duplicate.first()
+            if duplicate:
+                errors['invoice_no'] = (
+                    f"Bill {bill_number} for {payee.name} has already been raised on "
+                    f"Work Order #{duplicate.work_order_number}."
+                )
+        if errors:
+            raise serializers.ValidationError(errors)
+        return attrs
 
     def create(self, validated_data):
         resource_uploads = validated_data.pop('resources', [])
@@ -473,6 +566,10 @@ class WorkOrderCompletionSerializer(serializers.ModelSerializer):
                             'resources_data', 'work_order_detail']
 
     def validate_work_order(self, value):
+        if value is not None and value.uses_raise_payment_flow:
+            raise serializers.ValidationError(
+                "Raise Payment work orders don't need a WCC — the attached bill is the evidence."
+            )
         ACTIVE_STATUSES = {'Pending', 'Reviewed', 'Approved'}
         qs = WorkOrderCompletion.objects.filter(
             work_order=value,

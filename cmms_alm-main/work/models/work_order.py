@@ -77,6 +77,12 @@ class WorkOrder(OwnerPrivModel, Dated, Status, models.Model):
         ('RAISE-PAYMENT', 'Raise Payment'),
     ]
 
+    # Raise Payment — known-cost bills (EKEDC, waste…): raised directly as a
+    # work order, with no work request, PO or WCC. Its payment details live on
+    # the work order, and final approval creates the payment requisition
+    # already approved. See `uses_raise_payment_flow`.
+    RAISE_PAYMENT = 'RAISE-PAYMENT'
+
     PRIORITY_CHOICES = [
         ('Low', 'Low'),
         ('Medium', 'Medium'),
@@ -482,6 +488,38 @@ class WorkOrder(OwnerPrivModel, Dated, Status, models.Model):
         blank=True, null=True,
         help_text="When physical work actually completed (set on closing).",
     )
+
+    # ── Raise Payment details — the amount is `cost`; these become the
+    # payment requisition on approval. ───────────────────────────────────────
+
+    payee = models.ForeignKey(
+        'accounts.Vendor',
+        on_delete=models.PROTECT,
+        blank=True, null=True,
+        related_name='raise_payment_work_orders',
+        help_text="Raise Payment: who is paid (e.g. EKEDC).",
+    )
+
+    expected_payment_date = models.DateField(
+        blank=True, null=True,
+        help_text="Raise Payment: expected payment date.",
+    )
+
+    withholding_tax = models.CharField(
+        max_length=50,
+        blank=True, null=True,
+        help_text="Raise Payment: selected withholding tax option.",
+    )
+
+    @property
+    def uses_raise_payment_flow(self):
+        """
+        True for Raise Payment work orders on the known-cost flow (payment on
+        approval, no WCC, auto-close on disbursement). Raise Payment work
+        orders created before this flow existed have no payee and keep the
+        original WO → WCC → PR behaviour.
+        """
+        return self.type == self.RAISE_PAYMENT and self.payee_id is not None
 
     def prepopulate_slug(self):
         base_slug = slugify(self.type or 'work-order')

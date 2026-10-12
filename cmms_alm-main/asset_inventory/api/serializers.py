@@ -26,7 +26,8 @@ class AssetCategorySerializer(serializers.ModelSerializer):
     class Meta:
         model = AssetCategory
         fields = [
-            'id', 'type', 'code', 'name', 'salvage_value_percent', 'useful_life_year', 'description', 'subcategories'
+            'id', 'type', 'code', 'name', 'salvage_value_percent', 'useful_life_year', 'description',
+            'is_known_cost', 'subcategories'
         ]
         read_only_fields = ['id']
     

@@ -97,6 +97,70 @@ def _auto_create_payment_requisition(work_order, acting_user, expected_payment_d
         return None
 
 
+def _create_raise_payment_requisition(work_order, acting_user):
+    """
+    Raise Payment (known-cost bill — EKEDC, waste…): the work order's final approval
+    *is* the payment approval, so the requisition is created already approved
+    from the payment details captured on the work order, with the bill copied
+    across as its attachment, and Finance is notified to disburse.
+
+    Idempotent. Unlike _auto_create_payment_requisition this raises on failure,
+    so the caller's transaction rolls the approval back rather than leaving an
+    approved bill with no payment.
+    """
+    existing = work_order.linked_payments.order_by('id').first()
+    if existing:
+        return existing
+
+    requisition = PaymentRequisition.objects.create(
+        requisition_date=timezone.now().date(),
+        owner=work_order.owner or work_order.requester,
+        payee_type='vendor',
+        pay_to=work_order.payee,
+        expected_payment_amount=work_order.cost,
+        expected_payment_date=work_order.expected_payment_date,
+        withholding_tax=work_order.withholding_tax,
+        approval_status='approve',
+        remark=f"Raise Payment — Work Order {work_order.work_order_number}: {work_order.description or ''}".strip(),
+    )
+    requisition.work_orders.add(work_order)
+
+    # The bill uploaded on the work order becomes the requisition's attachment
+    # (same stored file, no copy).
+    from django.contrib.contenttypes.models import ContentType
+    from utils.models import FileAttachment
+    pr_type = ContentType.objects.get_for_model(PaymentRequisition)
+    for bill in work_order.resources.all():
+        FileAttachment.objects.create(content_type=pr_type, object_id=requisition.pk, file=bill.file.name)
+
+    if not work_order.vendor_id:
+        work_order.vendor = work_order.payee
+        work_order.save(update_fields=['vendor'])
+
+    def _notify_finance():
+        try:
+            from work.utils.email_service import send_notification_email, create_in_app_notifications
+            finance = list(User.objects.filter(roles='FINANCE', is_active=True))
+            send_notification_email(
+                subject=f'[AlphaCMMS] Payment Requisition {requisition.requisition_number} — Ready for Disbursement',
+                template='emails/payment_requisition_approved.html',
+                context={'instance': requisition},
+                recipient_list=[u.email for u in finance if u.email],
+            )
+            create_in_app_notifications(
+                recipients=finance,
+                title=f'Ready for Disbursement: {requisition.requisition_number}',
+                message=f'Raise Payment approved on Work Order {work_order.work_order_number}.',
+                notification_type='PAYMENT_REQUISITION',
+                object_id=requisition.pk,
+            )
+        except Exception as exc:  # noqa: BLE001 — notification must not undo the payment
+            logger.error('Raise Payment Finance notification failed (PR %s): %s', requisition.pk, exc)
+
+    transaction.on_commit(_notify_finance)
+    return requisition
+
+
 class WorkRequestViewSet(RoleBasedPermissionMixin, viewsets.ModelViewSet):
     serializer_class = WorkRequestSerializer
     feature = 'work_request'
@@ -1106,9 +1170,33 @@ class WorkOrderViewSet(RoleBasedPermissionMixin, viewsets.ModelViewSet):
                 {"error": "This work order has already been approved."},
                 status=status.HTTP_400_BAD_REQUEST,
             )
-        instance.is_approved = True
-        instance.approval_status = 'Approved'
-        instance.save(update_fields=['is_approved', 'approval_status'])
+
+        if not instance.uses_raise_payment_flow:
+            instance.is_approved = True
+            instance.approval_status = 'Approved'
+            instance.save(update_fields=['is_approved', 'approval_status'])
+            serializer = self.get_serializer(instance)
+            return Response(serializer.data, status=status.HTTP_200_OK)
+
+        # Raise Payment: this approval is also the payment approval.
+        if user.roles == 'APPROVER':
+            limit_error = _exceeds_approval_limit(user, instance.cost)
+            if limit_error:
+                return Response({"error": limit_error}, status=status.HTTP_403_FORBIDDEN)
+        try:
+            with transaction.atomic():
+                instance.is_approved = True
+                instance.approval_status = 'Approved'
+                instance.save(update_fields=['is_approved', 'approval_status'])
+                _create_raise_payment_requisition(instance, user)
+        except Exception as exc:  # noqa: BLE001 — report it, approval was rolled back
+            logger.error("Raise Payment approval failed for WorkOrder %s: %s", instance.pk, exc)
+            return Response(
+                {"error": "Approval failed while raising the payment requisition, so nothing was approved. "
+                          "Please try again or contact an admin."},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            )
+        instance.refresh_from_db()
         serializer = self.get_serializer(instance)
         return Response(serializer.data, status=status.HTTP_200_OK)
 
@@ -1160,6 +1248,18 @@ class WorkOrderViewSet(RoleBasedPermissionMixin, viewsets.ModelViewSet):
             return Response(
                 {"error": "Only the Requester who raised this work order (or an Admin) can raise its payment requisition."},
                 status=status.HTTP_403_FORBIDDEN,
+            )
+
+        if instance.uses_raise_payment_flow:
+            requisition = instance.linked_payments.order_by('id').first()
+            if requisition is None:
+                return Response(
+                    {"error": "A Raise Payment work order's payment requisition is raised automatically when it is fully approved."},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+            return Response(
+                {'id': requisition.id, 'requisition_number': requisition.requisition_number},
+                status=status.HTTP_200_OK,
             )
 
         if not instance.completions.filter(approval_status='Approved').exists():
@@ -1216,6 +1316,12 @@ class WorkOrderViewSet(RoleBasedPermissionMixin, viewsets.ModelViewSet):
 
         update_fields = ['work_status']
         expected_payment_date = None
+
+        if new_status == 'closed' and instance.uses_raise_payment_flow:
+            return Response(
+                {"error": "A Raise Payment work order closes automatically when Finance disburses its payment."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
 
         if new_status == 'closed':
             if not instance.completions.filter(approval_status='Approved').exists():
@@ -1296,6 +1402,11 @@ class WorkOrderViewSet(RoleBasedPermissionMixin, viewsets.ModelViewSet):
                 status=status.HTTP_403_FORBIDDEN,
             )
         instance = get_object_or_404(WorkOrder, slug=slug)
+        if instance.uses_raise_payment_flow:
+            return Response(
+                {"error": "Raise Payment work orders must be reviewed and then approved (approve-by-reviewer, approve-by-approver)."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
         instance.approval_status = 'Approved'
         instance.save(update_fields=['approval_status'])
         serializer = self.get_serializer(instance)
@@ -1421,10 +1532,26 @@ class PaymentRequisitionViewSet(RoleBasedPermissionMixin, viewsets.ModelViewSet)
                 {"error": f"Cannot disburse a payment with status '{instance.approval_status}'. Expected 'approve'."},
                 status=status.HTTP_400_BAD_REQUEST,
             )
-        instance.is_disbursed = True
-        instance.disbursed_at = timezone.now()
-        instance.disbursed_by = request.user
-        instance.save(update_fields=['is_disbursed', 'disbursed_at', 'disbursed_by'])
+        now = timezone.now()
+        with transaction.atomic():
+            instance.is_disbursed = True
+            instance.disbursed_at = now
+            instance.disbursed_by = request.user
+            instance.save(update_fields=['is_disbursed', 'disbursed_at', 'disbursed_by'])
+
+            # Raise Payment: disbursement is the last step — close the
+            # requisition and its work order automatically.
+            raise_payment_orders = instance.work_orders.filter(type=WorkOrder.RAISE_PAYMENT, payee__isnull=False)
+            if raise_payment_orders.exists():
+                for work_order in raise_payment_orders:
+                    if work_order.work_status != 'closed':
+                        work_order.work_status = 'closed'
+                        work_order.completed_at = now
+                        work_order.save(update_fields=['work_status', 'completed_at'])
+                instance.is_closed = True
+                instance.closed_at = now
+                instance.closed_by = request.user
+                instance.save(update_fields=['is_closed', 'closed_at', 'closed_by'])
         serializer = self.get_serializer(instance)
         return Response(serializer.data, status=status.HTTP_200_OK)
 
@@ -1616,7 +1743,7 @@ class WorkOrderCompletionViewSet(RoleBasedPermissionMixin, viewsets.ModelViewSet
         ).values_list('work_order_id', flat=True)
         qs = WorkOrder.objects.filter(
             approval_status='Approved'
-        ).exclude(id__in=blocked_wo_ids).order_by('-id')
+        ).exclude(id__in=blocked_wo_ids).exclude(type=WorkOrder.RAISE_PAYMENT, payee__isnull=False).order_by('-id')
         from .serializers import WorkOrderSerializer
         serializer = WorkOrderSerializer(qs, many=True, context={'request': request})
         return Response({

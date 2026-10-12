@@ -10,10 +10,14 @@ from rest_framework.parsers import MultiPartParser, FormParser
 from rest_framework import serializers
 
 
-from cmms_instanta.permissions import RoleBasedPermissionMixin, accessible_facilities
+from cmms_instanta.permissions import RoleBasedPermissionMixin, SuperAdminWriteOrReadOnly, accessible_facilities
 
 from ..models import Asset, Inventory, Warehouse, Transfer, Item, Store, ItemRequest, ItemRequestItem
 from asset_inventory.services import import_assets_from_csv
+from asset_inventory.category_import import (
+    import_categories_from_csv, TEMPLATE_HEADER as CATEGORY_TEMPLATE_HEADER, TEMPLATE_ROWS as CATEGORY_TEMPLATE_ROWS,
+)
+from utils.csv_import import csv_template_response, is_super_admin
 from facility.models import Zone, Subsystem
 from accounts.models import Vendor, Category, Subcategory, Department
 from asset_inventory.models import MovementHistory
@@ -196,6 +200,15 @@ class AssetCategoryViewSet(viewsets.ModelViewSet):
     serializer_class = AssetCategorySerializer
     feature = "asset_category"
     pagination_class = None
+    permission_classes = [SuperAdminWriteOrReadOnly]
+
+    def get_queryset(self):
+        qs = super().get_queryset()
+        # ?is_known_cost=true → only categories allowed on known-cost work orders.
+        flag = self.request.query_params.get('is_known_cost')
+        if flag is not None:
+            qs = qs.filter(is_known_cost=flag.lower() in ('1', 'true', 'yes'))
+        return qs
 
 
 class AssetSubCategoryViewSet(viewsets.ModelViewSet):
@@ -203,6 +216,31 @@ class AssetSubCategoryViewSet(viewsets.ModelViewSet):
     serializer_class = AssetSubCategorySerializer
     feature = "asset_subcategory"
     pagination_class = None
+    permission_classes = [SuperAdminWriteOrReadOnly]
+
+    @action(detail=False, methods=['post'], url_path='bulk-import', parser_classes=[MultiPartParser, FormParser])
+    def bulk_import(self, request):
+        """
+        Super Admin: bulk-add categories and subcategories from a CSV (e.g. bill
+        types for Raise Payment). `dry_run=true` previews without saving; nothing
+        is saved if any row has an error.
+        """
+        if not is_super_admin(request.user):
+            return Response({"detail": "Only a Super Admin can bulk upload categories."}, status=status.HTTP_403_FORBIDDEN)
+        upload = request.FILES.get('file')
+        if not upload:
+            return Response({"detail": "A CSV file is required."}, status=status.HTTP_400_BAD_REQUEST)
+        dry_run = str(request.data.get('dry_run', 'true')).lower() in ('true', '1', 'yes')
+        try:
+            result = import_categories_from_csv(upload, owner=request.user, dry_run=dry_run)
+        except ValueError as exc:
+            return Response({"detail": str(exc)}, status=status.HTTP_400_BAD_REQUEST)
+        response_status = status.HTTP_200_OK if (dry_run or not result['errors']) else status.HTTP_400_BAD_REQUEST
+        return Response(result, status=response_status)
+
+    @action(detail=False, methods=['get'], url_path='bulk-import-template')
+    def bulk_import_template(self, request):
+        return csv_template_response('categories_template.csv', CATEGORY_TEMPLATE_HEADER, CATEGORY_TEMPLATE_ROWS)
 
 class DepartmentViewSet(viewsets.ModelViewSet):
     queryset = Department.objects.all().order_by('-id')

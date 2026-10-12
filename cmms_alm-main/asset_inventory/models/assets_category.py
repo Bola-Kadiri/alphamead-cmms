@@ -32,6 +32,11 @@ class AssetCategory(OwnerPrivModel, Dated, models.Model):
         blank=True, null=True,
         help_text=_('Detailed description of the asset category.')
     )
+    is_known_cost = models.BooleanField(
+        default=False,
+        help_text=_('Fixed bills (e.g. EKEDC, waste) that can be paid through a known-cost work '
+                    'order, without a work request, PO or WCC. Managed by Admin.')
+    )
     def __str__(self):
         return str(self.name) if self.name else ''
 
