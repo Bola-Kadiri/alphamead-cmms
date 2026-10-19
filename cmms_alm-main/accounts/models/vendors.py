@@ -135,7 +135,8 @@ class Vendor(OwnerPrivModel, Dated, Status, models.Model):
         if not self.account_number:
             self.account_number = None
         if not self.slug:  # Only generate slug if it's empty
-            base_slug = slugify(self.name)
+            # The slug column holds 50 characters: leave room for "-xxxx" below.
+            base_slug = slugify(self.name)[:45].strip('-') or 'vendor'
             slug = base_slug
             while Vendor.objects.filter(slug=slug).exists():
                 random_chars = ''.join(random.choices(string.ascii_lowercase + string.digits, k=4))

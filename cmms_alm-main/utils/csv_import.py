@@ -10,7 +10,7 @@ rolls them back.
 import csv
 import io
 
-from django.db import transaction
+from django.db import DatabaseError, transaction
 from django.http import HttpResponse
 
 TRUE_VALUES = {'yes', 'y', 'true', '1'}
@@ -74,9 +74,14 @@ def run_import(rows, handle_row, dry_run):
     with transaction.atomic():
         for row_number, row in rows:
             try:
-                status, message = handle_row(row_number, row)
+                # Savepoint per row: a row the database refuses is reported
+                # as an error instead of breaking the whole upload.
+                with transaction.atomic():
+                    status, message = handle_row(row_number, row)
             except RowError as exc:
                 status, message = 'error', str(exc)
+            except DatabaseError as exc:
+                status, message = 'error', f"The database refused this row: {str(exc).splitlines()[0]}"
             results.append({'row': row_number, 'status': status, 'message': message})
 
         errors = sum(1 for r in results if r['status'] == 'error')

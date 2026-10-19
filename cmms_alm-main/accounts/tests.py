@@ -99,6 +99,15 @@ class VendorBulkUploadTests(TestCase):
         self.assertEqual(Vendor.objects.get(name='Mundial Solutions Ltd').phone, '')
         self.assertEqual(Vendor.objects.get(name='Musibau Oladepo').status, 'Inactive')
 
+    def test_long_vendor_names_are_accepted(self):
+        long_name = 'DIVINE HERITAGE CONSTRUCTION AND ENGINEERING COMPANY LIMITED'
+        response = self.upload(f'{long_name},Company,,,,,,NGN,Active',
+                               f'{long_name} TWO,Company,,,,,,NGN,Active')
+        self.assertEqual(response.status_code, status.HTTP_200_OK, response.data)
+        self.assertEqual(response.data['counts'], {'created': 2})
+        for vendor in Vendor.objects.all():
+            self.assertLessEqual(len(vendor.slug), 50)
+
     def test_reupload_with_bank_details_fills_them_in(self):
         self.upload('LAWMA,Company,,,,,,NGN,Active')
         response = self.upload('LAWMA,Company,,,LAWMA Revenue,Access Bank,0698765432,NGN,Active')
