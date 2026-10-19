@@ -1,0 +1,83 @@
+{% extends "admin/base_site.html" %}
+{% load i18n %}
+
+{% block breadcrumbs %}
+<div class="breadcrumbs">
+  <a href="{% url 'admin:index' %}">{% translate 'Home' %}</a>
+  &rsaquo; <a href="{% url 'admin:app_list' app_label=opts.app_label %}">{{ opts.app_config.verbose_name }}</a>
+  &rsaquo; <a href="{% url 'admin:asset_inventory_assetsubcategory_changelist' %}">{{ opts.verbose_name_plural|capfirst }}</a>
+  &rsaquo; {% translate 'Bulk upload' %}
+</div>
+{% endblock %}
+
+{% block content %}
+  <h1>{% translate "Bulk upload categories & subcategories" %}</h1>
+
+  <p>
+    One row per subcategory. Columns:
+    <code>category, category_code, category_type, is_known_cost, subcategory, subcategory_code, subcategory_type, active</code>.
+    <a href="{% url 'admin:asset_inventory_assetsubcategory_bulk_upload_template' %}">Download the template</a>.
+  </p>
+  <ul>
+    <li>Existing categories are matched by <strong>category_code</strong> and never renamed. Use the existing code to add subcategories under an existing category.</li>
+    <li><strong>is_known_cost = yes</strong> makes the category appear under <em>Raise Payment</em>. It is refused for a category already used by assets, work requests, work orders or PPMs.</li>
+    <li>Nothing is saved until you confirm, and nothing at all is saved if any row has an error. Re-uploading the same file adds nothing new.</li>
+  </ul>
+
+  <form method="post" enctype="multipart/form-data">
+    {% csrf_token %}
+    <input type="hidden" name="action" value="preview">
+    <p>
+      <label for="id_csv_file"><strong>1. CSV file</strong> (save from Excel as "CSV UTF-8"):</label><br>
+      <input type="file" name="csv_file" id="id_csv_file" accept=".csv,text/csv" required>
+    </p>
+    <div class="submit-row">
+      <input type="submit" value="{% translate '2. Preview (nothing is saved)' %}">
+    </div>
+  </form>
+
+  {% if result %}
+    <h2>{% if result.dry_run %}Preview{% else %}Result{% endif %}</h2>
+    <p>
+      {% for status, count in result.counts.items %}
+        <strong>{{ count }}</strong> {{ status }}{% if not forloop.last %} &middot; {% endif %}
+      {% endfor %}
+    </p>
+    {% if result.errors %}
+      <p class="errornote">
+        {{ result.errors }} row(s) have problems. Nothing has been saved &mdash; fix them in the file and preview again.
+      </p>
+    {% endif %}
+
+    <table style="width:100%">
+      <thead>
+        <tr><th style="width:60px">Row</th><th style="width:100px">Result</th><th>Details</th></tr>
+      </thead>
+      <tbody>
+        {% for row in result.rows %}
+          <tr>
+            <td>{{ row.row }}</td>
+            <td>
+              {% if row.status == 'error' %}<strong style="color:#ba2121">error</strong>
+              {% elif row.status == 'created' %}<strong style="color:#447e36">created</strong>
+              {% else %}{{ row.status }}{% endif %}
+            </td>
+            <td>{{ row.message }}</td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+
+    {% if can_confirm %}
+      <form method="post" style="margin-top:16px">
+        {% csrf_token %}
+        <input type="hidden" name="action" value="confirm">
+        <div class="submit-row">
+          <input type="submit" class="default" value="{% translate '3. Confirm upload' %}">
+        </div>
+      </form>
+    {% elif result.dry_run and not result.errors %}
+      <p>Nothing new to add &mdash; every row already exists.</p>
+    {% endif %}
+  {% endif %}
+{% endblock %}

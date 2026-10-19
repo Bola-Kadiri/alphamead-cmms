@@ -144,3 +144,61 @@ class CategoryPermissionTests(TestCase):
     def test_anonymous_cannot_view(self):
         self.assertIn(self.client.get('/asset_inventory/api/asset-categories/').status_code,
                       (status.HTTP_401_UNAUTHORIZED, status.HTTP_403_FORBIDDEN))
+
+
+class AdminBulkUploadTests(TestCase):
+    """Django admin: Asset sub categorys → Bulk upload (Super Admin only, preview then confirm)."""
+
+    URL = '/admin/asset_inventory/assetsubcategory/bulk-upload/'
+    ROW = 'PHCN/Power Payment,PHCN,Expense,yes,EKEDC,EKEDC,Expense,yes'
+
+    def setUp(self):
+        self.super_admin = make_user('super-admin@example.com', 'SUPER ADMIN')
+        self.super_admin.is_staff = True
+        self.super_admin.is_superuser = True
+        self.super_admin.save()
+        self.client.force_login(self.super_admin)
+
+    def preview(self, *rows):
+        return self.client.post(self.URL, {'action': 'preview', 'csv_file': csv_file(*rows)})
+
+    def test_button_shown_on_subcategory_list(self):
+        response = self.client.get('/admin/asset_inventory/assetsubcategory/')
+        self.assertContains(response, 'bulk-upload/')
+
+    def test_preview_saves_nothing_then_confirm_saves(self):
+        response = self.preview(self.ROW)
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'Confirm upload')
+        self.assertFalse(AssetSubCategory.objects.exists())
+
+        response = self.client.post(self.URL, {'action': 'confirm'})
+        self.assertRedirects(response, '/admin/asset_inventory/assetsubcategory/')
+        self.assertTrue(AssetCategory.objects.get(code='PHCN').is_known_cost)
+        self.assertEqual(AssetSubCategory.objects.get(code='EKEDC').asset_category.code, 'PHCN')
+
+    def test_errors_block_confirm(self):
+        response = self.preview(self.ROW, 'PHCN/Power Payment,PHCN,Expense,maybe,IKEDC,IKEDC,Expense,yes')
+        self.assertContains(response, 'Nothing has been saved')
+        self.assertNotContains(response, 'Confirm upload')
+        response = self.client.post(self.URL, {'action': 'confirm'})
+        self.assertFalse(AssetSubCategory.objects.exists())
+
+    def test_confirm_without_preview_does_nothing(self):
+        response = self.client.post(self.URL, {'action': 'confirm'}, follow=True)
+        self.assertContains(response, 'preview it again')
+        self.assertFalse(AssetSubCategory.objects.exists())
+
+    def test_only_super_admin(self):
+        staff = make_user('staff-admin@example.com', 'ADMIN')
+        staff.is_staff = True
+        staff.save()
+        self.client.force_login(staff)
+        self.preview(self.ROW)
+        self.client.post(self.URL, {'action': 'confirm'})
+        self.assertFalse(AssetSubCategory.objects.exists())
+
+    def test_template_download(self):
+        response = self.client.get(self.URL + 'template/')
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(response.content.decode().startswith('category,category_code'))

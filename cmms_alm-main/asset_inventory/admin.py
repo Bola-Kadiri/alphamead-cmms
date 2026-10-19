@@ -1,3 +1,5 @@
+import io
+
 from django.contrib import admin, messages
 from django.urls import path, reverse
 from django.shortcuts import render, redirect
@@ -8,6 +10,10 @@ from .models.inventory_reference import InventoryType, Manufacturer, ModelRefere
 from .models.assets_category import AssetCategory, AssetSubCategory
 from .forms import AssetForm, AssetImportForm
 from .services import import_assets_from_csv, format_import_summary, export_assets_to_csv
+from .category_import import (
+    import_categories_from_csv, TEMPLATE_HEADER as CATEGORY_TEMPLATE_HEADER, TEMPLATE_ROWS as CATEGORY_TEMPLATE_ROWS,
+)
+from utils.csv_import import csv_template_response, is_super_admin
 
 
 @admin.register(Warehouse)
@@ -234,6 +240,77 @@ class AssetCategoryAdmin(admin.ModelAdmin):
 class AssetSubCategoryAdmin(admin.ModelAdmin):
     list_display = ("code", "name", "type", "asset_category", "is_active")
     search_fields = ("code", "name", "type", "asset_category__name")
+
+    # ── Super Admin bulk upload of categories + subcategories (same rules as
+    # the app's Bulk Upload: preview first, all-or-nothing, adds only). ──────
+    BULK_SESSION_KEY = 'category_bulk_upload_csv'
+    BULK_MAX_BYTES = 2 * 1024 * 1024
+
+    def get_urls(self):
+        custom_urls = [
+            path('bulk-upload/', self.admin_site.admin_view(self.bulk_upload_view),
+                 name='asset_inventory_assetsubcategory_bulk_upload'),
+            path('bulk-upload/template/', self.admin_site.admin_view(self.bulk_upload_template_view),
+                 name='asset_inventory_assetsubcategory_bulk_upload_template'),
+        ]
+        return custom_urls + super().get_urls()
+
+    def bulk_upload_template_view(self, request):
+        return csv_template_response('categories_template.csv', CATEGORY_TEMPLATE_HEADER, CATEGORY_TEMPLATE_ROWS)
+
+    def bulk_upload_view(self, request):
+        changelist = reverse('admin:asset_inventory_assetsubcategory_changelist')
+        if not is_super_admin(request.user):
+            messages.error(request, "Only a Super Admin can bulk upload categories.")
+            return redirect(changelist)
+
+        result = None
+        if request.method == 'POST':
+            action = request.POST.get('action')
+            if action == 'preview':
+                upload = request.FILES.get('csv_file')
+                if not upload:
+                    messages.error(request, "Choose a CSV file first.")
+                elif upload.size > self.BULK_MAX_BYTES:
+                    messages.error(request, "The file is too large (max 2 MB).")
+                else:
+                    raw = upload.read()
+                    try:
+                        result = import_categories_from_csv(io.BytesIO(raw), owner=request.user, dry_run=True)
+                    except ValueError as exc:
+                        messages.error(request, str(exc))
+                    else:
+                        # Keep the previewed file so "Confirm" saves exactly what was shown.
+                        request.session[self.BULK_SESSION_KEY] = raw.decode('utf-8-sig')
+            elif action == 'confirm':
+                content = request.session.pop(self.BULK_SESSION_KEY, None)
+                if content is None:
+                    messages.error(request, "Please choose the file and preview it again.")
+                else:
+                    try:
+                        result = import_categories_from_csv(
+                            io.BytesIO(content.encode('utf-8')), owner=request.user, dry_run=False)
+                    except ValueError as exc:
+                        messages.error(request, str(exc))
+                    else:
+                        if result['saved']:
+                            counts = result['counts']
+                            messages.success(
+                                request,
+                                f"Upload complete: {counts.get('created', 0)} added, "
+                                f"{counts.get('updated', 0)} updated, {counts.get('skipped', 0)} already existed.",
+                            )
+                            return redirect(changelist)
+
+        context = {
+            **self.admin_site.each_context(request),
+            'title': 'Bulk upload categories & subcategories',
+            'opts': self.model._meta,
+            'result': result,
+            'can_confirm': bool(result and result['dry_run'] and not result['errors']
+                                and (result['counts'].get('created') or result['counts'].get('updated'))),
+        }
+        return render(request, 'admin/asset_inventory/assetsubcategory_bulk_upload.html', context)
 
 @admin.register(Store)
 class StoreAdmin(admin.ModelAdmin):
