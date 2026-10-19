@@ -135,9 +135,15 @@ class VendorSerializer(serializers.ModelSerializer):
         model = Vendor
         fields = [
             'id', 'slug', 'name', 'type', 'phone', 'email',
-            'account_name', 'bank', 'account_number', 'currency', 'status'
+            'account_name', 'bank', 'account_number', 'currency', 'status', 'has_bank_details'
         ]
         read_only_fields = ['slug']
+
+    has_bank_details = serializers.BooleanField(read_only=True)
+
+    def validate_account_number(self, value):
+        # Blank → NULL, so several vendors without an account number don't clash.
+        return value or None
 
 
 class ContactSerializer(serializers.ModelSerializer):

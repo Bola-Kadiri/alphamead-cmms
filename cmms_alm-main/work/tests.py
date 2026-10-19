@@ -130,6 +130,24 @@ class RaisePaymentWorkOrderTests(TestCase):
         for field in ('payee', 'facility', 'cost'):
             self.assertIn(field, response.data)
 
+    def test_payee_without_bank_details_is_refused(self):
+        lawma = Vendor.objects.create(name='LAWMA', type='Company', currency='NGN')
+        response = self.create(payee=lawma.pk)
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIn('no bank details', str(response.data['payee']))
+
+    def test_disbursement_refused_if_bank_details_removed(self):
+        slug = self.create_and_review()
+        self.approve(slug)
+        requisition = WorkOrder.objects.get(slug=slug).linked_payments.get()
+        Vendor.objects.filter(pk=self.ekedc.pk).update(account_number=None)
+
+        self.client.force_authenticate(user=self.finance)
+        response = self.client.post(f'{PAYMENT_REQUISITIONS}{requisition.pk}/disburse/')
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        requisition.refresh_from_db()
+        self.assertFalse(requisition.is_disbursed)
+
     # ── approval → payment → closure ─────────────────────────────────────────
 
     def test_full_approval_creates_approved_payment_requisition(self):

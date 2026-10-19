@@ -112,20 +112,28 @@ class Vendor(OwnerPrivModel, Dated, Status, models.Model):
     slug = models.SlugField(unique=True, blank=True) 
 
     # Contact Details
-    phone = models.CharField(max_length=15, help_text=_("Vendor's phone number."))
+    phone = models.CharField(max_length=15, blank=True, default='', help_text=_("Vendor's phone number."))
     email = models.EmailField(help_text=_("Vendor's email address."), null=True, blank=True)
 
-    # Account Details
-    account_name = models.CharField(max_length=255, help_text=_("Bank account name."))
-    bank = models.CharField(max_length=255, help_text=_("Bank name."))
-    account_number = models.CharField(max_length=20, unique=True, help_text=_("Bank account number."))
+    # Account Details — optional so the vendor list can be loaded before bank
+    # details are collected. A vendor without them can't be paid (see
+    # has_bank_details). account_number is NULL (not '') when empty, so the
+    # unique constraint still applies to real account numbers only.
+    account_name = models.CharField(max_length=255, blank=True, default='', help_text=_("Bank account name."))
+    bank = models.CharField(max_length=255, blank=True, default='', help_text=_("Bank name."))
+    account_number = models.CharField(max_length=20, unique=True, null=True, blank=True, help_text=_("Bank account number."))
     currency = models.CharField(max_length=3, choices=CURRENCY_CHOICES, help_text=_("Account currency."))
-    
-    
+
+    @property
+    def has_bank_details(self):
+        return bool(self.account_name and self.bank and self.account_number)
+
     def save(self, *args, **kwargs):
         """
         Generate a unique slug before saving.
         """
+        if not self.account_number:
+            self.account_number = None
         if not self.slug:  # Only generate slug if it's empty
             base_slug = slugify(self.name)
             slug = base_slug
@@ -140,4 +148,6 @@ class Vendor(OwnerPrivModel, Dated, Status, models.Model):
         ordering = ['-id']
 
     def __str__(self):
+      if not self.has_bank_details:
+          return f"{self.name} (no bank details)"
       return f"{self.name} ({self.account_name} - {self.bank})"

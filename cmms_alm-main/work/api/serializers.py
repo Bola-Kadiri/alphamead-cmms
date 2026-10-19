@@ -414,6 +414,11 @@ class WorkOrderSerializer(serializers.ModelSerializer):
             errors['facility'] = "Select the facility this bill is for."
         if not value('payee'):
             errors['payee'] = "Select who is being paid (e.g. EKEDC)."
+        elif not value('payee').has_bank_details:
+            errors['payee'] = (
+                f"'{value('payee').name}' has no bank details yet. Ask the Super Admin to add the "
+                "account name, bank and account number before raising this payment."
+            )
         cost = value('cost')
         if cost is None or cost <= 0:
             errors['cost'] = "Enter the bill amount."

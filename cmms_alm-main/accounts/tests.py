@@ -77,6 +77,43 @@ class VendorBulkUploadTests(TestCase):
         self.assertEqual(response.data['counts'], {'skipped': 1})
         self.assertEqual(Vendor.objects.count(), 1)
 
+    def test_vendor_list_without_bank_details(self):
+        """The real vendor list: spaced headers, currency label, no bank details, Excel-damaged phones."""
+        content = (
+            'Name,Type,Status,Phone,Email,Account name,Bank,Account number,Currency\n'
+            'GAC Global Resources Ltd,Company,Active,,gacglobal6@gmail.com,,,,Nigerian Naira\n'
+            'PROVAC ENGINEERING,Individual,Active,8068774221,enquiry@provacng.com,,,,Nigerian Naira\n'
+            'Mundial Solutions Ltd,Company,Active,2.34802E+12,,,,,Nigerian Naira\n'
+            'Musibau Oladepo,Individual,Inactive,,,,,,Nigerian Naira\n'
+        )
+        upload = SimpleUploadedFile('vendors.csv', content.encode('utf-8'), content_type='text/csv')
+        response = self.client.post(URL, {'file': upload, 'dry_run': 'false'}, format='multipart')
+        self.assertEqual(response.status_code, status.HTTP_200_OK, response.data)
+        self.assertEqual(response.data['counts'], {'created': 4})
+
+        provac = Vendor.objects.get(name='PROVAC ENGINEERING')
+        self.assertEqual(provac.phone, '08068774221')
+        self.assertEqual(provac.currency, 'NGN')
+        self.assertIsNone(provac.account_number)
+        self.assertFalse(provac.has_bank_details)
+        self.assertEqual(Vendor.objects.get(name='Mundial Solutions Ltd').phone, '')
+        self.assertEqual(Vendor.objects.get(name='Musibau Oladepo').status, 'Inactive')
+
+    def test_reupload_with_bank_details_fills_them_in(self):
+        self.upload('LAWMA,Company,,,,,,NGN,Active')
+        response = self.upload('LAWMA,Company,,,LAWMA Revenue,Access Bank,0698765432,NGN,Active')
+        self.assertEqual(response.status_code, status.HTTP_200_OK, response.data)
+        self.assertEqual(response.data['counts'], {'updated': 1})
+        lawma = Vendor.objects.get()
+        self.assertTrue(lawma.has_bank_details)
+        self.assertEqual(lawma.account_number, '0698765432')
+
+    def test_same_name_without_details_is_skipped(self):
+        self.upload('LAWMA,Company,,,,,,NGN,Active')
+        response = self.upload('lawma,Company,,,,,,NGN,Active')
+        self.assertEqual(response.data['counts'], {'skipped': 1})
+        self.assertEqual(Vendor.objects.count(), 1)
+
     def test_template_download(self):
         response = self.client.get('/accounts/api/vendors/bulk-import-template/')
         self.assertEqual(response.status_code, status.HTTP_200_OK)
@@ -108,6 +145,17 @@ class VendorPermissionTests(TestCase):
                              status.HTTP_403_FORBIDDEN)
         self.vendor.refresh_from_db()
         self.assertEqual(self.vendor.account_number, '1012345678')
+
+    def test_super_admin_can_add_vendors_without_bank_details(self):
+        self.client.force_authenticate(user=make_user('super3@example.com', 'SUPER ADMIN'))
+        for name in ('Vendor A', 'Vendor B'):
+            response = self.client.post('/accounts/api/vendors/', {
+                'name': name, 'type': 'Company', 'phone': '', 'account_name': '', 'bank': '',
+                'account_number': '', 'currency': 'NGN',
+            }, format='json')
+            self.assertEqual(response.status_code, status.HTTP_201_CREATED, response.data)
+            self.assertFalse(response.data['has_bank_details'])
+        self.assertEqual(Vendor.objects.filter(account_number__isnull=True).count(), 2)
 
     def test_super_admin_can_change(self):
         self.client.force_authenticate(user=make_user('super2@example.com', 'SUPER ADMIN'))

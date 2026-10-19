@@ -1532,6 +1532,12 @@ class PaymentRequisitionViewSet(RoleBasedPermissionMixin, viewsets.ModelViewSet)
                 {"error": f"Cannot disburse a payment with status '{instance.approval_status}'. Expected 'approve'."},
                 status=status.HTTP_400_BAD_REQUEST,
             )
+        if instance.pay_to_id and not instance.pay_to.has_bank_details:
+            return Response(
+                {"error": f"'{instance.pay_to.name}' has no bank details yet. Ask the Super Admin to add "
+                          "the account name, bank and account number before disbursing."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
         now = timezone.now()
         with transaction.atomic():
             instance.is_disbursed = True

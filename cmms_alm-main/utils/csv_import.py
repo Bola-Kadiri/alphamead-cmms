@@ -31,7 +31,8 @@ def read_csv_rows(file_obj, required_columns):
             raise ValueError("The file must be a CSV saved as UTF-8 (in Excel: Save As → CSV UTF-8).")
     reader = csv.reader(io.StringIO(raw))
     try:
-        header = [h.strip().lower() for h in next(reader)]
+        # "Account number" and "account_number" are the same column.
+        header = ['_'.join(h.strip().lower().split()) for h in next(reader)]
     except StopIteration:
         raise ValueError("The CSV file is empty.")
 
