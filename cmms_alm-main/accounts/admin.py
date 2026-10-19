@@ -1,12 +1,19 @@
+import io
 from functools import reduce
 
-from django.contrib import admin
+from django.contrib import admin, messages
 from django.contrib.auth import get_user_model
 from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
 from django.db.models import Q
+from django.shortcuts import redirect, render
+from django.urls import path, reverse
 
 from accounts.models import *
 from accounts.forms import UserAdminCreationForm, UserAdminChangeForm, UserChangeForm
+from accounts.vendor_import import (
+    import_vendors_from_csv, TEMPLATE_HEADER as VENDOR_TEMPLATE_HEADER, TEMPLATE_ROWS as VENDOR_TEMPLATE_ROWS,
+)
+from utils.csv_import import csv_template_response, is_super_admin
 
 User = get_user_model()
 
@@ -208,7 +215,7 @@ class VendorAdmin(admin.ModelAdmin):
     Admin configuration for the Vendor model.
     """
     
-    list_display = ("name", "type", "account_name", "bank", "currency", "status", "created_at", "updated_at")
+    list_display = ("name", "type", "account_name", "bank", "bank_details", "currency", "status", "created_at", "updated_at")
     search_fields = ("name", "account_name", "account_number", "bank", "email", "phone")
     list_filter = ("type", "currency", "status", "created_at", "updated_at")
     readonly_fields = ("created_at", "updated_at")
@@ -227,6 +234,81 @@ class VendorAdmin(admin.ModelAdmin):
             "fields": ("created_at", "updated_at")
         }),
     )
+
+    @admin.display(boolean=True, description="Can be paid")
+    def bank_details(self, obj):
+        return obj.has_bank_details
+
+    # ── Super Admin bulk upload of vendors (same rules as the app's Bulk
+    # Upload: preview first, all-or-nothing, adds only). ────────────────────
+    BULK_SESSION_KEY = 'vendor_bulk_upload_csv'
+    BULK_MAX_BYTES = 2 * 1024 * 1024
+
+    def get_urls(self):
+        custom_urls = [
+            path('bulk-upload/', self.admin_site.admin_view(self.bulk_upload_view),
+                 name='accounts_vendor_bulk_upload'),
+            path('bulk-upload/template/', self.admin_site.admin_view(self.bulk_upload_template_view),
+                 name='accounts_vendor_bulk_upload_template'),
+        ]
+        return custom_urls + super().get_urls()
+
+    def bulk_upload_template_view(self, request):
+        return csv_template_response('vendors_template.csv', VENDOR_TEMPLATE_HEADER, VENDOR_TEMPLATE_ROWS)
+
+    def bulk_upload_view(self, request):
+        changelist = reverse('admin:accounts_vendor_changelist')
+        if not is_super_admin(request.user):
+            messages.error(request, "Only a Super Admin can bulk upload vendors.")
+            return redirect(changelist)
+
+        result = None
+        if request.method == 'POST':
+            action = request.POST.get('action')
+            if action == 'preview':
+                upload = request.FILES.get('csv_file')
+                if not upload:
+                    messages.error(request, "Choose a CSV file first.")
+                elif upload.size > self.BULK_MAX_BYTES:
+                    messages.error(request, "The file is too large (max 2 MB).")
+                else:
+                    raw = upload.read()
+                    try:
+                        result = import_vendors_from_csv(io.BytesIO(raw), owner=request.user, dry_run=True)
+                    except ValueError as exc:
+                        messages.error(request, str(exc))
+                    else:
+                        # Keep the previewed file so "Confirm" saves exactly what was shown.
+                        request.session[self.BULK_SESSION_KEY] = raw.decode('utf-8-sig')
+            elif action == 'confirm':
+                content = request.session.pop(self.BULK_SESSION_KEY, None)
+                if content is None:
+                    messages.error(request, "Please choose the file and preview it again.")
+                else:
+                    try:
+                        result = import_vendors_from_csv(
+                            io.BytesIO(content.encode('utf-8')), owner=request.user, dry_run=False)
+                    except ValueError as exc:
+                        messages.error(request, str(exc))
+                    else:
+                        if result['saved']:
+                            counts = result['counts']
+                            messages.success(
+                                request,
+                                f"Upload complete: {counts.get('created', 0)} added, "
+                                f"{counts.get('updated', 0)} updated, {counts.get('skipped', 0)} already existed.",
+                            )
+                            return redirect(changelist)
+
+        context = {
+            **self.admin_site.each_context(request),
+            'title': 'Bulk upload vendors',
+            'opts': self.model._meta,
+            'result': result,
+            'can_confirm': bool(result and result['dry_run'] and not result['errors']
+                                and (result['counts'].get('created') or result['counts'].get('updated'))),
+        }
+        return render(request, 'admin/accounts/vendor_bulk_upload.html', context)
 
 
 @admin.register(Subcategory)

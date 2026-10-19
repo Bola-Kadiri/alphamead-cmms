@@ -163,3 +163,54 @@ class VendorPermissionTests(TestCase):
         self.assertEqual(response.status_code, status.HTTP_200_OK, response.data)
         self.assertEqual(self.client.delete(f'/accounts/api/vendors/{self.vendor.slug}/').status_code,
                          status.HTTP_204_NO_CONTENT)
+
+
+class AdminVendorBulkUploadTests(TestCase):
+    """Django admin: Vendors → Bulk upload (Super Admin only, preview then confirm)."""
+
+    URL = '/admin/accounts/vendor/bulk-upload/'
+
+    def setUp(self):
+        self.super_admin = make_user('super-admin@example.com', 'SUPER ADMIN')
+        self.super_admin.is_staff = True
+        self.super_admin.is_superuser = True
+        self.super_admin.save()
+        self.client.force_login(self.super_admin)
+
+    def preview(self, *rows):
+        return self.client.post(self.URL, {'action': 'preview', 'csv_file': csv_file(*rows)})
+
+    def test_button_shown_on_vendor_list(self):
+        response = self.client.get('/admin/accounts/vendor/')
+        self.assertContains(response, 'bulk-upload/')
+
+    def test_preview_saves_nothing_then_confirm_saves(self):
+        response = self.preview('LAWMA,Company,,,,,,Nigerian Naira,Active')
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'Confirm upload')
+        self.assertFalse(Vendor.objects.exists())
+
+        response = self.client.post(self.URL, {'action': 'confirm'})
+        self.assertRedirects(response, '/admin/accounts/vendor/')
+        self.assertFalse(Vendor.objects.get(name='LAWMA').has_bank_details)
+
+    def test_errors_block_confirm(self):
+        response = self.preview('LAWMA,Company,,,,,,NGN,Active', 'Bad Co,Partnership,,,,,,NGN,Active')
+        self.assertContains(response, 'Nothing has been saved')
+        self.assertNotContains(response, 'Confirm upload')
+        self.client.post(self.URL, {'action': 'confirm'})
+        self.assertFalse(Vendor.objects.exists())
+
+    def test_other_staff_cannot_upload(self):
+        staff = make_user('staff@example.com', 'ADMIN')
+        staff.is_staff = True
+        staff.save()
+        self.client.force_login(staff)
+        self.preview('LAWMA,Company,,,,,,NGN,Active')
+        self.client.post(self.URL, {'action': 'confirm'})
+        self.assertFalse(Vendor.objects.exists())
+
+    def test_template_download(self):
+        response = self.client.get(self.URL + 'template/')
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(response.content.decode().startswith('name,type,phone'))

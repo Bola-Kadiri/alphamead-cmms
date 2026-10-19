@@ -1,0 +1,84 @@
+{% extends "admin/base_site.html" %}
+{% load i18n %}
+
+{% block breadcrumbs %}
+<div class="breadcrumbs">
+  <a href="{% url 'admin:index' %}">{% translate 'Home' %}</a>
+  &rsaquo; <a href="{% url 'admin:app_list' app_label=opts.app_label %}">{{ opts.app_config.verbose_name }}</a>
+  &rsaquo; <a href="{% url 'admin:accounts_vendor_changelist' %}">{{ opts.verbose_name_plural|capfirst }}</a>
+  &rsaquo; {% translate 'Bulk upload' %}
+</div>
+{% endblock %}
+
+{% block content %}
+  <h1>{% translate "Bulk upload vendors" %}</h1>
+
+  <p>
+    One row per vendor. Columns:
+    <code>name, type, phone, email, account_name, bank, account_number, currency, status</code>.
+    <a href="{% url 'admin:accounts_vendor_bulk_upload_template' %}">Download the template</a>.
+  </p>
+  <ul>
+    <li>Only <strong>name</strong> is required. Blank type, currency and status become <em>Company</em>, <em>NGN</em> and <em>Active</em>.</li>
+    <li>A vendor without <strong>account_name, bank and account_number</strong> is added but <strong>can't be paid</strong> until they are filled in. Upload the same name again with bank details to fill them in.</li>
+    <li>A vendor whose name (or account number) already exists is skipped, never duplicated or overwritten.</li>
+    <li>Nothing is saved until you confirm, and nothing at all is saved if any row has an error.</li>
+  </ul>
+
+  <form method="post" enctype="multipart/form-data">
+    {% csrf_token %}
+    <input type="hidden" name="action" value="preview">
+    <p>
+      <label for="id_csv_file"><strong>1. CSV file</strong> (save from Excel as "CSV UTF-8"):</label><br>
+      <input type="file" name="csv_file" id="id_csv_file" accept=".csv,text/csv" required>
+    </p>
+    <div class="submit-row">
+      <input type="submit" value="{% translate '2. Preview (nothing is saved)' %}">
+    </div>
+  </form>
+
+  {% if result %}
+    <h2>{% if result.dry_run %}Preview{% else %}Result{% endif %}</h2>
+    <p>
+      {% for status, count in result.counts.items %}
+        <strong>{{ count }}</strong> {{ status }}{% if not forloop.last %} &middot; {% endif %}
+      {% endfor %}
+    </p>
+    {% if result.errors %}
+      <p class="errornote">
+        {{ result.errors }} row(s) have problems. Nothing has been saved &mdash; fix them in the file and preview again.
+      </p>
+    {% endif %}
+
+    {% if can_confirm %}
+      <form method="post" style="margin-bottom:16px">
+        {% csrf_token %}
+        <input type="hidden" name="action" value="confirm">
+        <div class="submit-row">
+          <input type="submit" class="default" value="{% translate '3. Confirm upload' %}">
+        </div>
+      </form>
+    {% elif result.dry_run and not result.errors %}
+      <p>Nothing new to add &mdash; every row already exists.</p>
+    {% endif %}
+
+    <table style="width:100%">
+      <thead>
+        <tr><th style="width:60px">Row</th><th style="width:100px">Result</th><th>Details</th></tr>
+      </thead>
+      <tbody>
+        {% for row in result.rows %}
+          <tr>
+            <td>{{ row.row }}</td>
+            <td>
+              {% if row.status == 'error' %}<strong style="color:#ba2121">error</strong>
+              {% elif row.status == 'created' %}<strong style="color:#447e36">created</strong>
+              {% else %}{{ row.status }}{% endif %}
+            </td>
+            <td>{{ row.message }}</td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  {% endif %}
+{% endblock %}
