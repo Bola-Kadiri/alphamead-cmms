@@ -23,6 +23,18 @@ class WorkRequest(OwnerPrivModel, Dated, models.Model):
         ("Rejected – Vendor Changed", "Rejected – Vendor Changed"),
         ("Reviewer Rejected", "Reviewer Rejected"),
         ("Approver Rejected", "Approver Rejected"),
+        # Five-stage flow (facilities switched on in the Approval Matrix).
+        ("Awaiting Review", "Awaiting Review"),
+        ("Sent Back", "Sent Back"),
+        ("Awaiting Client", "Awaiting Client"),
+        ("Client Rejected", "Client Rejected"),
+    ]
+
+    LEGACY = 'legacy'
+    FIVE_STAGE = 'five_stage'
+    FLOW_CHOICES = [
+        (LEGACY, "Original flow"),
+        (FIVE_STAGE, "Five-stage flow"),
     ]
 
     PRIORITY_LEVELS = [
@@ -216,6 +228,21 @@ class WorkRequest(OwnerPrivModel, Dated, models.Model):
     is_locked = models.BooleanField(
         default=False,
         help_text="Locked after submission. Unlocked only when rejected for correction."
+    )
+
+    flow = models.CharField(
+        max_length=20,
+        choices=FLOW_CHOICES,
+        default=LEGACY,
+        help_text="Which approval flow this request follows; set when it is raised and never changed."
+    )
+
+    replaces = models.ForeignKey(
+        'self',
+        on_delete=models.SET_NULL,
+        blank=True, null=True,
+        related_name='replaced_by',
+        help_text="The client-rejected request this one was raised again from."
     )
 
     # Step 2 – set by Procurement & Store on approve or reject

@@ -74,6 +74,9 @@ def on_work_request_saved(sender, instance, created, **kwargs):
     key = _cache_key('wr', instance.pk)
     previous = _prev_status.pop(key, None)
     current = instance.approval_status
+    # Five-stage requests tell people themselves (work.models.work_request_flow).
+    if instance.flow == WorkRequest.FIVE_STAGE:
+        return
 
     def _notify():
         try:

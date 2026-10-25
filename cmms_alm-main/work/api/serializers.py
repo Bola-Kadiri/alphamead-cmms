@@ -120,7 +120,7 @@ class WorkRequestSerializer(serializers.ModelSerializer):
             # Workflow state — managed exclusively by action endpoints
             'approval_status', 'is_locked', 'po_number', 'po_document', 'po_vendor', 'po_amount',
             'cp_reason', 'reviewer_reason', 'approver_reason',
-            'digital_signature', 'fully_approved_at',
+            'digital_signature', 'fully_approved_at', 'flow',
         ]
 
     def to_representation(self, instance):

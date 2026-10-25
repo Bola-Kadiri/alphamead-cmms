@@ -4,7 +4,7 @@ import json
 import logging
 
 from rest_framework import viewsets, status
-from rest_framework.exceptions import PermissionDenied
+from rest_framework.exceptions import PermissionDenied, ValidationError
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.decorators import action
@@ -18,6 +18,11 @@ from cmms_instanta.permissions import (
 from work.models import (WorkRequest, WorkRequestQuotationItem, WorkOrder, Comment, PaymentItem,
                           PaymentRequisition, PPM, WorkOrderCompletion, Invoice)
 from work.models.raise_payment_settings import RaisePaymentApprovalSettings
+from work.models import work_request_flow as stage1
+from work.models.action_log import history
+from work.models.approval_matrix import ApprovalMatrix
+from work.models.delegation import Delegation
+from work.models.flow_rules import ActionRefused
 from .serializers import (WorkRequestSerializer, WorkOrderSerializer, CommentSerializer,
                           PaymentItemSerializer, PaymentRequisitionSerializer,
                           PPMSerializer, WorkOrderCompletionSerializer, InvoiceSerializer)
@@ -175,6 +180,46 @@ def _client_work_orders(qs, user):
     )
 
 
+def _signer_facilities(user, slot):
+    """Facilities where `user` is the named signer for `slot`, or currently covers for that signer."""
+    covered = Delegation.objects.active().filter(stand_in=user).values_list('person_id', flat=True)
+    return ApprovalMatrix.objects.filter(
+        Q(**{slot: user}) | Q(**{f'{slot}__in': covered})
+    ).values_list('facility_id', flat=True)
+
+
+def _flow_data(wr, user):
+    """Everything the Work Request screen needs about the five-stage flow."""
+    client_step = stage1.client_approves(wr)
+    steps = ['requester', 'approver'] + (['client_rep'] if client_step else [])
+    chain = []
+    for step in steps:
+        people = stage1.people_for(wr, step)
+        entry = {'step': step, 'label': stage1.STEP_LABELS[step], 'kind': 'team' if step == 'requester' else 'named'}
+        if step == 'requester':
+            entry['people'] = len(people)
+        else:
+            entry['person'] = (people[0].name.strip() or people[0].email) if people else None
+        chain.append(entry)
+    timing = stage1.timing(wr)
+    return {
+        'flow': wr.flow,
+        'status': wr.approval_status,
+        'client_approves': client_step,
+        'waiting_on': stage1.WAITING_ON.get(wr.approval_status),
+        'chain': chain,
+        'history': [
+            {'action': a.action, 'label': a.get_action_display(), 'actor': a.actor_name, 'role': a.actor_role,
+             'on_behalf_of': a.on_behalf_of_name or None, 'reason': a.reason or None, 'signature': a.signature or None,
+             'at': a.at, 'since_previous_seconds': a.since_previous.total_seconds() if a.since_previous else None}
+            for a in (history(wr) if wr.pk else [])
+        ],
+        'timing': timing,
+        'my_actions': stage1.available_actions(wr, user) if wr.pk else [],
+        'replaces': {'slug': wr.replaces.slug, 'number': wr.replaces.work_request_number} if wr.replaces_id else None,
+    }
+
+
 class WorkRequestViewSet(RoleBasedPermissionMixin, viewsets.ModelViewSet):
     serializer_class = WorkRequestSerializer
     feature = 'work_request'
@@ -203,10 +248,18 @@ class WorkRequestViewSet(RoleBasedPermissionMixin, viewsets.ModelViewSet):
             return qs.filter(
                 Q(request_to=user) | Q(request_to__isnull=True, approval_status='Pending Review')
             ).distinct().order_by('-id')
+        five_stage = Q(flow=WorkRequest.FIVE_STAGE)
         if role == 'APPROVER':
-            return qs.filter(approver=user).order_by('-id')
+            return qs.filter(
+                Q(approver=user) | five_stage & Q(facility__in=_signer_facilities(user, 'approver'))
+            ).distinct().order_by('-id')
         if role == 'REVIEWER':
             return qs.filter(reviewers=user).order_by('-id')
+        if role == 'REQUESTER':
+            # Five-stage requests belong to the facility's Site Manager team.
+            return qs.filter(
+                Q(owner=user) | five_stage & Q(facility__in=accessible_facilities(user))
+            ).distinct().order_by('-id')
         return qs.filter(owner=user).order_by('-id')
 
     @transaction.atomic
@@ -214,6 +267,25 @@ class WorkRequestViewSet(RoleBasedPermissionMixin, viewsets.ModelViewSet):
         allowed_roles = ['REQUESTER', 'ADMIN', 'SUPER ADMIN']
         if self.request.user.roles not in allowed_roles:
             raise PermissionDenied("Only REQUESTER, ADMIN, or SUPER ADMIN can create work requests.")
+
+        facility = serializer.validated_data.get('facility')
+        if stage1.facility_is_live(facility):
+            # Five-stage flow: nobody is picked; the Approval Matrix routes it.
+            replaces = serializer.validated_data.get('replaces')
+            if replaces and not (replaces.flow == WorkRequest.FIVE_STAGE and replaces.approval_status == 'Client Rejected'):
+                raise ValidationError({'replaces': 'Only a request the client rejected can be raised again.'})
+            work_request = serializer.save(
+                owner=self.request.user, requester=self.request.user, approval_status='Pending Review',
+                is_locked=True, flow=WorkRequest.FIVE_STAGE, approver=None,
+            )
+            work_request.request_to.clear()
+            work_request.reviewers.clear()
+            try:
+                stage1.raise_request(work_request, self.request.user)
+            except ActionRefused as exc:
+                raise PermissionDenied(str(exc))
+            return
+        serializer.validated_data.pop('replaces', None)
 
         # No routing is picked at creation any more — Procurement & Store is
         # notified broadly (see work/signals.py) and picks it up from their
@@ -231,6 +303,52 @@ class WorkRequestViewSet(RoleBasedPermissionMixin, viewsets.ModelViewSet):
         if self.request.user.roles != 'SUPER ADMIN':
             raise PermissionDenied("Only SUPER ADMIN can delete work requests.")
         instance.delete()
+
+    # ── Five-stage flow (Stage 1) ────────────────────────────────────────────
+
+    def _flow_call(self, request, func, *args):
+        work_request = self.get_object()
+        try:
+            func(work_request, request.user, *args)
+        except ActionRefused as exc:
+            return Response({'error': str(exc)}, status=status.HTTP_400_BAD_REQUEST)
+        work_request.refresh_from_db()
+        return Response(_flow_data(work_request, request.user))
+
+    @action(detail=False, methods=['get'], url_path='flow-preview')
+    def flow_preview(self, request):
+        """For the form: does this facility use the five-stage flow, and who will handle the request."""
+        facility = Facility.objects.filter(pk=request.query_params.get('facility')).select_related('client').first()
+        if facility is None or not stage1.facility_is_live(facility):
+            return Response({'live': False})
+        preview = WorkRequest(facility=facility, flow=WorkRequest.FIVE_STAGE)
+        data = _flow_data(preview, request.user)
+        return Response({'live': True, 'client_approves': data['client_approves'], 'chain': data['chain']})
+
+    @action(detail=True, methods=['get'])
+    def flow(self, request, slug=None):
+        """Chain, history, timing and the actions this person may take."""
+        return Response(_flow_data(self.get_object(), request.user))
+
+    @action(detail=True, methods=['post'], url_path='flow-review')
+    def flow_review(self, request, slug=None):
+        return self._flow_call(request, stage1.review, request.data.get('signature', ''), request.data.get('note', ''))
+
+    @action(detail=True, methods=['post'], url_path='flow-send-back')
+    def flow_send_back(self, request, slug=None):
+        return self._flow_call(request, stage1.send_back, request.data.get('reason', ''))
+
+    @action(detail=True, methods=['post'], url_path='flow-resubmit')
+    def flow_resubmit(self, request, slug=None):
+        return self._flow_call(request, stage1.resubmit)
+
+    @action(detail=True, methods=['post'], url_path='flow-approve')
+    def flow_approve(self, request, slug=None):
+        return self._flow_call(request, stage1.client_approve, request.data.get('signature', ''))
+
+    @action(detail=True, methods=['post'], url_path='flow-reject')
+    def flow_reject(self, request, slug=None):
+        return self._flow_call(request, stage1.client_reject, request.data.get('reason', ''))
 
     @transaction.atomic
     def _save_and_resubmit_if_rejected(self, request, partial=False):

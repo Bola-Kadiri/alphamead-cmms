@@ -71,6 +71,12 @@ class Client(OwnerPrivModel, Dated, Status, models.Model):
                   "facilities. Tick only if Alpha Mead pays these bills on the client's behalf."
     )
 
+    approves_work_requests = models.BooleanField(
+        default=True,
+        help_text="Five-stage flow: the client approves each Work Request as well as the price. "
+                  "Untick to approve the price only (the Work Order); price approval is always required."
+    )
+
     contacts = models.ManyToManyField(
         "accounts.Contact",
         related_name="clients",

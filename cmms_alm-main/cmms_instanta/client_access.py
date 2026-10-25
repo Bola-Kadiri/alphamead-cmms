@@ -52,6 +52,11 @@ CLIENT_ALLOWED = {
     'delegation-detail': SAFE,
     'delegation-end': ANY,
     'delegation-stand-ins': SAFE,
+    # Five-stage flow: the client approves or rejects Work Requests and sees what waits on them.
+    'work-request-flow': SAFE,
+    'work-request-flow-approve': ANY,
+    'work-request-flow-reject': ANY,
+    'my-tasks': SAFE,
 }
 
 DENIED_MESSAGE = "Client accounts have view-only access to their own facilities."

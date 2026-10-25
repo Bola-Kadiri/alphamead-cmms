@@ -6,6 +6,7 @@ from work.api.views import WorkRequestViewSet, WorkOrderViewSet, PaymentRequisit
 from work.api.notification_views import NotificationViewSet
 from work.api.matrix_views import ApprovalMatrixViewSet, CompanyApproversView
 from work.api.delegation_views import DelegationViewSet
+from work.api.my_tasks_views import MyTasksView
 
 router = DefaultRouter()
 router.register(r'work-requests', WorkRequestViewSet, basename='work-request')
@@ -22,5 +23,6 @@ router.register(r'delegations', DelegationViewSet, basename='delegation')
 
 urlpatterns = [
     path('company-approvers/', CompanyApproversView.as_view(), name='company-approvers'),
+    path('my-tasks/', MyTasksView.as_view(), name='my-tasks'),
     path('', include(router.urls)),
 ]
