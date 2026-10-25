@@ -12,7 +12,9 @@ from django.utils import timezone
 from django.utils.dateparse import parse_datetime
 from django.db import transaction
 from django.db.models import Q
-from cmms_instanta.permissions import RoleBasedPermissionMixin
+from cmms_instanta.permissions import (
+    FINANCE_ROLES, SEE_ALL_INVOICE_ROLES, SEE_ALL_ROLES, RoleBasedPermissionMixin, accessible_facilities,
+)
 from work.models import (WorkRequest, WorkRequestQuotationItem, WorkOrder, Comment, PaymentItem,
                           PaymentRequisition, PPM, WorkOrderCompletion, Invoice)
 from work.models.raise_payment_settings import RaisePaymentApprovalSettings
@@ -141,7 +143,7 @@ def _create_raise_payment_requisition(work_order, acting_user):
     def _notify_finance():
         try:
             from work.utils.email_service import send_notification_email, create_in_app_notifications
-            finance = list(User.objects.filter(roles='FINANCE', is_active=True))
+            finance = list(User.objects.filter(roles__in=FINANCE_ROLES, is_active=True))
             send_notification_email(
                 subject=f'[AlphaCMMS] Payment Requisition {requisition.requisition_number} — Ready for Disbursement',
                 template='emails/payment_requisition_approved.html',
@@ -162,6 +164,17 @@ def _create_raise_payment_requisition(work_order, acting_user):
     return requisition
 
 
+def _client_work_orders(qs, user):
+    """
+    Work orders a CLIENT may see: those at their client's facilities. Raise
+    Payment bills (EKEDC, waste…) only where that client has show_utility_bills.
+    """
+    qs = qs.filter(facility__in=accessible_facilities(user))
+    return qs.exclude(
+        Q(type=WorkOrder.RAISE_PAYMENT) & ~Q(facility__client__show_utility_bills=True)
+    )
+
+
 class WorkRequestViewSet(RoleBasedPermissionMixin, viewsets.ModelViewSet):
     serializer_class = WorkRequestSerializer
     feature = 'work_request'
@@ -178,7 +191,9 @@ class WorkRequestViewSet(RoleBasedPermissionMixin, viewsets.ModelViewSet):
         user = self.request.user
         role = getattr(user, 'roles', '').strip().upper()
         qs = self._base_queryset()
-        if role in ['SUPER ADMIN', 'ADMIN', 'FINANCE']:
+        if role == 'CLIENT':
+            return qs.filter(facility__in=accessible_facilities(user)).order_by('-id')
+        if role in SEE_ALL_ROLES:
             return qs.order_by('-id')
         if role == 'PROCUREMENT AND STORE':
             # No one is routed at creation any more — show requests
@@ -1006,7 +1021,9 @@ class WorkOrderViewSet(RoleBasedPermissionMixin, viewsets.ModelViewSet):
         user = self.request.user
         role = getattr(user, 'roles', '').strip().upper()
         qs = self._base_queryset()
-        if role in ['SUPER ADMIN', 'ADMIN', 'FINANCE']:
+        if role == 'CLIENT':
+            return _client_work_orders(qs, user).order_by('-id')
+        if role in SEE_ALL_ROLES:
             return qs.order_by('-id')
         # A Raise Payment bill's second approver sees it too, whatever their role.
         if role == 'REVIEWER':
@@ -1607,7 +1624,7 @@ class PaymentRequisitionViewSet(RoleBasedPermissionMixin, viewsets.ModelViewSet)
             )
 
         user_role = request.user.roles
-        if user_role not in ('SUPER ADMIN', 'ADMIN', 'FINANCE', 'APPROVER'):
+        if user_role not in {'SUPER ADMIN', 'ADMIN', 'APPROVER'} | FINANCE_ROLES:
             return Response(
                 {"error": "You do not have permission to approve this payment request."},
                 status=status.HTTP_403_FORBIDDEN,
@@ -1630,7 +1647,7 @@ class PaymentRequisitionViewSet(RoleBasedPermissionMixin, viewsets.ModelViewSet)
                 {"error": "This payment requisition has already been disbursed and is locked."},
                 status=status.HTTP_400_BAD_REQUEST,
             )
-        if request.user.roles not in ('SUPER ADMIN', 'ADMIN', 'FINANCE', 'APPROVER'):
+        if request.user.roles not in {'SUPER ADMIN', 'ADMIN', 'APPROVER'} | FINANCE_ROLES:
             return Response(
                 {"error": "You do not have permission to reject this payment request."},
                 status=status.HTTP_403_FORBIDDEN,
@@ -1647,9 +1664,9 @@ class PaymentRequisitionViewSet(RoleBasedPermissionMixin, viewsets.ModelViewSet)
     @action(detail=True, methods=['post'], url_path='disburse')
     def disburse(self, request, pk=None):
         """Finance's final step. Locks the record — see PaymentRequisitionSerializer.validate."""
-        if request.user.roles not in ('SUPER ADMIN', 'ADMIN', 'FINANCE'):
+        if request.user.roles not in {'SUPER ADMIN', 'ADMIN'} | FINANCE_ROLES:
             return Response(
-                {"error": "Only FINANCE, ADMIN, or SUPER ADMIN can disburse a payment."},
+                {"error": "Only HEAD OF FINANCE & TREASURY, FINANCE, ADMIN, or SUPER ADMIN can disburse a payment."},
                 status=status.HTTP_403_FORBIDDEN,
             )
         instance = get_object_or_404(PaymentRequisition, pk=pk)
@@ -1845,7 +1862,10 @@ class WorkOrderCompletionViewSet(RoleBasedPermissionMixin, viewsets.ModelViewSet
         user = self.request.user
         role = getattr(user, 'roles', '').strip().upper()
         qs = self._base_queryset()
-        if role in ['SUPER ADMIN', 'ADMIN', 'FINANCE']:
+        if role == 'CLIENT':
+            visible_orders = _client_work_orders(WorkOrder.objects.all(), user)
+            return qs.filter(work_order__in=visible_orders).order_by('-id')
+        if role in SEE_ALL_ROLES:
             return qs.order_by('-id')
         if role == 'REVIEWER':
             return qs.filter(reviewers=user).order_by('-id')
@@ -2007,7 +2027,7 @@ class InvoiceViewSet(RoleBasedPermissionMixin, viewsets.ModelViewSet):
     def get_queryset(self):
         user = self.request.user
         role = getattr(user, 'roles', '').strip().upper()
-        if role in ['SUPER ADMIN', 'ADMIN', 'FINANCE']:
+        if role in SEE_ALL_INVOICE_ROLES:
             return Invoice.objects.all().order_by('-id')
         if role == 'APPROVER':
             return Invoice.objects.filter(approver=user).order_by('-id')

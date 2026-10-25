@@ -50,6 +50,15 @@ class Facility(OwnerPrivModel, Dated, models.Model):
         related_name='managed_facilities',
         help_text=_("Manager responsible for this facility.")
     )
+
+    client = models.ForeignKey(
+        'accounts.Client',
+        on_delete=models.SET_NULL,
+        null=True, blank=True,
+        related_name='facilities',
+        help_text=_("Client this facility belongs to. Users with the CLIENT role assigned to this "
+                    "client can view this facility's work (read-only).")
+    )
     
     def save(self, *args, **kwargs):
         if not self.code:

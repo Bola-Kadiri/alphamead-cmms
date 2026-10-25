@@ -70,11 +70,21 @@ class User(AbstractBaseUser):
     ROLES_TYPE_CHOICES = [
         ('SUPER ADMIN', _('Super Admin')),
         ('ADMIN', _('Admin')),
-        ('REQUESTER', _('Requester')),
-        ('REVIEWER', _('Reviewer')),
-        ('APPROVER', _('Approver')),
+        ('REQUESTER', _('Requester (Site Manager)')),
+        ('REVIEWER', _('Reviewer (Internal Control)')),
+        ('APPROVER', _('Approver (Category Manager)')),
         ('PROCUREMENT AND STORE', _('Procurement and store')),
+        # Being retired: its users move to AP OFFICER or HEAD OF FINANCE & TREASURY.
         ('FINANCE', _('Finance')),
+        # View-only access to the facilities of the client(s) on the user's
+        # `clients` field (Facility.client). Enforced by ClientAccessMiddleware.
+        ('CLIENT', _('Client (Client Contract Rep)')),
+        # Five-stage Work Request flow (company-wide roles).
+        ('CENTRAL OPERATION', _('Central Operation')),
+        ('AP OFFICER', _('AP Officer')),
+        ('HEAD OF FINANCE & TREASURY', _('Head of Finance & Treasury')),
+        # Vendor login; linked to one vendor through `vendor`.
+        ('CONTRACTOR', _('Contractor (Vendor)')),
     ]
     STATUS_CHOICES = [
         ('Active', _('Active')),
@@ -121,6 +131,15 @@ class User(AbstractBaseUser):
         choices=ROLES_TYPE_CHOICES,
         default='Facility View',
         help_text=_("Type of user.")
+    )
+
+    vendor = models.ForeignKey(
+        'accounts.Vendor',
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name='portal_users',
+        help_text=_("For CONTRACTOR users: the vendor this login belongs to.")
     )
     
     email = models.EmailField(

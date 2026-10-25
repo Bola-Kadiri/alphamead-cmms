@@ -1,5 +1,6 @@
 from datetime import timedelta
 from django.utils import timezone
+from cmms_instanta.permissions import SEE_ALL_ROLES
 from work.models import WorkRequest, WorkOrder, WorkOrderCompletion, Invoice, PaymentRequisition
 
 
@@ -8,7 +9,7 @@ def get_dashboard_data(user):
     role = getattr(user, 'roles', '').strip().upper()
 
     # ---- ROLE-SCOPED BASE QUERYSETS (each user sees only their own data) ----
-    if role in ('SUPER ADMIN', 'ADMIN', 'FINANCE'):
+    if role in SEE_ALL_ROLES:
         wr_qs = WorkRequest.objects
         wo_qs = WorkOrder.objects
         wcc_qs = WorkOrderCompletion.objects
@@ -40,7 +41,7 @@ def get_dashboard_data(user):
         pr_qs = PaymentRequisition.objects.filter(owner=user)
 
     # ---- WORK REQUEST: only show what is waiting for THIS role's action ----
-    if role in ('SUPER ADMIN', 'ADMIN', 'FINANCE'):
+    if role in SEE_ALL_ROLES:
         wr_pending = wr_qs.filter(
             approval_status__in=['Pending Review', 'CP Approved', 'Reviewed']
         ).count()

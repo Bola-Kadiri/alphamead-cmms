@@ -18,8 +18,8 @@ class ClusterAdmin(admin.ModelAdmin):
 
 @admin.register(Facility)
 class FacilityAdmin(admin.ModelAdmin):
-    list_display = ('name', 'code', 'cluster', 'type', 'manager', 'created_at', 'updated_at')
-    list_filter = ('cluster', 'type', 'created_at', 'updated_at')
+    list_display = ('name', 'code', 'cluster', 'client', 'type', 'manager', 'created_at', 'updated_at')
+    list_filter = ('cluster', 'client', 'type', 'created_at', 'updated_at')
     search_fields = ('name',  'cluster__name')
     readonly_fields = ('created_at', 'updated_at')
    

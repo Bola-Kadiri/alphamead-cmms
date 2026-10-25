@@ -287,9 +287,20 @@ class UserSerializer(serializers.ModelSerializer):
             'access_to_all_clients', 'clients', 'clients_detail',
 
             'supervisor', 'supervisor_detail',
+            'vendor',
         ]
         read_only_fields = ['slug', 'facility_detail', 'buildings_detail', 'apartments_detail',
                             'categories_detail', 'warehouse_detail',  'clients_detail']
+
+    def validate(self, data):
+        # A CONTRACTOR login belongs to exactly one vendor; nobody else has one.
+        roles = data.get('roles', getattr(self.instance, 'roles', None))
+        vendor = data.get('vendor', getattr(self.instance, 'vendor', None))
+        if roles == 'CONTRACTOR' and not vendor:
+            raise serializers.ValidationError({'vendor': 'Choose the vendor this contractor login belongs to.'})
+        if roles != 'CONTRACTOR':
+            data['vendor'] = None
+        return data
 
     def create(self, validated_data):
         m2m_fields = self.extract_m2m(validated_data)

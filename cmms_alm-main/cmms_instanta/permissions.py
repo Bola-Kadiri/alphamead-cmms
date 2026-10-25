@@ -1,7 +1,21 @@
 from rest_framework.permissions import SAFE_METHODS, BasePermission
 
+# Company-wide roles of the five-stage Work Request flow.
+COMPANY_WIDE_ROLES = {'CENTRAL OPERATION', 'AP OFFICER', 'HEAD OF FINANCE & TREASURY'}
+
 # Roles that can see every site regardless of their own facility assignments.
-UNRESTRICTED_FACILITY_ROLES = {'SUPER ADMIN', 'ADMIN'}
+UNRESTRICTED_FACILITY_ROLES = {'SUPER ADMIN', 'ADMIN'} | COMPANY_WIDE_ROLES
+
+# Roles holding the FINANCE powers (approve and disburse payment requisitions).
+# FINANCE is being retired; HEAD OF FINANCE & TREASURY takes over from it.
+FINANCE_ROLES = {'FINANCE', 'HEAD OF FINANCE & TREASURY'}
+
+# Roles that see every work request, work order and completion, and the
+# company-wide dashboard. Seeing is not acting: actions keep their own checks.
+SEE_ALL_ROLES = {'SUPER ADMIN', 'ADMIN', 'AP OFFICER', 'CENTRAL OPERATION'} | FINANCE_ROLES
+
+# Roles that see every invoice (CENTRAL OPERATION does not).
+SEE_ALL_INVOICE_ROLES = {'SUPER ADMIN', 'ADMIN', 'AP OFFICER'} | FINANCE_ROLES
 
 
 def accessible_facilities(user):
@@ -15,6 +29,13 @@ def accessible_facilities(user):
 
     if not getattr(user, 'is_authenticated', False):
         return Facility.objects.none()
+
+    # A CLIENT sees only the facilities linked to their client organisation(s);
+    # the facility-level "all facilities" flag never applies to them.
+    if getattr(user, 'roles', None) == 'CLIENT':
+        if getattr(user, 'access_to_all_clients', False):
+            return Facility.objects.filter(client__isnull=False)
+        return Facility.objects.filter(client__in=user.clients.all())
 
     if (
         user.is_superuser
@@ -106,6 +127,14 @@ class RoleBasedPermission(BasePermission):
             'asset_register': ['view'],
             'comment': ['view', 'edit'],
         },
+        # View-only; which endpoints a CLIENT may reach at all is decided by
+        # ClientAccessMiddleware (default deny), and what they see is scoped to
+        # their client's facilities in each viewset.
+        'CLIENT': {
+            'work_request': ['view'],
+            'work_order': ['view'],
+            'requisition': ['view'],   # facility list (FacilityViewSet uses this feature)
+        },
         'REVIEWER': {
             'work_request': ['view'],
             'work_order': ['view'],
@@ -172,6 +201,33 @@ class RoleBasedPermission(BasePermission):
             'report': ['view'],
             'comment': ['view'],
         },
+        # Same reach as FINANCE; the payment actions are gated inside the views.
+        'HEAD OF FINANCE & TREASURY': {
+            'work_request': ['view'],
+            'work_order': ['view'],
+            'requisition': ['view'],
+            'pending_ppm': ['view'],
+            'report': ['view'],
+            'comment': ['view'],
+        },
+        'AP OFFICER': {
+            'work_request': ['view'],
+            'work_order': ['view'],
+            'requisition': ['view'],
+            'pending_ppm': ['view'],
+            'report': ['view'],
+            'comment': ['view'],
+        },
+        'CENTRAL OPERATION': {
+            'work_request': ['view'],
+            'work_order': ['view'],
+            'requisition': ['view'],   # facility list (FacilityViewSet uses this feature)
+            'pending_ppm': ['view'],
+            'report': ['view'],
+            'comment': ['view'],
+        },
+        # No screens yet: the vendor portal (jobs, invoices) arrives with Stage 4.
+        'CONTRACTOR': {},
     }
 
     def has_permission(self, request, view):

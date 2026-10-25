@@ -19,6 +19,7 @@ from asset_inventory.models import Asset
 from asset_inventory.models.assets_category import AssetCategory, AssetSubCategory
 from utils.serializers import FileAttachmentSerializer
 from cmms_instanta.permissions import accessible_facilities
+from .client_view import is_client_request, mask_completion, mask_work_order, mask_work_request
 
 
 class WorkRequestQuotationItemSerializer(serializers.ModelSerializer):
@@ -131,6 +132,8 @@ class WorkRequestSerializer(serializers.ModelSerializer):
         # equivalent.
         if role == 'REQUESTER':
             data.pop('total_cost_vendor', None)
+        if role == 'CLIENT':
+            mask_work_request(data)
         return data
 
     def validate(self, data):
@@ -358,6 +361,12 @@ class WorkOrderSerializer(serializers.ModelSerializer):
         ]
 
     REJECTED_STATUSES = {'Reviewer Rejected', 'Approver Rejected', 'Final Approver Rejected'}
+
+    def to_representation(self, instance):
+        data = super().to_representation(instance)
+        if is_client_request(self.context):
+            mask_work_order(data, instance)
+        return data
 
     def validate_source_work_request(self, value):
         if value is not None:
@@ -631,6 +640,12 @@ class WorkOrderCompletionSerializer(serializers.ModelSerializer):
         read_only_fields = ['id', 'owner', 'created_at', 'updated_at', 'approval_status', 'is_reviewed',
                             'reviewer_notes', 'approver_notes', 'approver_detail', 'reviewers_detail',
                             'resources_data', 'work_order_detail']
+
+    def to_representation(self, instance):
+        data = super().to_representation(instance)
+        if is_client_request(self.context):
+            mask_completion(data)
+        return data
 
     def validate_work_order(self, value):
         if value is not None and value.uses_raise_payment_flow:

@@ -43,12 +43,14 @@ class ClusterSimpleSerializer(serializers.ModelSerializer):
 
 class FacilitySerializer(serializers.ModelSerializer):
     cluster_detail = ClusterSimpleSerializer(source='cluster', read_only=True)
+    # Client organisation this facility belongs to (drives CLIENT-role access).
+    client_name = serializers.CharField(source='client.name', read_only=True, default=None)
     
     class Meta:
         model = Facility
         fields = [
             'id', 'cluster', 'cluster_detail', 'code', 'name', 'address_gps',
-            'type', 'manager', 'created_at', 'updated_at'
+            'type', 'manager', 'client', 'client_name', 'created_at', 'updated_at'
         ]
         read_only_fields = ['id', 'cluster_detail', 'created_at', 'updated_at']
         # translatable_fields = ['type']

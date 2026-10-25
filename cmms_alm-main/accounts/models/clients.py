@@ -65,6 +65,12 @@ class Client(OwnerPrivModel, Dated, Status, models.Model):
         help_text="Address of the client."
     )
     
+    show_utility_bills = models.BooleanField(
+        default=False,
+        help_text="Let this client's users see Raise Payment utility bills (EKEDC, waste…) for their "
+                  "facilities. Tick only if Alpha Mead pays these bills on the client's behalf."
+    )
+
     contacts = models.ManyToManyField(
         "accounts.Contact",
         related_name="clients",
