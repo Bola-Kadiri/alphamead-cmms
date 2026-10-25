@@ -47,6 +47,11 @@ CLIENT_ALLOWED = {
     'notification-mark-all-read': ANY,
     # Client dashboard (Phase 2).
     'client-dashboard': SAFE,
+    # Cover while away: a Client Contract Rep names a stand-in for their sign-offs.
+    'delegation-list': ANY,
+    'delegation-detail': SAFE,
+    'delegation-end': ANY,
+    'delegation-stand-ins': SAFE,
 }
 
 DENIED_MESSAGE = "Client accounts have view-only access to their own facilities."

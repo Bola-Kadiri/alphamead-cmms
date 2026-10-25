@@ -193,21 +193,41 @@ class ApprovalMatrix(models.Model):
         self.save(update_fields=['is_live', 'updated_at'])
 
 
-def eligible(user, slot, facility, vendor=None):
+def acting_for(user, slot, facility, vendor=None, amount=None):
     """
     May `user` act on step `slot` of a job at `facility`? The one check every stage uses.
+    Returns (allowed, on_behalf_of): on_behalf_of is the named signer when `user` acts as
+    their stand-in, so the time stamp can say so.
 
-    Named step: only the named person. Team step: anyone holding the role, in scope.
-    CONTRACTOR: staff of the job's `vendor`. (Stand-ins arrive with delegation.)
+    Named step: the named person, or their active stand-in (within the cover's value
+    limit, and allowed at this facility). Team step: anyone holding the role, in scope.
+    CONTRACTOR: staff of the job's `vendor`.
     """
+    from work.models.delegation import active_cover_for
+
     if user is None or not user.is_active:
-        return False
+        return False, None
     if slot == CONTRACTOR:
-        return user.roles == 'CONTRACTOR' and vendor is not None and user.vendor_id == vendor.pk
+        return user.roles == 'CONTRACTOR' and vendor is not None and user.vendor_id == vendor.pk, None
     if slot in TEAM_SLOTS:
         role, scope = TEAM_SLOTS[slot]
-        return user.roles == role and (scope == 'company' or assigned_to(user, facility))
-    if slot in COMPANY_SLOTS:
-        return getattr(CompanyApprovers.current(), f'{slot}_id') == user.pk
-    matrix = ApprovalMatrix.objects.filter(facility=facility).first()
-    return matrix is not None and getattr(matrix, f'{slot}_id') == user.pk
+        return user.roles == role and (scope == 'company' or assigned_to(user, facility)), None
+
+    owner = CompanyApprovers.current() if slot in COMPANY_SLOTS else ApprovalMatrix.objects.filter(facility=facility).first()
+    signer = getattr(owner, slot) if owner else None
+    if signer is None:
+        return False, None
+    if signer.pk == user.pk:
+        return True, None
+    cover = active_cover_for(signer, user)
+    if cover is None:
+        return False, None
+    if cover.value_limit is not None and amount is not None and amount > cover.value_limit:
+        return False, None
+    if slot in FACILITY_SLOTS and slot_error(slot, user, facility) is not None:
+        return False, None
+    return True, signer
+
+
+def eligible(user, slot, facility, vendor=None, amount=None):
+    return acting_for(user, slot, facility, vendor, amount)[0]

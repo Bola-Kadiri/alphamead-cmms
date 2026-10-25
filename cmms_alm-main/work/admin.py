@@ -2,7 +2,7 @@ from django import forms
 from django.contrib import admin
 from .models import WorkRequest, WorkOrder, PaymentItem, PaymentRequisition, PPM
 from work.models import WorkOrderCompletion
-from work.models import RaisePaymentApprovalSettings, ApprovalMatrix, CompanyApprovers, FlowAction
+from work.models import RaisePaymentApprovalSettings, ApprovalMatrix, CompanyApprovers, FlowAction, Delegation
 from utils.csv_import import is_super_admin
 
 
@@ -203,3 +203,10 @@ class FlowActionAdmin(SuperAdminReadOnlyAdmin):
     list_filter = ('stage', 'action', 'actor_role', 'facility')
     search_fields = ('actor_name', 'on_behalf_of_name', 'reason')
     date_hierarchy = 'at'
+
+
+@admin.register(Delegation)
+class DelegationAdmin(SuperAdminReadOnlyAdmin):
+    """Cover while away, for reference; created and ended from the app."""
+    list_display = ('person', 'stand_in', 'starts_at', 'ends_at', 'value_limit', 'status', 'reason', 'ended_early_at')
+    search_fields = ('person__email', 'stand_in__email', 'reason')
