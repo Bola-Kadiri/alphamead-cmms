@@ -119,7 +119,7 @@ class CategoryPermissionTests(TestCase):
         self.sub = AssetSubCategory.objects.create(code='EKEDC', name='EKEDC', type='Expense', asset_category=self.category)
 
     def test_other_roles_can_view_but_not_change(self):
-        for role in ('REQUESTER', 'ADMIN', 'APPROVER', 'FINANCE'):
+        for role in ('REQUESTER', 'ADMIN', 'APPROVER', 'HEAD OF FINANCE & TREASURY'):
             self.client.force_authenticate(user=make_user(f'{role.replace(" ", "")}@example.com', role))
             self.assertEqual(self.client.get('/asset_inventory/api/asset-categories/').status_code, status.HTTP_200_OK)
             self.assertEqual(self.client.get('/asset_inventory/api/asset-subcategories/').status_code, status.HTTP_200_OK)

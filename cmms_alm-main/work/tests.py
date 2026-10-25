@@ -46,7 +46,7 @@ class RaisePaymentWorkOrderTests(TestCase):
         self.requester = make_user('requester@example.com', 'REQUESTER')
         self.reviewer = make_user('reviewer@example.com', 'REVIEWER')
         self.approver = make_user('approver@example.com', 'APPROVER')
-        self.finance = make_user('finance@example.com', 'FINANCE')
+        self.finance = make_user('finance@example.com', 'HEAD OF FINANCE & TREASURY')
         # Second approver for bills of ₦1,000,000 or more (RaisePaymentApprovalSettings default).
         self.second_approver = make_user('wole.olufore@alphamead.com', 'APPROVER')
 

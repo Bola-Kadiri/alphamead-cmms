@@ -1666,7 +1666,7 @@ class PaymentRequisitionViewSet(RoleBasedPermissionMixin, viewsets.ModelViewSet)
         """Finance's final step. Locks the record — see PaymentRequisitionSerializer.validate."""
         if request.user.roles not in {'SUPER ADMIN', 'ADMIN'} | FINANCE_ROLES:
             return Response(
-                {"error": "Only HEAD OF FINANCE & TREASURY, FINANCE, ADMIN, or SUPER ADMIN can disburse a payment."},
+                {"error": "Only HEAD OF FINANCE & TREASURY, ADMIN, or SUPER ADMIN can disburse a payment."},
                 status=status.HTTP_403_FORBIDDEN,
             )
         instance = get_object_or_404(PaymentRequisition, pk=pk)

@@ -74,8 +74,6 @@ class User(AbstractBaseUser):
         ('REVIEWER', _('Reviewer (Internal Control)')),
         ('APPROVER', _('Approver (Category Manager)')),
         ('PROCUREMENT AND STORE', _('Procurement and store')),
-        # Being retired: its users move to AP OFFICER or HEAD OF FINANCE & TREASURY.
-        ('FINANCE', _('Finance')),
         # View-only access to the facilities of the client(s) on the user's
         # `clients` field (Facility.client). Enforced by ClientAccessMiddleware.
         ('CLIENT', _('Client (Client Contract Rep)')),

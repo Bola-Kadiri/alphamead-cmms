@@ -6,9 +6,8 @@ COMPANY_WIDE_ROLES = {'CENTRAL OPERATION', 'AP OFFICER', 'HEAD OF FINANCE & TREA
 # Roles that can see every site regardless of their own facility assignments.
 UNRESTRICTED_FACILITY_ROLES = {'SUPER ADMIN', 'ADMIN'} | COMPANY_WIDE_ROLES
 
-# Roles holding the FINANCE powers (approve and disburse payment requisitions).
-# FINANCE is being retired; HEAD OF FINANCE & TREASURY takes over from it.
-FINANCE_ROLES = {'FINANCE', 'HEAD OF FINANCE & TREASURY'}
+# Roles that approve and disburse payment requisitions (formerly FINANCE).
+FINANCE_ROLES = {'HEAD OF FINANCE & TREASURY'}
 
 # Roles that see every work request, work order and completion, and the
 # company-wide dashboard. Seeing is not acting: actions keep their own checks.
@@ -193,15 +192,7 @@ class RoleBasedPermission(BasePermission):
             'reference': ['view'],
             'comment': ['view'],
         },
-        'FINANCE': {
-            'work_request': ['view'],
-            'work_order': ['view'],
-            'requisition': ['view'],
-            'pending_ppm': ['view'],
-            'report': ['view'],
-            'comment': ['view'],
-        },
-        # Same reach as FINANCE; the payment actions are gated inside the views.
+        # The payment actions are gated inside the views.
         'HEAD OF FINANCE & TREASURY': {
             'work_request': ['view'],
             'work_order': ['view'],
@@ -255,7 +246,7 @@ class RoleBasedPermission(BasePermission):
             'reviewer_approve', 'reviewer_reject',
             'final_approve', 'final_reject',
             'resubmit',
-            # payment-requisition workflow — FINANCE only has 'view' on the
+            # payment-requisition workflow — HEAD OF FINANCE & TREASURY only has 'view' on the
             # requisition feature; the real gate is the role check inside
             # PaymentRequisitionViewSet.disburse itself.
             'disburse',

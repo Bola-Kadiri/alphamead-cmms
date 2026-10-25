@@ -1,7 +1,7 @@
 """
 New roles for the five-stage Work Request flow: CENTRAL OPERATION, AP OFFICER,
-HEAD OF FINANCE & TREASURY and CONTRACTOR. HEAD OF FINANCE & TREASURY takes over
-everything FINANCE can do today; AP OFFICER sees payments but cannot pay out.
+HEAD OF FINANCE & TREASURY and CONTRACTOR. HEAD OF FINANCE & TREASURY replaces the
+removed FINANCE role; AP OFFICER sees payments but cannot pay out.
 """
 import shutil
 import tempfile
@@ -55,8 +55,7 @@ class FiveStageRoleTests(TestCase):
         roles = dict(User.ROLES_TYPE_CHOICES)
         for role in ('CENTRAL OPERATION', 'AP OFFICER', 'HEAD OF FINANCE & TREASURY', 'CONTRACTOR'):
             self.assertIn(role, roles)
-        # FINANCE stays until every FINANCE user has been moved.
-        self.assertIn('FINANCE', roles)
+        self.assertNotIn('FINANCE', roles)
 
     # ── paying out ───────────────────────────────────────────────────────────
 
@@ -76,11 +75,15 @@ class FiveStageRoleTests(TestCase):
         requisition.refresh_from_db()
         self.assertFalse(requisition.is_disbursed)
 
-    def test_finance_can_still_disburse_until_retired(self):
+    def test_leftover_finance_user_cannot_disburse(self):
+        # Anyone still carrying the removed FINANCE value has no payment powers.
         requisition = self.approved_requisition()
-        self.client.force_authenticate(user=self.finance)
+        leftover = make_user('old.finance@example.com', 'REQUESTER')
+        User.objects.filter(pk=leftover.pk).update(roles='FINANCE')
+        leftover.refresh_from_db()
+        self.client.force_authenticate(user=leftover)
         response = self.client.post(f'{PAYMENT_REQUISITIONS}{requisition.pk}/disburse/')
-        self.assertEqual(response.status_code, status.HTTP_200_OK, response.data)
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
 
     # ── what each role sees ──────────────────────────────────────────────────
 

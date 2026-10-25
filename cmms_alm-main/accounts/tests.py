@@ -140,7 +140,7 @@ class VendorPermissionTests(TestCase):
         )
 
     def test_other_roles_can_view_but_not_change(self):
-        for role in ('REQUESTER', 'ADMIN', 'PROCUREMENT AND STORE', 'FINANCE'):
+        for role in ('REQUESTER', 'ADMIN', 'PROCUREMENT AND STORE', 'HEAD OF FINANCE & TREASURY'):
             self.client.force_authenticate(user=make_user(f'{role.replace(" ", "")}@example.com', role))
             self.assertEqual(self.client.get('/accounts/api/vendors/').status_code, status.HTTP_200_OK)
             self.assertEqual(self.client.patch(f'/accounts/api/vendors/{self.vendor.slug}/',
