@@ -4,6 +4,7 @@ from django.urls import path, include
 from rest_framework.routers import DefaultRouter
 from work.api.views import WorkRequestViewSet, WorkOrderViewSet, PaymentRequisitionViewSet, PaymentItemViewSet, CommentViewSet, PPMViewSet, WorkOrderCompletionViewSet, InvoiceViewSet
 from work.api.notification_views import NotificationViewSet
+from work.api.matrix_views import ApprovalMatrixViewSet, CompanyApproversView
 
 router = DefaultRouter()
 router.register(r'work-requests', WorkRequestViewSet, basename='work-request')
@@ -15,7 +16,9 @@ router.register(r'ppm', PPMViewSet, basename='ppm')
 router.register(r'work-order-completions', WorkOrderCompletionViewSet, basename='workordercompletion')
 router.register(r'invoices', InvoiceViewSet, basename='invoice')
 router.register(r'notifications', NotificationViewSet, basename='notification')
+router.register(r'approval-matrix', ApprovalMatrixViewSet, basename='approval-matrix')
 
 urlpatterns = [
+    path('company-approvers/', CompanyApproversView.as_view(), name='company-approvers'),
     path('', include(router.urls)),
 ]

@@ -2,7 +2,7 @@ from django import forms
 from django.contrib import admin
 from .models import WorkRequest, WorkOrder, PaymentItem, PaymentRequisition, PPM
 from work.models import WorkOrderCompletion
-from work.models import RaisePaymentApprovalSettings
+from work.models import RaisePaymentApprovalSettings, ApprovalMatrix, CompanyApprovers, FlowAction
 from utils.csv_import import is_super_admin
 
 
@@ -157,3 +157,49 @@ class RaisePaymentApprovalSettingsAdmin(admin.ModelAdmin):
 
     def has_delete_permission(self, request, obj=None):
         return False
+
+
+class SuperAdminReadOnlyAdmin(admin.ModelAdmin):
+    """Shown to the Super Admin for reference; changes go through the Approval Matrix screen,
+    which checks every person's role and facility."""
+
+    def has_module_permission(self, request):
+        return is_super_admin(request.user)
+
+    def has_view_permission(self, request, obj=None):
+        return is_super_admin(request.user)
+
+    def has_add_permission(self, request):
+        return False
+
+    def has_change_permission(self, request, obj=None):
+        return False
+
+    def has_delete_permission(self, request, obj=None):
+        return False
+
+
+@admin.register(ApprovalMatrix)
+class ApprovalMatrixAdmin(SuperAdminReadOnlyAdmin):
+    list_display = ('facility', 'approver', 'client_rep', 'is_live', 'missing')
+    list_filter = ('is_live',)
+    search_fields = ('facility__name',)
+
+    @admin.display(description='Still missing')
+    def missing(self, obj):
+        return len(obj.problems()) or '—'
+
+
+@admin.register(CompanyApprovers)
+class CompanyApproversAdmin(SuperAdminReadOnlyAdmin):
+    list_display = ('head_of_finance', 'updated_at')
+
+
+@admin.register(FlowAction)
+class FlowActionAdmin(SuperAdminReadOnlyAdmin):
+    """The time-stamp trail. Read-only for everyone; rows can never be changed or deleted."""
+    list_display = ('at', 'stage', 'action', 'actor_name', 'actor_role', 'on_behalf_of_name', 'facility',
+                    'since_previous', 'content_type', 'object_id')
+    list_filter = ('stage', 'action', 'actor_role', 'facility')
+    search_fields = ('actor_name', 'on_behalf_of_name', 'reason')
+    date_hierarchy = 'at'
