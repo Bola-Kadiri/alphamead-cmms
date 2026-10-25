@@ -1,0 +1,16 @@
+{% extends "emails/base_email.html" %}
+{% block content %}
+<h2>{{ headline }}</h2>
+<p>{{ message }}</p>
+<div class="detail-box">
+  <table>
+    <tr><td>Invoice</td><td>{{ instance.invoice_number }}{% if instance.vendor_invoice_number %} ({{ instance.vendor_invoice_number }}){% endif %}</td></tr>
+    <tr><td>Vendor</td><td>{{ instance.vendor.name|default:"—" }}</td></tr>
+    <tr><td>Work Order</td><td>{{ instance.work_order.work_order_number|default:"—" }}</td></tr>
+    <tr><td>Amount</td><td>NGN {{ instance.total_amount|floatformat:"2g" }}</td></tr>
+    {% if reason %}<tr><td>Reason</td><td>{{ reason }}</td></tr>{% endif %}
+    <tr><td>Status</td><td><span class="badge badge-pending">{{ instance.approval_status }}</span></td></tr>
+  </table>
+</div>
+<p>Please log in to AlphaCMMS and open My Tasks.</p>
+{% endblock %}

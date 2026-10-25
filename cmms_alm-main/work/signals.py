@@ -475,6 +475,9 @@ def on_wcc_saved(sender, instance, created, **kwargs):
     key = _cache_key('wcc', instance.pk)
     previous = _prev_status.pop(key, None)
     current = instance.approval_status
+    # Five-stage certificates tell people themselves (work.models.completion_flow).
+    if instance.flow == WorkOrderCompletion.FIVE_STAGE:
+        return
 
     def _notify():
         try:

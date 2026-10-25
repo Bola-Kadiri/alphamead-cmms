@@ -15,6 +15,18 @@ class WorkOrderCompletion(OwnerPrivModel, Dated, models.Model):
         ('Approved', 'Approved'),
         ('Reviewer Rejected', 'Reviewer Rejected'),
         ('Approver Rejected', 'Approver Rejected'),
+        # Five-stage flow (Stage 3): Site Managers raise with evidence → Central Ops verify → Category Manager approves.
+        ('Draft', 'Draft'),
+        ('Awaiting Verification', 'Awaiting Verification'),
+        ('Sent Back', 'Sent Back'),
+        ('Awaiting Approval', 'Awaiting Approval'),
+    ]
+
+    LEGACY = 'legacy'
+    FIVE_STAGE = 'five_stage'
+    FLOW_CHOICES = [
+        (LEGACY, "Original flow"),
+        (FIVE_STAGE, "Five-stage flow"),
     ]
 
     wcc_number = models.CharField(
@@ -32,8 +44,18 @@ class WorkOrderCompletion(OwnerPrivModel, Dated, models.Model):
     due_date = models.DateField(blank=True, null=True)
 
     approval_status = models.CharField(
-        max_length=20, choices=APPROVAL_STATUSES, default='Pending'
+        max_length=30, choices=APPROVAL_STATUSES, default='Pending'
     )
+
+    # ── Five-stage flow (Stage 3) ────────────────────────────────────────────
+    flow = models.CharField(max_length=20, choices=FLOW_CHOICES, default=LEGACY,
+                            help_text="Which approval flow this certificate follows; set when created and never changed.")
+    started_at = models.DateTimeField(blank=True, null=True, help_text="When the work started on site.")
+    finished_at = models.DateTimeField(blank=True, null=True, help_text="When the work finished on site.")
+    technician = models.CharField(max_length=255, blank=True, default='', help_text="Vendor's person who did the work.")
+    vendor_rating = models.PositiveSmallIntegerField(blank=True, null=True, help_text="Site Manager's rating of the vendor, 1 to 5.")
+    completion_notes = models.TextField(blank=True, default='')
+    site_visit_date = models.DateField(blank=True, null=True, help_text="When Central Operations checked the work on site.")
     is_reviewed = models.BooleanField(default=False)
 
     approver = models.ForeignKey(
@@ -56,7 +78,7 @@ class WorkOrderCompletion(OwnerPrivModel, Dated, models.Model):
         related_query_name='completion_resources',
     )
 
-    ACTIVE_STATUSES = {'Pending', 'Reviewed', 'Approved'}
+    ACTIVE_STATUSES = {'Pending', 'Reviewed', 'Approved', 'Draft', 'Awaiting Verification', 'Sent Back', 'Awaiting Approval'}
 
     def clean(self):
         from django.core.exceptions import ValidationError
@@ -88,3 +110,29 @@ class WorkOrderCompletion(OwnerPrivModel, Dated, models.Model):
 
     def __str__(self):
         return f"Completion for {self.work_order}"
+
+
+class WccEvidence(models.Model):
+    """One piece of required evidence on a five-stage WCC. One of each kind; a new upload replaces the old."""
+
+    BEFORE_PHOTO = 'before_photo'
+    AFTER_PHOTO = 'after_photo'
+    SIGNED_CHECKLIST = 'signed_checklist'
+    KIND_CHOICES = [
+        (BEFORE_PHOTO, 'Before photo'),
+        (AFTER_PHOTO, 'After photo'),
+        (SIGNED_CHECKLIST, 'Signed inspection checklist'),
+    ]
+
+    completion = models.ForeignKey(WorkOrderCompletion, on_delete=models.CASCADE, related_name='evidence')
+    kind = models.CharField(max_length=20, choices=KIND_CHOICES)
+    file = models.FileField(upload_to='wcc_evidence/')
+    uploaded_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, related_name='+')
+    uploaded_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['kind']
+        constraints = [models.UniqueConstraint(fields=['completion', 'kind'], name='one_evidence_per_kind')]
+
+    def __str__(self):
+        return f"{self.get_kind_display()} · {self.completion}"

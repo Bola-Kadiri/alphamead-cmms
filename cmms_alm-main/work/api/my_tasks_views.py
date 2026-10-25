@@ -6,6 +6,8 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
+from work.models import completion_flow as stage3
+from work.models import invoice_flow as stage4
 from work.models import work_order_flow as stage2
 from work.models import work_request_flow as stage1
 
@@ -61,5 +63,48 @@ class MyTasksView(APIView):
                 'step_label': stage2.STEP_LABELS.get(task['step'], task['step']),
                 'on_behalf_of': _who(task['on_behalf_of']),
                 'waiting_since': wo.updated_at, 'timing': _timing(task['timing']),
+            })
+        for task in stage3.my_tasks(request.user):
+            if task['kind'] == 'wcc_to_raise':
+                wo = task['order']
+                rows.append({
+                    'kind': 'wcc_to_raise', 'id': wo.id, 'slug': wo.slug, 'number': wo.work_order_number,
+                    'facility': wo.facility.name if wo.facility_id else None, 'description': wo.description,
+                    'priority': wo.priority, 'status': wo.approval_status, 'step': 'requester',
+                    'step_label': stage3.STEP_LABELS['requester'], 'on_behalf_of': None,
+                    'waiting_since': wo.updated_at, 'timing': None,
+                })
+                continue
+            wcc = task['completion']
+            rows.append({
+                'kind': 'wcc', 'id': wcc.id, 'slug': str(wcc.id), 'number': f"WCC-{wcc.wcc_number}",
+                'facility': wcc.work_order.facility.name if wcc.work_order.facility_id else None,
+                'description': wcc.work_order.description, 'priority': wcc.work_order.priority,
+                'status': wcc.approval_status, 'step': task['step'],
+                'step_label': stage3.STEP_LABELS.get(task['step'], task['step']),
+                'on_behalf_of': _who(task['on_behalf_of']),
+                'waiting_since': wcc.updated_at, 'timing': _timing(task['timing']),
+            })
+        for task in stage4.my_tasks(request.user):
+            if task['kind'] == 'invoice_to_raise':
+                wcc = task['completion']
+                rows.append({
+                    'kind': 'invoice_to_raise', 'id': wcc.id, 'slug': str(wcc.id), 'number': f"WCC-{wcc.wcc_number}",
+                    'facility': wcc.work_order.facility.name if wcc.work_order.facility_id else None,
+                    'description': wcc.work_order.description, 'priority': wcc.work_order.priority,
+                    'status': wcc.approval_status, 'step': task['step'],
+                    'step_label': stage4.STEP_LABELS[task['step']], 'on_behalf_of': None,
+                    'waiting_since': wcc.updated_at, 'timing': None,
+                })
+                continue
+            inv = task['invoice']
+            rows.append({
+                'kind': 'invoice', 'id': inv.id, 'slug': str(inv.id), 'number': inv.invoice_number,
+                'facility': inv.facility.name if inv.facility_id else None,
+                'description': inv.work_order.description if inv.work_order_id else '', 'priority': None,
+                'status': inv.approval_status, 'step': task['step'],
+                'step_label': stage4.STEP_LABELS.get(task['step'], task['step']),
+                'on_behalf_of': _who(task['on_behalf_of']),
+                'waiting_since': inv.updated_at, 'timing': _timing(task['timing']),
             })
         return Response(rows)

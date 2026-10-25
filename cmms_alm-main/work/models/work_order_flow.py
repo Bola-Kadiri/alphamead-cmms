@@ -252,7 +252,9 @@ def available_actions(wo, user):
         return []
     status = wo.approval_status
     if status == 'Approved':
-        allowed = not wo.accepted_at and acting_for(user, 'contractor', wo.facility, vendor=wo.vendor)[0]
+        # Accepting only makes sense before the work is done; once a certificate exists it is moot.
+        allowed = (not wo.accepted_at and not wo.completions.filter(flow='five_stage').exists()
+                   and acting_for(user, 'contractor', wo.facility, vendor=wo.vendor)[0])
         return ['accept'] if allowed else []
     slot = WAITING_ON.get(status)
     if slot is None or not acting_for(user, slot, wo.facility)[0]:

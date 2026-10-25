@@ -1,3 +1,5 @@
+from decimal import Decimal
+
 from django.db import models
 from django.conf import settings
 from django.contrib.contenttypes.fields import GenericRelation
@@ -26,9 +28,33 @@ class Invoice(OwnerPrivModel, Dated, models.Model):
         ('Approved', 'Approved'),
         ('Reviewer Rejected', 'Reviewer Rejected'),
         ('Approver Rejected', 'Approver Rejected'),
+        # Five-stage flow (Stage 4): contractor submits → AP Officers check → Head of Finance & Treasury approves.
+        ('Draft', 'Draft'),
+        ('Awaiting Review', 'Awaiting Review'),
+        ('Returned', 'Returned'),
+        ('Awaiting Approval', 'Awaiting Approval'),
     ]
 
+    LEGACY = 'legacy'
+    FIVE_STAGE = 'five_stage'
+    FLOW_CHOICES = [
+        (LEGACY, 'Original flow'),
+        (FIVE_STAGE, 'Five-stage flow'),
+    ]
+    VAT_RATE = Decimal('0.075')  # Nigeria, 7.5%: charged only when the vendor is VAT-registered
+
     invoice_number = models.CharField(max_length=50, unique=True, blank=True)
+
+    # ── Five-stage flow (Stage 4) ────────────────────────────────────────────
+    flow = models.CharField(max_length=20, choices=FLOW_CHOICES, default=LEGACY,
+                            help_text="Which approval flow this invoice follows; set when created and never changed.")
+    vendor = models.ForeignKey('accounts.Vendor', on_delete=models.SET_NULL, null=True, blank=True,
+                               related_name='invoices', help_text="The vendor being paid (the Work Order's vendor).")
+    vendor_invoice_number = models.CharField(max_length=100, blank=True, default='',
+                                             help_text="The vendor's own invoice number; unique for each vendor.")
+    vat_charged = models.BooleanField(default=False, help_text="The vendor charges VAT at 7.5%.")
+    entered_for_vendor = models.BooleanField(default=False,
+                                             help_text="An AP Officer entered this invoice for a vendor without a login.")
 
     facility = models.ForeignKey(
         'facility.Facility', on_delete=models.SET_NULL, null=True, blank=True,

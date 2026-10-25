@@ -16,10 +16,12 @@ from cmms_instanta.permissions import (
     FINANCE_ROLES, SEE_ALL_INVOICE_ROLES, SEE_ALL_ROLES, RoleBasedPermissionMixin, accessible_facilities,
 )
 from work.models import (WorkRequest, WorkRequestQuotationItem, WorkOrder, Comment, PaymentItem,
-                          PaymentRequisition, PPM, WorkOrderCompletion, Invoice)
+                          PaymentRequisition, PPM, WorkOrderCompletion, WccEvidence, Invoice)
 from work.models.raise_payment_settings import RaisePaymentApprovalSettings
 from work.models import work_request_flow as stage1
 from work.models import work_order_flow as stage2
+from work.models import completion_flow as stage3
+from work.models import invoice_flow as stage4
 from work.models.action_log import history
 from work.models.approval_matrix import ApprovalMatrix
 from work.models.delegation import Delegation
@@ -181,6 +183,25 @@ def _client_work_orders(qs, user):
     )
 
 
+class LegacyActionsGuard:
+    """Refuse the original flow's actions on five-stage records, which have their own rules."""
+    legacy_actions = set()
+    guarded_model = None
+    lookup_kwarg = 'slug'
+
+    def initial(self, request, *args, **kwargs):
+        super().initial(request, *args, **kwargs)
+        key = kwargs.get(self.lookup_kwarg)
+        if self.action in self.legacy_actions and key is not None:
+            five_stage = self.guarded_model.objects.filter(**{self.lookup_field_name: key}, flow='five_stage').exists()
+            if five_stage:
+                raise ValidationError({'error': "This record uses the five-stage flow; use the actions on its own screen."})
+
+    @property
+    def lookup_field_name(self):
+        return 'pk' if self.lookup_kwarg == 'pk' else self.lookup_field
+
+
 def _signer_facilities(user, slot):
     """Facilities where `user` is the named signer for `slot`, or currently covers for that signer."""
     covered = Delegation.objects.active().filter(stand_in=user).values_list('person_id', flat=True)
@@ -221,7 +242,10 @@ def _flow_data(wr, user):
     }
 
 
-class WorkRequestViewSet(RoleBasedPermissionMixin, viewsets.ModelViewSet):
+class WorkRequestViewSet(LegacyActionsGuard, RoleBasedPermissionMixin, viewsets.ModelViewSet):
+    legacy_actions = {'save_quotation', 'cp_approve', 'cp_reject', 'assign_resources', 'reviewer_approve',
+                      'reviewer_reject', 'final_approve', 'final_reject', 'resubmit'}
+    guarded_model = WorkRequest
     serializer_class = WorkRequestSerializer
     feature = 'work_request'
     lookup_field = 'slug'
@@ -1193,7 +1217,11 @@ def _wo_flow_data(wo, user):
     }
 
 
-class WorkOrderViewSet(RoleBasedPermissionMixin, viewsets.ModelViewSet):
+class WorkOrderViewSet(LegacyActionsGuard, RoleBasedPermissionMixin, viewsets.ModelViewSet):
+    legacy_actions = {'assign_routing', 'final_approve', 'final_reject', 'approve_by_reviewer', 'reject_by_reviewer',
+                      'approve_by_approver', 'reject_by_approver', 'create_payment_requisition', 'set_status',
+                      'approve', 'unlock_resubmission'}
+    guarded_model = WorkOrder
     queryset = WorkOrder.objects.all().order_by('-id')
     serializer_class = WorkOrderSerializer
     permission_classes = [IsAuthenticated]
@@ -2147,10 +2175,59 @@ class PPMViewSet(RoleBasedPermissionMixin, viewsets.ModelViewSet):
         return Response(serializer.data, status=status.HTTP_200_OK)
 
 
-ACTIVE_WCC_STATUSES = {'Pending', 'Reviewed', 'Approved'}
+ACTIVE_WCC_STATUSES = WorkOrderCompletion.ACTIVE_STATUSES
 
 
-class WorkOrderCompletionViewSet(RoleBasedPermissionMixin, viewsets.ModelViewSet):
+def _wcc_flow_data(wcc, user):
+    """Everything the certificate screen needs about Stage 3."""
+    wo = wcc.work_order
+    actions = stage3.available_actions(wcc, user)
+    chain = []
+    for step in ('requester', 'central_operation', 'approver'):
+        people = stage3.people_for(wcc, step)
+        entry = {'step': step, 'label': stage3.STEP_LABELS[step], 'kind': 'named' if step == 'approver' else 'team'}
+        if step == 'approver':
+            entry['person'] = (people[0].name.strip() or people[0].email) if people else None
+        else:
+            entry['people'] = len(people)
+        chain.append(entry)
+    evidence = {e.kind: e for e in wcc.evidence.all()}
+    return {
+        'flow': wcc.flow,
+        'status': wcc.approval_status,
+        'number': wcc.wcc_number,
+        'waiting_on': stage3.WAITING_ON.get(wcc.approval_status),
+        'chain': chain,
+        'work_order': {'slug': wo.slug, 'number': wo.work_order_number, 'description': wo.description,
+                       'facility': wo.facility.name if wo.facility_id else None,
+                       'vendor': wo.vendor.name if wo.vendor_id and user.roles != 'CLIENT' else None},
+        'details': {'started_at': wcc.started_at, 'finished_at': wcc.finished_at, 'technician': wcc.technician,
+                    'vendor_rating': wcc.vendor_rating, 'completion_notes': wcc.completion_notes,
+                    'site_visit_date': wcc.site_visit_date,
+                    'time_on_job_minutes': int((wcc.finished_at - wcc.started_at).total_seconds() // 60)
+                    if wcc.started_at and wcc.finished_at and wcc.finished_at > wcc.started_at else None},
+        'evidence': [
+            {'kind': kind, 'label': label,
+             'file': {'url': evidence[kind].file.url, 'name': evidence[kind].file.name.rsplit('/', 1)[-1],
+                      'uploaded_at': evidence[kind].uploaded_at} if kind in evidence and evidence[kind].file else None}
+            for kind, label in WccEvidence.KIND_CHOICES
+        ],
+        'problems': stage3.problems(wcc) if ('submit' in actions or 'approve' in actions) else [],
+        'history': [
+            {'action': a.action, 'label': a.get_action_display(), 'actor': a.actor_name, 'role': a.actor_role,
+             'on_behalf_of': a.on_behalf_of_name or None, 'reason': a.reason or None, 'signature': a.signature or None,
+             'at': a.at, 'since_previous_seconds': a.since_previous.total_seconds() if a.since_previous else None}
+            for a in history(wcc)
+        ],
+        'timing': stage3.timing(wcc),
+        'my_actions': actions,
+    }
+
+
+class WorkOrderCompletionViewSet(LegacyActionsGuard, RoleBasedPermissionMixin, viewsets.ModelViewSet):
+    legacy_actions = {'approve_by_reviewer', 'reject_by_reviewer', 'approve_by_approver', 'reject_by_approver'}
+    guarded_model = WorkOrderCompletion
+    lookup_kwarg = 'pk'
     queryset = WorkOrderCompletion.objects.all().order_by('-id')
     serializer_class = WorkOrderCompletionSerializer
     permission_classes = [IsAuthenticated]
@@ -2170,11 +2247,88 @@ class WorkOrderCompletionViewSet(RoleBasedPermissionMixin, viewsets.ModelViewSet
             return qs.filter(work_order__in=visible_orders).order_by('-id')
         if role in SEE_ALL_ROLES:
             return qs.order_by('-id')
+        five_stage = Q(flow=WorkOrderCompletion.FIVE_STAGE)
         if role == 'REVIEWER':
             return qs.filter(reviewers=user).order_by('-id')
         if role == 'APPROVER':
-            return qs.filter(approver=user).order_by('-id')
+            return qs.filter(
+                Q(approver=user) | five_stage & Q(work_order__facility__in=_signer_facilities(user, 'approver'))
+            ).distinct().order_by('-id')
+        if role == 'REQUESTER':
+            return qs.filter(
+                Q(owner=user) | five_stage & Q(work_order__facility__in=accessible_facilities(user))
+            ).distinct().order_by('-id')
+        if role == 'CONTRACTOR':
+            if not user.vendor_id:
+                return qs.none()
+            return qs.filter(five_stage, work_order__vendor_id=user.vendor_id, approval_status='Approved').order_by('-id')
         return qs.filter(owner=user).order_by('-id')
+
+    def update(self, request, *args, **kwargs):
+        if self.get_object().flow == WorkOrderCompletion.FIVE_STAGE:
+            return Response({'error': "Change this certificate through its own screen actions."},
+                            status=status.HTTP_400_BAD_REQUEST)
+        return super().update(request, *args, **kwargs)
+
+    def destroy(self, request, *args, **kwargs):
+        if self.get_object().flow == WorkOrderCompletion.FIVE_STAGE:
+            return Response({'error': "Five-stage certificates are kept for the record and cannot be deleted."},
+                            status=status.HTTP_400_BAD_REQUEST)
+        return super().destroy(request, *args, **kwargs)
+
+    # ── Five-stage flow (Stage 3) ────────────────────────────────────────────
+
+    def _stage3_call(self, request, func, *args, **kwargs):
+        completion = self.get_object()
+        try:
+            func(completion, request.user, *args, **kwargs)
+        except ActionRefused as exc:
+            return Response({'error': str(exc)}, status=status.HTTP_400_BAD_REQUEST)
+        completion.refresh_from_db()
+        return Response(_wcc_flow_data(completion, request.user))
+
+    @action(detail=False, methods=['post'], url_path='flow-start')
+    def flow_start(self, request):
+        work_order = get_object_or_404(WorkOrder, slug=request.data.get('work_order'))
+        try:
+            completion = stage3.start(work_order, request.user)
+        except ActionRefused as exc:
+            return Response({'error': str(exc)}, status=status.HTTP_400_BAD_REQUEST)
+        return Response({'id': completion.pk, **_wcc_flow_data(completion, request.user)}, status=status.HTTP_201_CREATED)
+
+    @action(detail=True, methods=['get'])
+    def flow(self, request, pk=None):
+        return Response(_wcc_flow_data(self.get_object(), request.user))
+
+    @action(detail=True, methods=['post'], url_path='flow-details')
+    def flow_details(self, request, pk=None):
+        data = request.data
+        return self._stage3_call(
+            request, stage3.save_details, started_at=data.get('started_at'), finished_at=data.get('finished_at'),
+            technician=data.get('technician'), vendor_rating=data.get('vendor_rating'),
+            completion_notes=data.get('completion_notes'),
+        )
+
+    @action(detail=True, methods=['post'], url_path='flow-evidence')
+    def flow_evidence(self, request, pk=None):
+        return self._stage3_call(request, stage3.add_evidence, request.data.get('kind'), request.FILES.get('file'))
+
+    @action(detail=True, methods=['post'], url_path='flow-submit')
+    def flow_submit(self, request, pk=None):
+        return self._stage3_call(request, stage3.submit)
+
+    @action(detail=True, methods=['post'], url_path='flow-verify')
+    def flow_verify(self, request, pk=None):
+        return self._stage3_call(request, stage3.verify, request.data.get('signature', ''),
+                                 request.data.get('site_visit_date'), request.data.get('note', ''))
+
+    @action(detail=True, methods=['post'], url_path='flow-send-back')
+    def flow_send_back(self, request, pk=None):
+        return self._stage3_call(request, stage3.send_back, request.data.get('reason', ''))
+
+    @action(detail=True, methods=['post'], url_path='flow-approve')
+    def flow_approve(self, request, pk=None):
+        return self._stage3_call(request, stage3.approve, request.data.get('signature', ''))
 
     def perform_create(self, serializer):
         work_order = serializer.validated_data.get('work_order')
@@ -2321,7 +2475,54 @@ class WorkOrderCompletionViewSet(RoleBasedPermissionMixin, viewsets.ModelViewSet
         return Response({'message': 'Completion rejected by approver.', 'data': self.get_serializer(instance).data})
 
 
-class InvoiceViewSet(RoleBasedPermissionMixin, viewsets.ModelViewSet):
+def _invoice_flow_data(inv, user):
+    """Everything the invoice screen needs about Stage 4."""
+    actions = stage4.available_actions(inv, user)
+    chain = []
+    for step in (stage4.raiser_slot(inv), 'ap_officer', 'head_of_finance'):
+        people = stage4.people_for(inv, step)
+        label = stage4.STEP_LABELS[step] if step != 'ap_officer' or chain else 'AP Officer (for the vendor)'
+        entry = {'step': step, 'label': label, 'kind': 'named' if step == 'head_of_finance' else 'team'}
+        if step == 'head_of_finance':
+            entry['person'] = (people[0].name.strip() or people[0].email) if people else None
+        else:
+            entry['people'] = len(people)
+        chain.append(entry)
+    wo, wcc = inv.work_order, inv.work_completion
+    return {
+        'flow': inv.flow,
+        'status': inv.approval_status,
+        'number': inv.invoice_number,
+        'waiting_on': stage4.waiting_on(inv),
+        'entered_for_vendor': inv.entered_for_vendor,
+        'chain': chain,
+        'vendor': {'id': inv.vendor_id, 'name': inv.vendor.name, 'has_bank_details': inv.vendor.has_bank_details,
+                   'bank': inv.vendor.bank, 'account_last4': (inv.vendor.account_number or '')[-4:]} if inv.vendor_id else None,
+        'work_order': {'slug': wo.slug, 'number': wo.work_order_number, 'amount': str(wo.cost) if wo.cost is not None else None,
+                       'description': wo.description} if wo else None,
+        'completion': {'id': wcc.pk, 'number': wcc.wcc_number, 'status': wcc.approval_status} if wcc else None,
+        'details': {'vendor_invoice_number': inv.vendor_invoice_number, 'invoice_date': inv.invoice_date,
+                    'amount': str(inv.subtotal), 'vat_charged': inv.vat_charged, 'vat': str(inv.tax_amount),
+                    'total': str(inv.total_amount)},
+        'files': [{'id': f.id, 'url': f.file.url if f.file else None, 'name': f.file.name.rsplit('/', 1)[-1] if f.file else ''}
+                  for f in inv.attachments.all()],
+        'match': stage4.match(inv) if user.roles != 'CONTRACTOR' else [],
+        'problems': stage4.problems(inv) if 'submit' in actions else [],
+        'history': [
+            {'action': a.action, 'label': a.get_action_display(), 'actor': a.actor_name, 'role': a.actor_role,
+             'on_behalf_of': a.on_behalf_of_name or None, 'reason': a.reason or None, 'signature': a.signature or None,
+             'at': a.at, 'since_previous_seconds': a.since_previous.total_seconds() if a.since_previous else None}
+            for a in history(inv)
+        ],
+        'timing': stage4.timing(inv),
+        'my_actions': actions,
+    }
+
+
+class InvoiceViewSet(LegacyActionsGuard, RoleBasedPermissionMixin, viewsets.ModelViewSet):
+    legacy_actions = {'approve_by_reviewer', 'reject_by_reviewer', 'approve_by_approver', 'reject_by_approver'}
+    guarded_model = Invoice
+    lookup_kwarg = 'pk'
     queryset = Invoice.objects.all().order_by('-id')
     serializer_class = InvoiceSerializer
     permission_classes = [IsAuthenticated]
@@ -2332,6 +2533,11 @@ class InvoiceViewSet(RoleBasedPermissionMixin, viewsets.ModelViewSet):
         role = getattr(user, 'roles', '').strip().upper()
         if role in SEE_ALL_INVOICE_ROLES:
             return Invoice.objects.all().order_by('-id')
+        if role == 'CONTRACTOR':
+            # Only their own company's five-stage invoices.
+            if not user.vendor_id:
+                return Invoice.objects.none()
+            return Invoice.objects.filter(flow=Invoice.FIVE_STAGE, vendor_id=user.vendor_id).order_by('-id')
         if role == 'APPROVER':
             return Invoice.objects.filter(approver=user).order_by('-id')
         if role == 'REVIEWER':
@@ -2340,6 +2546,76 @@ class InvoiceViewSet(RoleBasedPermissionMixin, viewsets.ModelViewSet):
 
     def perform_create(self, serializer):
         serializer.save(owner=self.request.user, raised_by=self.request.user)
+
+    def destroy(self, request, *args, **kwargs):
+        if self.get_object().flow == Invoice.FIVE_STAGE:
+            return Response({'error': "Five-stage invoices are kept for the record and cannot be deleted."},
+                            status=status.HTTP_400_BAD_REQUEST)
+        return super().destroy(request, *args, **kwargs)
+
+    # ── Five-stage flow (Stage 4) ────────────────────────────────────────────
+
+    def _stage4_call(self, request, func, *args, **kwargs):
+        invoice = self.get_object()
+        try:
+            func(invoice, request.user, *args, **kwargs)
+        except ActionRefused as exc:
+            return Response({'error': str(exc)}, status=status.HTTP_400_BAD_REQUEST)
+        invoice.refresh_from_db()
+        return Response(_invoice_flow_data(invoice, request.user))
+
+    @action(detail=False, methods=['get'], url_path='to-invoice')
+    def to_invoice(self, request):
+        """Approved certificates this person may invoice."""
+        return Response([
+            {'completion_id': wcc.pk, 'wcc_number': wcc.wcc_number, 'work_order': wcc.work_order.work_order_number,
+             'work_order_slug': wcc.work_order.slug, 'description': wcc.work_order.description,
+             'facility': wcc.work_order.facility.name if wcc.work_order.facility_id else None,
+             'vendor': wcc.work_order.vendor.name if wcc.work_order.vendor_id else None,
+             'amount': str(wcc.work_order.cost) if wcc.work_order.cost is not None else None,
+             'approved_at': wcc.updated_at}
+            for wcc in stage4.to_invoice(request.user)
+        ])
+
+    @action(detail=False, methods=['post'], url_path='flow-start')
+    def flow_start(self, request):
+        completion = get_object_or_404(WorkOrderCompletion, pk=request.data.get('completion'))
+        try:
+            invoice = stage4.start(completion, request.user)
+        except ActionRefused as exc:
+            return Response({'error': str(exc)}, status=status.HTTP_400_BAD_REQUEST)
+        return Response({'id': invoice.pk, **_invoice_flow_data(invoice, request.user)}, status=status.HTTP_201_CREATED)
+
+    @action(detail=True, methods=['get'])
+    def flow(self, request, pk=None):
+        return Response(_invoice_flow_data(self.get_object(), request.user))
+
+    @action(detail=True, methods=['post'], url_path='flow-details')
+    def flow_details(self, request, pk=None):
+        data = request.data
+        vat = data.get('vat_charged')
+        return self._stage4_call(
+            request, stage4.save_details, vendor_invoice_number=data.get('vendor_invoice_number'),
+            invoice_date=data.get('invoice_date'), amount=data.get('amount'),
+            vat_charged=None if vat is None else str(vat).lower() in ('true', '1', 'yes'),
+            files=request.FILES.getlist('files'),
+        )
+
+    @action(detail=True, methods=['post'], url_path='flow-submit')
+    def flow_submit(self, request, pk=None):
+        return self._stage4_call(request, stage4.submit)
+
+    @action(detail=True, methods=['post'], url_path='flow-review')
+    def flow_review(self, request, pk=None):
+        return self._stage4_call(request, stage4.review, request.data.get('signature', ''), request.data.get('note', ''))
+
+    @action(detail=True, methods=['post'], url_path='flow-return')
+    def flow_return(self, request, pk=None):
+        return self._stage4_call(request, stage4.return_invoice, request.data.get('reason', ''))
+
+    @action(detail=True, methods=['post'], url_path='flow-approve')
+    def flow_approve(self, request, pk=None):
+        return self._stage4_call(request, stage4.approve, request.data.get('signature', ''))
 
     def create(self, request, *args, **kwargs):
         import json
@@ -2360,6 +2636,11 @@ class InvoiceViewSet(RoleBasedPermissionMixin, viewsets.ModelViewSet):
                 status=status.HTTP_400_BAD_REQUEST,
             )
         wcc = get_object_or_404(WorkOrderCompletion, pk=wcc_id)
+        if wcc.flow == WorkOrderCompletion.FIVE_STAGE:
+            return Response(
+                {'error': "This job uses the five-stage flow. Raise the invoice from the approved certificate instead."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
         if wcc.approval_status != 'Approved':
             return Response(
                 {'error': f"Invoice can only be raised against an Approved WCC. Current status: '{wcc.approval_status}'."},
@@ -2385,6 +2666,9 @@ class InvoiceViewSet(RoleBasedPermissionMixin, viewsets.ModelViewSet):
         return Response(serializer.data, status=status.HTTP_201_CREATED)
 
     def update(self, request, *args, **kwargs):
+        if self.get_object().flow == Invoice.FIVE_STAGE:
+            return Response({'error': "Change this invoice through its own screen actions."},
+                            status=status.HTTP_400_BAD_REQUEST)
         import json
         raw = request.data.get('data')
         if raw:

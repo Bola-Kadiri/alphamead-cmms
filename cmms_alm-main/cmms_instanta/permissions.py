@@ -249,6 +249,7 @@ class RoleBasedPermission(BasePermission):
             # five-stage flow actions — gated by the action rules inside
             'flow_review', 'flow_send_back', 'flow_resubmit', 'flow_approve', 'flow_reject',
             'flow_start', 'flow_pricing', 'flow_submit', 'flow_accept',
+            'flow_details', 'flow_evidence', 'flow_verify', 'flow_return',
             # payment-requisition workflow — HEAD OF FINANCE & TREASURY only has 'view' on the
             # requisition feature; the real gate is the role check inside
             # PaymentRequisitionViewSet.disburse itself.

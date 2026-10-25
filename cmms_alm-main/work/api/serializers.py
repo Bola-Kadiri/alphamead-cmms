@@ -642,7 +642,10 @@ class WorkOrderCompletionSerializer(serializers.ModelSerializer):
         fields = '__all__'
         read_only_fields = ['id', 'owner', 'created_at', 'updated_at', 'approval_status', 'is_reviewed',
                             'reviewer_notes', 'approver_notes', 'approver_detail', 'reviewers_detail',
-                            'resources_data', 'work_order_detail']
+                            'resources_data', 'work_order_detail',
+                            # Five-stage flow — set only through the Stage 3 actions.
+                            'flow', 'started_at', 'finished_at', 'technician', 'vendor_rating',
+                            'completion_notes', 'site_visit_date']
 
     def to_representation(self, instance):
         data = super().to_representation(instance)
@@ -655,7 +658,7 @@ class WorkOrderCompletionSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError(
                 "Raise Payment work orders don't need a WCC — the attached bill is the evidence."
             )
-        ACTIVE_STATUSES = {'Pending', 'Reviewed', 'Approved'}
+        ACTIVE_STATUSES = WorkOrderCompletion.ACTIVE_STATUSES
         qs = WorkOrderCompletion.objects.filter(
             work_order=value,
             approval_status__in=ACTIVE_STATUSES,
@@ -718,6 +721,8 @@ class InvoiceSerializer(serializers.ModelSerializer):
         model = Invoice
         fields = '__all__'
         read_only_fields = [
+            # Five-stage flow — set only through the Stage 4 actions.
+            'flow', 'vendor', 'vendor_invoice_number', 'vat_charged', 'entered_for_vendor',
             'id', 'invoice_number', 'owner', 'raised_by',
             'raised_by_detail', 'approver_detail', 'reviewers_detail',
             'items_detail', 'attachments_data',
