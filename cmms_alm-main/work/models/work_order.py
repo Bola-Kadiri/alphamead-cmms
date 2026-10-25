@@ -105,6 +105,19 @@ class WorkOrder(OwnerPrivModel, Dated, Status, models.Model):
         ("Approver Approved", "Approver Approved"),
         ("Awaiting Final Approval", "Awaiting Final Approval"),
         ("Final Approver Rejected", "Final Approver Rejected"),
+        # Five-stage flow (Stage 2): priced by Procurement & Store, reviewed, client approves the price.
+        ("Pricing", "Pricing"),
+        ("Awaiting Review", "Awaiting Review"),
+        ("Sent Back", "Sent Back"),
+        ("Awaiting Client", "Awaiting Client"),
+        ("Client Rejected", "Client Rejected"),
+    ]
+
+    LEGACY = 'legacy'
+    FIVE_STAGE = 'five_stage'
+    FLOW_CHOICES = [
+        (LEGACY, "Original flow"),
+        (FIVE_STAGE, "Five-stage flow"),
     ]
 
     # Raise Payment bills raised from this release on: Approver → Reviewer →
@@ -380,6 +393,29 @@ class WorkOrder(OwnerPrivModel, Dated, Status, models.Model):
         help_text="Approval status of the work order."
     )
 
+    # ── Five-stage flow (Stage 2) ────────────────────────────────────────────
+    flow = models.CharField(
+        max_length=20,
+        choices=FLOW_CHOICES,
+        default=LEGACY,
+        help_text="Which approval flow this work order follows; set when it is created and never changed."
+    )
+    client_price = models.DecimalField(
+        max_digits=18, decimal_places=2, blank=True, null=True,
+        help_text="What the client is billed (sum of the client prices on the quote lines). `cost` is the vendor cost."
+    )
+    quotation_reference = models.CharField(max_length=100, blank=True, default='',
+                                           help_text="The vendor's quotation reference.")
+    po_number = models.CharField(max_length=100, blank=True, default='', help_text="Purchase Order number.")
+    accepted_at = models.DateTimeField(blank=True, null=True, help_text="When the contractor accepted the job.")
+    accepted_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, blank=True, null=True, related_name='+',
+        help_text="The contractor's user who accepted the job."
+    )
+    confirmed_start_date = models.DateField(blank=True, null=True, help_text="Start date the contractor confirmed.")
+    contractor_technician = models.CharField(max_length=255, blank=True, default='',
+                                             help_text="Contractor's technician named when accepting.")
+
     WORK_STATUS_CHOICES = [
         ("pending", "Pending"),
         ("closed", "Closed"),
@@ -589,3 +625,27 @@ class WorkOrder(OwnerPrivModel, Dated, Status, models.Model):
     class Meta:
         verbose_name = "Work Order"
         verbose_name_plural = "Work Orders"
+
+
+class WorkOrderQuoteLine(models.Model):
+    """One priced line of a five-stage Work Order: what the vendor charges and what the client is billed."""
+
+    work_order = models.ForeignKey(WorkOrder, on_delete=models.CASCADE, related_name='quote_lines')
+    description = models.CharField(max_length=255)
+    quantity = models.DecimalField(max_digits=12, decimal_places=2, default=1)
+    unit_cost_vendor = models.DecimalField(max_digits=18, decimal_places=2)
+    unit_cost_client = models.DecimalField(max_digits=18, decimal_places=2)
+
+    class Meta:
+        ordering = ['id']
+
+    @property
+    def total_vendor(self):
+        return self.quantity * self.unit_cost_vendor
+
+    @property
+    def total_client(self):
+        return self.quantity * self.unit_cost_client
+
+    def __str__(self):
+        return f"{self.description} × {self.quantity}"

@@ -56,6 +56,9 @@ CLIENT_ALLOWED = {
     'work-request-flow': SAFE,
     'work-request-flow-approve': ANY,
     'work-request-flow-reject': ANY,
+    'workorder-flow': SAFE,
+    'workorder-flow-approve': ANY,
+    'workorder-flow-reject': ANY,
     'my-tasks': SAFE,
 }
 

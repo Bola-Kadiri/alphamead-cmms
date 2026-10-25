@@ -351,6 +351,9 @@ class WorkOrderSerializer(serializers.ModelSerializer):
             'category_detail', 'subcategory_detail', 'facility_detail', 'asset_detail',
             'resources_data', 'allow_resubmission', 'vendor_detail', 'technician_detail',
             'latest_completion', 'linked_payment_requisition', 'payee_detail',
+            # Five-stage flow — set only through the Stage 2 actions.
+            'flow', 'client_price', 'quotation_reference', 'po_number',
+            'accepted_at', 'accepted_by', 'confirmed_start_date', 'contractor_technician',
             # Raise Payment approval route — set by the system, moved on only by the approval actions.
             'approval_route', 'final_approver_detail', 'final_approved_at',
             'final_approver_reason', 'next_step', 'needs_second_approval',

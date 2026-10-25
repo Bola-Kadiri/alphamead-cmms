@@ -19,6 +19,7 @@ from work.models import (WorkRequest, WorkRequestQuotationItem, WorkOrder, Comme
                           PaymentRequisition, PPM, WorkOrderCompletion, Invoice)
 from work.models.raise_payment_settings import RaisePaymentApprovalSettings
 from work.models import work_request_flow as stage1
+from work.models import work_order_flow as stage2
 from work.models.action_log import history
 from work.models.approval_matrix import ApprovalMatrix
 from work.models.delegation import Delegation
@@ -1122,6 +1123,76 @@ class WorkRequestViewSet(RoleBasedPermissionMixin, viewsets.ModelViewSet):
             return Response({"error": f"Error retrieving assets: {str(e)}"}, status=status.HTTP_400_BAD_REQUEST)
 
 
+def _money(value):
+    return str(value) if value is not None else None
+
+
+def _wo_flow_data(wo, user):
+    """Everything the Work Order screen needs about Stage 2, masked by role."""
+    is_client = user.roles == 'CLIENT'
+    is_contractor = user.roles == 'CONTRACTOR'
+    actions = stage2.available_actions(wo, user)
+
+    lines = []
+    for line in wo.quote_lines.all():
+        entry = {'id': line.id, 'description': line.description, 'quantity': str(line.quantity)}
+        if not is_client:
+            entry.update(unit_cost_vendor=str(line.unit_cost_vendor), total_vendor=str(line.total_vendor))
+        if not is_contractor:
+            entry.update(unit_cost_client=str(line.unit_cost_client), total_client=str(line.total_client))
+        lines.append(entry)
+
+    pricing = {}
+    if not is_contractor:
+        pricing['client_price'] = _money(wo.client_price)
+    if not is_client:
+        pricing['vendor_cost'] = _money(wo.cost)
+    if not (is_client or is_contractor) and wo.client_price and wo.cost is not None:
+        margin = wo.client_price - wo.cost
+        pricing['margin'] = str(margin)
+        pricing['margin_percent'] = round(float(margin / wo.client_price * 100), 1) if wo.client_price else None
+
+    chain = []
+    for step in ('procurement', 'approver', 'client_rep'):
+        people = stage2.people_for(wo, step)
+        entry = {'step': step, 'label': stage2.STEP_LABELS[step], 'kind': 'team' if step == 'procurement' else 'named'}
+        if step == 'procurement':
+            entry['people'] = len(people)
+        else:
+            entry['person'] = (people[0].name.strip() or people[0].email) if people else None
+        chain.append(entry)
+
+    wr = wo.source_work_request
+    return {
+        'flow': wo.flow,
+        'status': wo.approval_status,
+        'waiting_on': stage2.WAITING_ON.get(wo.approval_status),
+        'chain': chain,
+        'lines': lines,
+        'pricing': pricing,
+        'vendor': None if is_client or wo.vendor_id is None else {
+            'id': wo.vendor_id, 'name': wo.vendor.name, 'has_bank_details': wo.vendor.has_bank_details},
+        'quotation_reference': wo.quotation_reference,
+        'po_number': wo.po_number,
+        'expected_start_date': wo.expected_start_date,
+        'files': [{'id': f.id, 'url': f.file.url if f.file else None, 'name': f.file.name.rsplit('/', 1)[-1] if f.file else ''}
+                  for f in wo.resources.all()] if not is_client else [],
+        'pricing_problems': stage2.pricing_problems(wo) if 'submit' in actions else [],
+        'price_check': stage2.price_check(wo) if not (is_client or is_contractor) else [],
+        'accepted': {'at': wo.accepted_at, 'start_date': wo.confirmed_start_date,
+                     'technician': wo.contractor_technician} if wo.accepted_at else None,
+        'source_work_request': {'slug': wr.slug, 'number': wr.work_request_number} if wr else None,
+        'history': [
+            {'action': a.action, 'label': a.get_action_display(), 'actor': a.actor_name, 'role': a.actor_role,
+             'on_behalf_of': a.on_behalf_of_name or None, 'reason': a.reason or None, 'signature': a.signature or None,
+             'at': a.at, 'since_previous_seconds': a.since_previous.total_seconds() if a.since_previous else None}
+            for a in history(wo)
+        ],
+        'timing': stage2.timing(wo),
+        'my_actions': actions,
+    }
+
+
 class WorkOrderViewSet(RoleBasedPermissionMixin, viewsets.ModelViewSet):
     queryset = WorkOrder.objects.all().order_by('-id')
     serializer_class = WorkOrderSerializer
@@ -1144,11 +1215,125 @@ class WorkOrderViewSet(RoleBasedPermissionMixin, viewsets.ModelViewSet):
         if role in SEE_ALL_ROLES:
             return qs.order_by('-id')
         # A Raise Payment bill's second approver sees it too, whatever their role.
+        five_stage = Q(flow=WorkOrder.FIVE_STAGE)
         if role == 'REVIEWER':
             return qs.filter(Q(reviewers=user) | Q(final_approver=user)).distinct().order_by('-id')
         if role == 'APPROVER':
-            return qs.filter(Q(approver=user) | Q(final_approver=user)).order_by('-id')
+            return qs.filter(
+                Q(approver=user) | Q(final_approver=user)
+                | five_stage & Q(facility__in=_signer_facilities(user, 'approver'))
+            ).distinct().order_by('-id')
+        if role == 'PROCUREMENT AND STORE':
+            return qs.filter(Q(owner=user) | Q(final_approver=user) | five_stage).distinct().order_by('-id')
+        if role == 'REQUESTER':
+            return qs.filter(
+                Q(owner=user) | Q(final_approver=user) | five_stage & Q(facility__in=accessible_facilities(user))
+            ).distinct().order_by('-id')
+        if role == 'CONTRACTOR':
+            # Only their own company's jobs, once the client has approved the price.
+            if not user.vendor_id:
+                return qs.none()
+            return qs.filter(five_stage, vendor_id=user.vendor_id, approval_status='Approved').order_by('-id')
         return qs.filter(Q(owner=user) | Q(final_approver=user)).order_by('-id')
+
+    def update(self, request, *args, **kwargs):
+        if self.get_object().flow == WorkOrder.FIVE_STAGE:
+            return Response({'error': "Change this work order through its own screen actions."},
+                            status=status.HTTP_400_BAD_REQUEST)
+        return super().update(request, *args, **kwargs)
+
+    def destroy(self, request, *args, **kwargs):
+        if self.get_object().flow == WorkOrder.FIVE_STAGE:
+            return Response({'error': "Five-stage work orders are kept for the record and cannot be deleted."},
+                            status=status.HTTP_400_BAD_REQUEST)
+        return super().destroy(request, *args, **kwargs)
+
+    # ── Five-stage flow (Stage 2) ────────────────────────────────────────────
+
+    def _stage2_call(self, request, func, *args, **kwargs):
+        work_order = self.get_object()
+        try:
+            func(work_order, request.user, *args, **kwargs)
+        except ActionRefused as exc:
+            return Response({'error': str(exc)}, status=status.HTTP_400_BAD_REQUEST)
+        work_order.refresh_from_db()
+        return Response(_wo_flow_data(work_order, request.user))
+
+    @action(detail=False, methods=['get'], url_path='procurement-queue')
+    def procurement_queue(self, request):
+        """Client-approved Work Requests waiting for a Work Order (Procurement & Store)."""
+        if request.user.roles not in ('PROCUREMENT AND STORE', 'SUPER ADMIN', 'ADMIN'):
+            return Response([])
+        rows = []
+        for wr in stage2.ready_requests():
+            client = wr.facility.client if wr.facility_id else None
+            timing = (stage2.step_timing(stage2.STAGE, wr.fully_approved_at, client)
+                      if wr.fully_approved_at else None)
+            rows.append({'slug': wr.slug, 'number': wr.work_request_number, 'description': wr.description,
+                         'facility': wr.facility.name if wr.facility_id else None,
+                         'category': wr.category.name if wr.category_id else None,
+                         'client_approved_at': wr.fully_approved_at, 'timing': timing})
+        return Response(rows)
+
+    @action(detail=False, methods=['post'], url_path='flow-start')
+    def flow_start(self, request):
+        work_request = get_object_or_404(WorkRequest, slug=request.data.get('work_request'))
+        try:
+            work_order = stage2.start(work_request, request.user)
+        except ActionRefused as exc:
+            return Response({'error': str(exc)}, status=status.HTTP_400_BAD_REQUEST)
+        return Response({'slug': work_order.slug, **_wo_flow_data(work_order, request.user)},
+                        status=status.HTTP_201_CREATED)
+
+    @action(detail=True, methods=['get'])
+    def flow(self, request, slug=None):
+        return Response(_wo_flow_data(self.get_object(), request.user))
+
+    @action(detail=True, methods=['post'], url_path='flow-pricing')
+    def flow_pricing(self, request, slug=None):
+        lines = request.data.get('lines')
+        if isinstance(lines, str):
+            try:
+                lines = json.loads(lines)
+            except ValueError:
+                return Response({'error': "The quote lines could not be read."}, status=status.HTTP_400_BAD_REQUEST)
+        vendor = None
+        if request.data.get('vendor'):
+            vendor = Vendor.objects.filter(pk=request.data.get('vendor')).first()
+            if vendor is None:
+                return Response({'error': "That vendor does not exist."}, status=status.HTTP_400_BAD_REQUEST)
+        start = request.data.get('expected_start_date')
+        return self._stage2_call(
+            request, stage2.save_pricing, lines=lines, vendor=vendor,
+            quotation_reference=request.data.get('quotation_reference'), po_number=request.data.get('po_number'),
+            expected_start_date=start if start is not None else None, files=request.FILES.getlist('resources'),
+        )
+
+    @action(detail=True, methods=['post'], url_path='flow-submit')
+    def flow_submit(self, request, slug=None):
+        return self._stage2_call(request, stage2.submit)
+
+    @action(detail=True, methods=['post'], url_path='flow-review')
+    def flow_review(self, request, slug=None):
+        return self._stage2_call(request, stage2.review, request.data.get('signature', ''), request.data.get('note', ''))
+
+    @action(detail=True, methods=['post'], url_path='flow-send-back')
+    def flow_send_back(self, request, slug=None):
+        return self._stage2_call(request, stage2.send_back, request.data.get('reason', ''))
+
+    @action(detail=True, methods=['post'], url_path='flow-approve')
+    def flow_approve(self, request, slug=None):
+        confirmed = str(request.data.get('confirmed', '')).lower() in ('true', '1', 'yes')
+        return self._stage2_call(request, stage2.client_approve, request.data.get('signature', ''), confirmed)
+
+    @action(detail=True, methods=['post'], url_path='flow-reject')
+    def flow_reject(self, request, slug=None):
+        return self._stage2_call(request, stage2.client_reject, request.data.get('reason', ''))
+
+    @action(detail=True, methods=['post'], url_path='flow-accept')
+    def flow_accept(self, request, slug=None):
+        return self._stage2_call(request, stage2.accept, request.data.get('start_date') or None,
+                                 request.data.get('technician', ''))
 
     def create(self, request, *args, **kwargs):
         print("=== WorkOrder POST data ===", dict(request.data))

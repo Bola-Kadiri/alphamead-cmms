@@ -61,7 +61,13 @@ def mask_work_order(data, instance):
         data['requester_detail'] = _name_only(data['requester_detail'])
 
     source = getattr(instance, 'source_work_request', None)
-    if source is not None:
+    if getattr(instance, 'flow', None) == 'five_stage':
+        data['cost'] = str(instance.client_price) if instance.client_price is not None else None
+        data['source_work_request_detail'] = {
+            'id': source.id, 'work_request_number': source.work_request_number,
+            'total_cost_client': data['cost'],
+        } if source is not None else None
+    elif source is not None:
         client_total = source.total_cost_client
         data['cost'] = str(client_total) if client_total is not None else None
         data['source_work_request_detail'] = {

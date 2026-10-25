@@ -303,6 +303,9 @@ def on_work_order_saved(sender, instance, created, **kwargs):
     key = _cache_key('wo', instance.pk)
     previous = _prev_status.pop(key, None)
     current = instance.approval_status
+    # Five-stage work orders tell people themselves (work.models.work_order_flow).
+    if instance.flow == WorkOrder.FIVE_STAGE:
+        return
 
     def _notify():
         try:
