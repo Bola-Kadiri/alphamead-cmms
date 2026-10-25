@@ -1,8 +1,10 @@
 from rest_framework import serializers
+from django.contrib.auth import get_user_model
 from django.contrib.contenttypes.models import ContentType
 from django.db import transaction
 from work.models import (WorkRequest, WorkRequestQuotationItem, PaymentItem, Comment, PaymentRequisition,
-                          PPM, WorkOrder, WorkOrderCompletion, Invoice, InvoiceLineItem)
+                          PPM, WorkOrder, WorkOrderCompletion, Invoice, InvoiceLineItem,
+                          RaisePaymentApprovalSettings)
 from utils.models import FileAttachment
 
 from accounts.api.serializers import (
@@ -258,6 +260,30 @@ class WorkOrderSerializer(serializers.ModelSerializer):
     latest_completion = serializers.SerializerMethodField()
     linked_payment_requisition = serializers.SerializerMethodField()
 
+    # Raise Payment approver-first route: who acts next, and the second approver
+    # for large bills (see RaisePaymentApprovalSettings).
+    final_approver_detail = SimpleUserSerializer(source='final_approver', read_only=True)
+    # Selected by the Requester on Raise Payment bills of ₦1,000,000 or more (checked in validate).
+    final_approver = serializers.PrimaryKeyRelatedField(
+        queryset=get_user_model().objects.filter(is_active=True), required=False, allow_null=True,
+    )
+    next_step = serializers.SerializerMethodField()
+    needs_second_approval = serializers.SerializerMethodField()
+
+    NEXT_STEP = {'Pending': 'approver', 'Approver Approved': 'reviewer', 'Awaiting Final Approval': 'final_approver'}
+
+    def get_next_step(self, obj):
+        return self.NEXT_STEP.get(obj.approval_status) if obj.is_approver_first else None
+
+    def get_needs_second_approval(self, obj):
+        if not obj.is_approver_first:
+            return False
+        if obj.final_approver_id:
+            return True
+        if '_raise_payment_settings' not in self.context:
+            self.context['_raise_payment_settings'] = RaisePaymentApprovalSettings.current()
+        return self.context['_raise_payment_settings'].needs_second_approval(obj.cost, obj.currency)
+
     def get_source_work_request_detail(self, obj):
         wr = obj.source_work_request
         if not wr:
@@ -322,13 +348,16 @@ class WorkOrderSerializer(serializers.ModelSerializer):
             'category_detail', 'subcategory_detail', 'facility_detail', 'asset_detail',
             'resources_data', 'allow_resubmission', 'vendor_detail', 'technician_detail',
             'latest_completion', 'linked_payment_requisition', 'payee_detail',
+            # Raise Payment approval route — set by the system, moved on only by the approval actions.
+            'approval_route', 'final_approver_detail', 'final_approved_at',
+            'final_approver_reason', 'next_step', 'needs_second_approval',
             # Closed/Pending/Rejected tracking, and the closure fields it sets —
             # managed exclusively by the set-status action (which also drives
             # the auto Payment Requisition).
             'work_status', 'vendor', 'technician', 'rating', 'started_at', 'completed_at',
         ]
 
-    REJECTED_STATUSES = {'Reviewer Rejected', 'Approver Rejected'}
+    REJECTED_STATUSES = {'Reviewer Rejected', 'Approver Rejected', 'Final Approver Rejected'}
 
     def validate_source_work_request(self, value):
         if value is not None:
@@ -376,6 +405,7 @@ class WorkOrderSerializer(serializers.ModelSerializer):
                 {'type': "A Raise Payment work order's type can't be changed."}
             )
         if new_type != raise_payment:
+            attrs.pop('final_approver', None)  # only Raise Payment bills have one
             return attrs
 
         is_legacy_edit = (
@@ -383,11 +413,19 @@ class WorkOrderSerializer(serializers.ModelSerializer):
             and instance.payee_id is None and 'payee' not in attrs
         )
         if is_legacy_edit:
+            attrs.pop('final_approver', None)
             return attrs
 
         if instance is not None and instance.uses_raise_payment_flow and instance.approval_status == 'Approved':
             raise serializers.ValidationError(
                 "This Raise Payment work order is approved and its payment has been raised; it can no longer be edited."
+            )
+        # Mid-approval on the approver-first route: the amount the approvers signed off can't change.
+        if instance is not None and instance.is_approver_first and instance.approval_status in (
+                'Approver Approved', 'Awaiting Final Approval'):
+            raise serializers.ValidationError(
+                "This Raise Payment bill is being approved and can't be edited. Ask an approver to reject it "
+                "if it needs changes."
             )
 
         def value(field):
@@ -422,6 +460,27 @@ class WorkOrderSerializer(serializers.ModelSerializer):
         cost = value('cost')
         if cost is None or cost <= 0:
             errors['cost'] = "Enter the bill amount."
+        else:
+            # Bills of ₦1,000,000 or more (or in another currency) need a second approval:
+            # the Requester selects the configured final approver. Smaller bills have none.
+            approval_settings = RaisePaymentApprovalSettings.current()
+            if approval_settings.needs_second_approval(cost, value('currency')):
+                expected = approval_settings.second_approver()
+                selected = value('final_approver')
+                limit = f"NGN {approval_settings.threshold:,.0f}"
+                if expected is None:
+                    errors['final_approver'] = (
+                        f"Bills of {limit} or more need a final approver, but no active AlphaCMMS user has the "
+                        f"email {approval_settings.second_approver_email}. Ask the Super Admin."
+                    )
+                elif selected is None:
+                    errors['final_approver'] = (
+                        f"Select the final approver ({expected.name}). Bills of {limit} or more need a second approval."
+                    )
+                elif selected.pk != expected.pk:
+                    errors['final_approver'] = f"The final approver for bills of {limit} or more must be {expected.name}."
+            else:
+                attrs['final_approver'] = None
         if value('source_work_request') or value('source_ppm'):
             errors['type'] = "A Raise Payment work order is raised directly, not from a work request or PPM."
         has_bill = bool(attrs.get('resources')) or (instance is not None and instance.resources.exists())
@@ -453,6 +512,9 @@ class WorkOrderSerializer(serializers.ModelSerializer):
     def create(self, validated_data):
         resource_uploads = validated_data.pop('resources', [])
         reviewers = validated_data.pop('reviewers', [])
+        # New Raise Payment bills go Approver → Reviewer (→ second approver for large bills).
+        if validated_data.get('type') == WorkOrder.RAISE_PAYMENT and validated_data.get('payee'):
+            validated_data['approval_route'] = WorkOrder.APPROVER_FIRST
         with transaction.atomic():
             instance = WorkOrder.objects.create(**validated_data)
             if reviewers:

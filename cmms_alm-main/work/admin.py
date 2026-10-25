@@ -2,6 +2,8 @@ from django import forms
 from django.contrib import admin
 from .models import WorkRequest, WorkOrder, PaymentItem, PaymentRequisition, PPM
 from work.models import WorkOrderCompletion
+from work.models import RaisePaymentApprovalSettings
+from utils.csv_import import is_super_admin
 
 
 class WorkRequestAdminForm(forms.ModelForm):
@@ -125,3 +127,33 @@ class PPMAdmin(admin.ModelAdmin):
 class WorkOrderCompletionAdmin(admin.ModelAdmin):
     list_display = ('id', 'work_order', 'file', 'created_at', 'updated_at')
     search_fields = ('work_order__slug',)
+
+
+@admin.register(RaisePaymentApprovalSettings)
+class RaisePaymentApprovalSettingsAdmin(admin.ModelAdmin):
+    """
+    One row: the amount from which a Raise Payment bill needs a second approval,
+    and who gives it. Only the Super Admin can see or change it.
+    """
+    list_display = ('threshold', 'second_approver_email', 'second_approver_account', 'updated_at')
+    readonly_fields = ('second_approver_account', 'updated_at')
+
+    @admin.display(description='AlphaCMMS account')
+    def second_approver_account(self, obj):
+        user = obj.second_approver()
+        return f"{user.name.strip() or user.email} ({user.roles})" if user else "No active user with this email"
+
+    def has_module_permission(self, request):
+        return is_super_admin(request.user)
+
+    def has_view_permission(self, request, obj=None):
+        return is_super_admin(request.user)
+
+    def has_change_permission(self, request, obj=None):
+        return is_super_admin(request.user)
+
+    def has_add_permission(self, request):
+        return is_super_admin(request.user) and not RaisePaymentApprovalSettings.objects.exists()
+
+    def has_delete_permission(self, request, obj=None):
+        return False

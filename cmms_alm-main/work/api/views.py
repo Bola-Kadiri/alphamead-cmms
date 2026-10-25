@@ -15,6 +15,7 @@ from django.db.models import Q
 from cmms_instanta.permissions import RoleBasedPermissionMixin
 from work.models import (WorkRequest, WorkRequestQuotationItem, WorkOrder, Comment, PaymentItem,
                           PaymentRequisition, PPM, WorkOrderCompletion, Invoice)
+from work.models.raise_payment_settings import RaisePaymentApprovalSettings
 from .serializers import (WorkRequestSerializer, WorkOrderSerializer, CommentSerializer,
                           PaymentItemSerializer, PaymentRequisitionSerializer,
                           PPMSerializer, WorkOrderCompletionSerializer, InvoiceSerializer)
@@ -36,7 +37,7 @@ logger = logging.getLogger(__name__)
 REJECTED_STATUSES = {'Rejected – Vendor Changed', 'Reviewer Rejected', 'Approver Rejected'}
 
 # Work Order approval statuses that mean "this WR still has no live Work Order"
-_WO_DEAD_STATUSES = ['Reviewer Rejected', 'Approver Rejected', 'Rejected']
+_WO_DEAD_STATUSES = ['Reviewer Rejected', 'Approver Rejected', 'Rejected', 'Final Approver Rejected']
 
 
 def _exceeds_approval_limit(user, amount):
@@ -1007,11 +1008,12 @@ class WorkOrderViewSet(RoleBasedPermissionMixin, viewsets.ModelViewSet):
         qs = self._base_queryset()
         if role in ['SUPER ADMIN', 'ADMIN', 'FINANCE']:
             return qs.order_by('-id')
+        # A Raise Payment bill's second approver sees it too, whatever their role.
         if role == 'REVIEWER':
-            return qs.filter(reviewers=user).order_by('-id')
+            return qs.filter(Q(reviewers=user) | Q(final_approver=user)).distinct().order_by('-id')
         if role == 'APPROVER':
-            return qs.filter(approver=user).order_by('-id')
-        return qs.filter(owner=user).order_by('-id')
+            return qs.filter(Q(approver=user) | Q(final_approver=user)).order_by('-id')
+        return qs.filter(Q(owner=user) | Q(final_approver=user)).order_by('-id')
 
     def create(self, request, *args, **kwargs):
         print("=== WorkOrder POST data ===", dict(request.data))
@@ -1046,7 +1048,7 @@ class WorkOrderViewSet(RoleBasedPermissionMixin, viewsets.ModelViewSet):
                 status=status.HTTP_403_FORBIDDEN,
             )
 
-        terminal_statuses = {'Approved', 'Reviewer Rejected', 'Approver Rejected', 'Rejected'}
+        terminal_statuses = {'Approved', 'Reviewer Rejected', 'Approver Rejected', 'Rejected', 'Final Approver Rejected'}
         if instance.approval_status in terminal_statuses:
             return Response(
                 {"error": f"Cannot change routing on a work order with status '{instance.approval_status}'."},
@@ -1103,6 +1105,117 @@ class WorkOrderViewSet(RoleBasedPermissionMixin, viewsets.ModelViewSet):
         serializer = self.get_serializer(instance)
         return Response(serializer.data, status=status.HTTP_200_OK)
 
+    # ── Raise Payment, approver-first route: Approver → Reviewer → second approver for
+    # large bills (see RaisePaymentApprovalSettings). Other work orders never come here.
+
+    @action(detail=False, methods=['get'], url_path='final-approvers')
+    def final_approvers(self, request):
+        """Who the Requester can select as final approver, and from what amount it's required."""
+        approval_settings = RaisePaymentApprovalSettings.current()
+        user = approval_settings.second_approver()
+        return Response({
+            'threshold': str(approval_settings.threshold),
+            'currency': 'NGN',
+            'approvers': [{'id': user.id, 'name': user.name, 'email': user.email}] if user else [],
+        })
+
+    def _release_raise_payment(self, instance, user, **changes):
+        """Last approval of a Raise Payment bill: approve it and raise its payment, all or nothing."""
+        try:
+            with transaction.atomic():
+                for field, value in changes.items():
+                    setattr(instance, field, value)
+                instance.approval_status = 'Approved'
+                instance.save(update_fields=[*changes, 'approval_status'])
+                _create_raise_payment_requisition(instance, user)
+        except Exception as exc:  # noqa: BLE001 — report it, approval was rolled back
+            logger.error("Raise Payment approval failed for WorkOrder %s: %s", instance.pk, exc)
+            return Response(
+                {"error": "Approval failed while raising the payment requisition, so nothing was approved. "
+                          "Please try again or contact an admin."},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            )
+        instance.refresh_from_db()
+        return Response(self.get_serializer(instance).data, status=status.HTTP_200_OK)
+
+    def _raise_payment_first_approval(self, request, instance):
+        if instance.approval_status != 'Pending':
+            return Response(
+                {"error": f"This bill is not waiting for the Approver (status '{instance.approval_status}')."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        if request.user.roles == 'APPROVER':
+            limit_error = _exceeds_approval_limit(request.user, instance.cost)
+            if limit_error:
+                return Response({"error": limit_error}, status=status.HTTP_403_FORBIDDEN)
+        instance.is_approved = True
+        instance.approval_status = 'Approver Approved'
+        instance.save(update_fields=['is_approved', 'approval_status'])
+        return Response(self.get_serializer(instance).data, status=status.HTTP_200_OK)
+
+    def _raise_payment_review(self, request, instance):
+        if instance.approval_status != 'Approver Approved':
+            return Response(
+                {"error": "The Approver must approve this bill before the Reviewer can review it."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        approval_settings = RaisePaymentApprovalSettings.current()
+        if not approval_settings.needs_second_approval(instance.cost, instance.currency):
+            return self._release_raise_payment(instance, request.user, is_reviewed=True)
+
+        selected = instance.final_approver
+        second_approver = selected if selected is not None and selected.is_active else approval_settings.second_approver()
+        if second_approver is None:
+            return Response(
+                {"error": f"This bill needs a second approval, but no active AlphaCMMS user has the email "
+                          f"{approval_settings.second_approver_email}. Ask the Super Admin to create that "
+                          "account or update the Raise Payment approval setting."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        instance.is_reviewed = True
+        instance.final_approver = second_approver
+        instance.approval_status = 'Awaiting Final Approval'
+        instance.save(update_fields=['is_reviewed', 'final_approver', 'approval_status'])
+        return Response(self.get_serializer(instance).data, status=status.HTTP_200_OK)
+
+    def _check_final_approver(self, request, instance):
+        if not instance.final_approver_id or instance.final_approver_id != request.user.pk:
+            return Response(
+                {"error": "Only the second approver named on this bill can act at this stage."},
+                status=status.HTTP_403_FORBIDDEN,
+            )
+        if instance.approval_status != 'Awaiting Final Approval':
+            return Response(
+                {"error": f"This bill is not waiting for final approval (status '{instance.approval_status}')."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        return None
+
+    @action(detail=True, methods=['post'], url_path='final-approve')
+    def final_approve(self, request, slug=None):
+        instance = get_object_or_404(WorkOrder, slug=slug)
+        refused = self._check_final_approver(request, instance)
+        if refused:
+            return refused
+        return self._release_raise_payment(instance, request.user, final_approved_at=timezone.now())
+
+    @action(detail=True, methods=['post'], url_path='final-reject')
+    def final_reject(self, request, slug=None):
+        instance = get_object_or_404(WorkOrder, slug=slug)
+        refused = self._check_final_approver(request, instance)
+        if refused:
+            return refused
+        reason = (request.data.get('final_approver_reason') or '').strip()
+        if not reason:
+            return Response(
+                {"error": "final_approver_reason is required when rejecting."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        instance.final_approver_reason = reason
+        instance.approval_status = 'Final Approver Rejected'
+        instance.save(update_fields=['final_approver_reason', 'approval_status'])
+        return Response(self.get_serializer(instance).data, status=status.HTTP_200_OK)
+
     @action(detail=True, methods=['post'], url_path='approve-by-reviewer')
     def approve_by_reviewer(self, request, slug=None):
         instance = get_object_or_404(WorkOrder, slug=slug)
@@ -1114,6 +1227,8 @@ class WorkOrderViewSet(RoleBasedPermissionMixin, viewsets.ModelViewSet):
                 {"error": "You are not authorised to review this work order."},
                 status=status.HTTP_403_FORBIDDEN,
             )
+        if instance.is_approver_first:
+            return self._raise_payment_review(request, instance)
         if instance.is_reviewed:
             return Response(
                 {"error": "This work order has already been reviewed."},
@@ -1135,6 +1250,11 @@ class WorkOrderViewSet(RoleBasedPermissionMixin, viewsets.ModelViewSet):
             return Response(
                 {"error": "You are not authorised to reject this work order."},
                 status=status.HTTP_403_FORBIDDEN,
+            )
+        if instance.is_approver_first and instance.approval_status != 'Approver Approved':
+            return Response(
+                {"error": "The Approver must approve this bill before the Reviewer can act on it."},
+                status=status.HTTP_400_BAD_REQUEST,
             )
         reviewer_reason = (request.data.get('reviewer_reason') or '').strip()
         if not reviewer_reason:
@@ -1160,6 +1280,8 @@ class WorkOrderViewSet(RoleBasedPermissionMixin, viewsets.ModelViewSet):
                 {"error": "You are not authorised to approve this work order."},
                 status=status.HTTP_403_FORBIDDEN,
             )
+        if instance.is_approver_first:
+            return self._raise_payment_first_approval(request, instance)
         if not instance.is_reviewed:
             return Response(
                 {"error": "Work order must be reviewed before it can be approved."},
@@ -1211,7 +1333,13 @@ class WorkOrderViewSet(RoleBasedPermissionMixin, viewsets.ModelViewSet):
                 {"error": "You are not authorised to reject this work order."},
                 status=status.HTTP_403_FORBIDDEN,
             )
-        if not instance.is_reviewed:
+        if instance.is_approver_first:
+            if instance.approval_status != 'Pending':
+                return Response(
+                    {"error": f"This bill is not waiting for the Approver (status '{instance.approval_status}')."},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+        elif not instance.is_reviewed:
             return Response(
                 {"error": "Work order must be reviewed before it can be rejected by approver."},
                 status=status.HTTP_400_BAD_REQUEST,
@@ -1420,7 +1548,7 @@ class WorkOrderViewSet(RoleBasedPermissionMixin, viewsets.ModelViewSet):
                 status=status.HTTP_403_FORBIDDEN,
             )
         instance = get_object_or_404(WorkOrder, slug=slug)
-        rejected_statuses = {'Reviewer Rejected', 'Approver Rejected'}
+        rejected_statuses = {'Reviewer Rejected', 'Approver Rejected', 'Final Approver Rejected'}
         if instance.approval_status not in rejected_statuses:
             return Response(
                 {"error": "Resubmission can only be unlocked on a rejected work order."},

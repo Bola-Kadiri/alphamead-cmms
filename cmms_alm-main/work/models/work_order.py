@@ -101,7 +101,17 @@ class WorkOrder(OwnerPrivModel, Dated, Status, models.Model):
         ("Reviewer Rejected", "Reviewer Rejected"),
         ("Approver Rejected", "Approver Rejected"),
         ("Rejected", "Rejected"),
+        # Raise Payment, approver-first route (see approval_route).
+        ("Approver Approved", "Approver Approved"),
+        ("Awaiting Final Approval", "Awaiting Final Approval"),
+        ("Final Approver Rejected", "Final Approver Rejected"),
     ]
+
+    # Raise Payment bills raised from this release on: Approver → Reviewer →
+    # (second approver, for large bills). Older work orders have no route and
+    # keep Reviewer → Approver.
+    APPROVER_FIRST = 'APPROVER_FIRST'
+    APPROVAL_ROUTE_CHOICES = [(APPROVER_FIRST, 'Approver, then Reviewer (Raise Payment)')]
 
     CURRENCY_CHOICES = [
         ("USD", "USD"),
@@ -364,7 +374,7 @@ class WorkOrder(OwnerPrivModel, Dated, Status, models.Model):
     )
 
     approval_status = models.CharField(
-        max_length=20,
+        max_length=30,
         choices=APPROVAL_STATUSES,
         default="Pending",
         help_text="Approval status of the work order."
@@ -510,6 +520,32 @@ class WorkOrder(OwnerPrivModel, Dated, Status, models.Model):
         blank=True, null=True,
         help_text="Raise Payment: selected withholding tax option.",
     )
+
+    approval_route = models.CharField(
+        max_length=20,
+        choices=APPROVAL_ROUTE_CHOICES,
+        blank=True, null=True,
+        help_text="Raise Payment: approval order. Empty = Reviewer, then Approver.",
+    )
+
+    final_approver = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        blank=True, null=True,
+        related_name='final_approval_work_orders',
+        help_text="Raise Payment: second (final) approver for large bills.",
+    )
+
+    final_approved_at = models.DateTimeField(blank=True, null=True)
+
+    final_approver_reason = models.TextField(
+        blank=True, null=True,
+        help_text="Reason given when the second approver rejects.",
+    )
+
+    @property
+    def is_approver_first(self):
+        return self.approval_route == self.APPROVER_FIRST
 
     @property
     def uses_raise_payment_flow(self):

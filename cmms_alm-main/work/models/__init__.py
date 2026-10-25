@@ -5,3 +5,4 @@ from .ppm import *
 from .work_order_completion import *
 from .invoice import *
 from .notification import Notification
+from .raise_payment_settings import RaisePaymentApprovalSettings

@@ -267,6 +267,24 @@ def on_work_request_reviewers_changed(sender, instance, action, pk_set, **kwargs
 # WORK ORDER
 # ===========================================================================
 
+def _raise_payment_action(work_order, recipients, headline, message):
+    """Raise Payment approver-first route: tell whoever acts next that it's their turn."""
+    users = _users(recipients)
+    send_notification_email(
+        subject=f'[AlphaCMMS] Raise Payment {work_order.work_order_number} — {headline}',
+        template='emails/raise_payment_action_required.html',
+        context={'instance': work_order, 'headline': headline, 'message': message},
+        recipient_list=[u.email for u in users if u.email],
+    )
+    create_in_app_notifications(
+        recipients=users,
+        title=f'Raise Payment {work_order.work_order_number}: {headline}',
+        message=message,
+        notification_type='WORK_ORDER',
+        object_id=work_order.pk,
+    )
+
+
 @receiver(pre_save, sender=WorkOrder)
 def cache_work_order_status(sender, instance, **kwargs):
     if instance.pk:
@@ -288,6 +306,13 @@ def on_work_order_saved(sender, instance, created, **kwargs):
             fresh = WorkOrder.objects.get(pk=instance.pk)
             ctx = {'instance': fresh}
 
+            if created and fresh.is_approver_first:
+                _raise_payment_action(
+                    fresh, fresh.approver, 'Awaiting Your Approval',
+                    'A Raise Payment bill has been raised and needs your approval. The Reviewer acts after you.',
+                )
+                return
+
             if created:
                 emails = _emails(fresh.reviewers)
                 send_notification_email(
@@ -306,6 +331,21 @@ def on_work_order_saved(sender, instance, created, **kwargs):
                 return
 
             if previous == current:
+                return
+
+            if fresh.is_approver_first and current == 'Approver Approved':
+                _raise_payment_action(
+                    fresh, fresh.reviewers, 'Awaiting Your Review',
+                    'The Approver has approved this Raise Payment bill. It now needs your review.',
+                )
+                return
+
+            if fresh.is_approver_first and current == 'Awaiting Final Approval':
+                _raise_payment_action(
+                    fresh, fresh.final_approver, 'Awaiting Your Final Approval',
+                    'This Raise Payment bill has been approved and reviewed. Because of its amount it needs '
+                    'your final approval before the payment is raised.',
+                )
                 return
 
             if current == 'Reviewed':
@@ -340,7 +380,7 @@ def on_work_order_saved(sender, instance, created, **kwargs):
                     object_id=fresh.pk,
                 )
 
-            elif current in ('Reviewer Rejected', 'Approver Rejected', 'Rejected'):
+            elif current in ('Reviewer Rejected', 'Approver Rejected', 'Rejected', 'Final Approver Rejected'):
                 emails = _emails(fresh.requester)
                 send_notification_email(
                     subject=f'[AlphaCMMS] Work Order {fresh.work_order_number} — Rejected',

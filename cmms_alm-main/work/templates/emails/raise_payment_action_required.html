@@ -1,0 +1,17 @@
+{% extends "emails/base_email.html" %}
+{% block content %}
+<h2>Raise Payment {{ headline }}</h2>
+<p>{{ message }}</p>
+<div class="detail-box">
+  <table>
+    <tr><td>Work Order</td><td>{{ instance.work_order_number }}</td></tr>
+    <tr><td>Payee</td><td>{{ instance.payee.name|default:"—" }}</td></tr>
+    <tr><td>Bill number</td><td>{{ instance.invoice_no|default:"—" }}</td></tr>
+    <tr><td>Amount</td><td>{{ instance.currency }} {{ instance.cost|floatformat:"2g" }}</td></tr>
+    <tr><td>Facility</td><td>{{ instance.facility|default:"—" }}</td></tr>
+    <tr><td>Requester</td><td>{{ instance.requester.name|default:instance.requester.email }}</td></tr>
+    <tr><td>Status</td><td><span class="badge badge-pending">{{ instance.approval_status }}</span></td></tr>
+  </table>
+</div>
+<p>Please log in to AlphaCMMS to act on this bill.</p>
+{% endblock %}

@@ -47,6 +47,8 @@ class RaisePaymentWorkOrderTests(TestCase):
         self.reviewer = make_user('reviewer@example.com', 'REVIEWER')
         self.approver = make_user('approver@example.com', 'APPROVER')
         self.finance = make_user('finance@example.com', 'FINANCE')
+        # Second approver for bills of ₦1,000,000 or more (RaisePaymentApprovalSettings default).
+        self.second_approver = make_user('wole.olufore@alphamead.com', 'APPROVER')
 
         self.facility = Facility.objects.create(name='HQ Office')
         self.electricity = AssetCategory.objects.create(
@@ -81,6 +83,7 @@ class RaisePaymentWorkOrderTests(TestCase):
             'withholding_tax': '5%',
             'reviewers': [self.reviewer.pk],
             'approver': self.approver.pk,
+            'final_approver': self.second_approver.pk,  # ₦1,182,365.62 ≥ ₦1,000,000
             'resources': [bill_file()],
         }
         data.update(overrides)
@@ -90,14 +93,23 @@ class RaisePaymentWorkOrderTests(TestCase):
         self.client.force_authenticate(user=self.requester)
         return self.client.post(WORK_ORDERS, self.payload(**overrides), format='multipart')
 
-    def create_and_review(self):
+    def create_and_first_approve(self):
+        """Raise the bill and give the Approver's (first) approval."""
         response = self.create()
         self.assertEqual(response.status_code, status.HTTP_201_CREATED, response.data)
         slug = response.data['slug']
-        self.client.force_authenticate(user=self.reviewer)
-        response = self.client.post(f'{WORK_ORDERS}{slug}/approve-by-reviewer/')
+        response = self.approve(slug)
         self.assertEqual(response.status_code, status.HTTP_200_OK, response.data)
         return slug
+
+    def finish_approval(self, slug):
+        """Reviewer reviews; a bill of ₦1,000,000 or more then needs the second approver."""
+        self.client.force_authenticate(user=self.reviewer)
+        response = self.client.post(f'{WORK_ORDERS}{slug}/approve-by-reviewer/')
+        if response.status_code == status.HTTP_200_OK and response.data['approval_status'] == 'Awaiting Final Approval':
+            self.client.force_authenticate(user=self.second_approver)
+            response = self.client.post(f'{WORK_ORDERS}{slug}/final-approve/')
+        return response
 
     def approve(self, slug):
         self.client.force_authenticate(user=self.approver)
@@ -137,8 +149,8 @@ class RaisePaymentWorkOrderTests(TestCase):
         self.assertIn('no bank details', str(response.data['payee']))
 
     def test_disbursement_refused_if_bank_details_removed(self):
-        slug = self.create_and_review()
-        self.approve(slug)
+        slug = self.create_and_first_approve()
+        self.finish_approval(slug)
         requisition = WorkOrder.objects.get(slug=slug).linked_payments.get()
         Vendor.objects.filter(pk=self.ekedc.pk).update(account_number=None)
 
@@ -151,12 +163,13 @@ class RaisePaymentWorkOrderTests(TestCase):
     # ── approval → payment → closure ─────────────────────────────────────────
 
     def test_full_approval_creates_approved_payment_requisition(self):
-        slug = self.create_and_review()
-        response = self.approve(slug)
+        slug = self.create_and_first_approve()
+        response = self.finish_approval(slug)
         self.assertEqual(response.status_code, status.HTTP_200_OK, response.data)
 
         work_order = WorkOrder.objects.get(slug=slug)
         self.assertEqual(work_order.approval_status, 'Approved')
+        self.assertEqual(work_order.final_approver, self.second_approver)  # ₦1,182,365.62 ≥ ₦1,000,000
         requisition = work_order.linked_payments.get()
         self.assertEqual(requisition.approval_status, 'approve')
         self.assertEqual(requisition.pay_to, self.ekedc)
@@ -168,7 +181,7 @@ class RaisePaymentWorkOrderTests(TestCase):
     def test_approval_limit_blocks_and_creates_nothing(self):
         self.approver.approval_limit = Decimal('1000.00')
         self.approver.save()
-        slug = self.create_and_review()
+        slug = self.create().data['slug']
         response = self.approve(slug)
         self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
         work_order = WorkOrder.objects.get(slug=slug)
@@ -176,8 +189,8 @@ class RaisePaymentWorkOrderTests(TestCase):
         self.assertEqual(PaymentRequisition.objects.count(), 0)
 
     def test_disbursement_closes_work_order_and_requisition(self):
-        slug = self.create_and_review()
-        self.approve(slug)
+        slug = self.create_and_first_approve()
+        self.finish_approval(slug)
         requisition = WorkOrder.objects.get(slug=slug).linked_payments.get()
 
         self.client.force_authenticate(user=self.finance)
@@ -191,8 +204,8 @@ class RaisePaymentWorkOrderTests(TestCase):
         self.assertEqual(work_order.work_status, 'closed')
 
     def test_no_wcc_for_known_cost(self):
-        slug = self.create_and_review()
-        self.approve(slug)
+        slug = self.create_and_first_approve()
+        self.finish_approval(slug)
         work_order = WorkOrder.objects.get(slug=slug)
 
         self.client.force_authenticate(user=self.requester)
@@ -203,8 +216,8 @@ class RaisePaymentWorkOrderTests(TestCase):
         self.assertIn('work_order', response.data)
 
     def test_approved_known_cost_is_locked(self):
-        slug = self.create_and_review()
-        self.approve(slug)
+        slug = self.create_and_first_approve()
+        self.finish_approval(slug)
         self.client.force_authenticate(user=self.requester)
         response = self.client.patch(f'{WORK_ORDERS}{slug}/', {'cost': '1.00'}, format='multipart')
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
