@@ -2,7 +2,7 @@ from django import forms
 from django.contrib import admin
 from .models import WorkRequest, WorkOrder, PaymentItem, PaymentRequisition, PPM
 from work.models import WorkOrderCompletion
-from work.models import RaisePaymentApprovalSettings, ApprovalMatrix, CompanyApprovers, FlowAction, Delegation
+from work.models import RaisePaymentApprovalSettings, ApprovalMatrix, CompanyApprovers, FlowAction, Delegation, StageTimeLimit
 from utils.csv_import import is_super_admin
 
 
@@ -210,3 +210,25 @@ class DelegationAdmin(SuperAdminReadOnlyAdmin):
     """Cover while away, for reference; created and ended from the app."""
     list_display = ('person', 'stand_in', 'starts_at', 'ends_at', 'value_limit', 'status', 'reason', 'ended_early_at')
     search_fields = ('person__email', 'stand_in__email', 'reason')
+
+
+@admin.register(StageTimeLimit)
+class StageTimeLimitAdmin(admin.ModelAdmin):
+    """Time limit per stage: one company default per stage, optional per-client overrides. Super Admin only."""
+    list_display = ('stage', 'client', 'hours', 'reminder_percent', 'updated_at')
+    list_filter = ('stage', 'client')
+
+    def has_module_permission(self, request):
+        return is_super_admin(request.user)
+
+    def has_view_permission(self, request, obj=None):
+        return is_super_admin(request.user)
+
+    def has_add_permission(self, request):
+        return is_super_admin(request.user)
+
+    def has_change_permission(self, request, obj=None):
+        return is_super_admin(request.user)
+
+    def has_delete_permission(self, request, obj=None):
+        return is_super_admin(request.user)
