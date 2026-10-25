@@ -1,0 +1,23 @@
+{% extends "emails/base_email.html" %}
+{% block content %}
+<h2>{{ headline }}</h2>
+<p>{{ message }}</p>
+<div class="detail-box">
+  <table>
+    <tr><td>Voucher</td><td>{{ instance.voucher_number }}</td></tr>
+    <tr><td>Payee</td><td>{{ instance.vendor.name }}</td></tr>
+    <tr><td>Invoice</td><td>{{ instance.invoice.vendor_invoice_number|default:instance.invoice.invoice_number }}</td></tr>
+    <tr><td>Invoice amount</td><td>NGN {{ instance.amount|floatformat:"2g" }}</td></tr>
+    {% if instance.vat %}<tr><td>VAT 7.5%</td><td>NGN {{ instance.vat|floatformat:"2g" }}</td></tr>{% endif %}
+    {% if instance.wht_amount %}<tr><td>Withholding tax {{ instance.wht_percent|floatformat:"-2" }}% (deducted)</td><td>− NGN {{ instance.wht_amount|floatformat:"2g" }}</td></tr>{% endif %}
+    <tr><td>Net to pay</td><td><strong>NGN {{ instance.net_amount|floatformat:"2g" }}</strong></td></tr>
+    {% if instance.status == "Paid" %}
+    <tr><td>Paid on</td><td>{{ instance.payment_date|date:"j M Y" }}</td></tr>
+    <tr><td>Bank reference</td><td>{{ instance.bank_reference }}</td></tr>
+    {% endif %}
+    {% if reason %}<tr><td>Reason</td><td>{{ reason }}</td></tr>{% endif %}
+    <tr><td>Status</td><td><span class="badge badge-pending">{{ instance.get_status_display }}</span></td></tr>
+  </table>
+</div>
+<p>Please log in to AlphaCMMS{% if instance.status != "Paid" %} and open My Tasks{% endif %}.</p>
+{% endblock %}
