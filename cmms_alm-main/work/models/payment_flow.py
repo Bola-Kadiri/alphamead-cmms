@@ -241,17 +241,20 @@ def _can_pay(user, v):
 
 
 @transaction.atomic
-def attach_receipt(vouchers, user, upload):
-    """AP or the Head of Finance attaches the bank receipt / batch report to vouchers waiting to be paid."""
-    if upload is None:
+def attach_receipt(vouchers, user, uploads):
+    """AP or the Head of Finance attaches bank receipts / batch reports to vouchers waiting to be paid."""
+    if uploads is not None and not isinstance(uploads, (list, tuple)):
+        uploads = [uploads]
+    if not uploads:
         raise ActionRefused("Choose the bank receipt or batch report to attach.")
     for v in vouchers:
         _require(v, 'Approved', 'Payment Failed')
         if not (acting_for(user, 'ap_officer', v.facility)[0] or acting_for(user, 'head_of_finance', v.facility)[0]):
             raise ActionRefused("Only AP Officers or the Head of Finance & Treasury can attach the bank receipt.")
     for v in vouchers:
-        upload.seek(0)
-        _attach(v, upload)
+        for upload in uploads:
+            upload.seek(0)
+            _attach(v, upload)
 
 
 @transaction.atomic

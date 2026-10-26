@@ -240,6 +240,9 @@ def _flow_data(wr, user):
         'timing': timing,
         'my_actions': stage1.available_actions(wr, user) if wr.pk else [],
         'replaces': {'slug': wr.replaces.slug, 'number': wr.replaces.work_request_number} if wr.replaces_id else None,
+        # The Requester's supporting documents.
+        'files': [{'id': f.id, 'url': f.file.url if f.file else None, 'name': f.file.name.rsplit('/', 1)[-1] if f.file else ''}
+                  for f in wr.resources.all()] if wr.pk else [],
     }
 
 
@@ -2280,7 +2283,11 @@ def _wcc_flow_data(wcc, user):
         else:
             entry['people'] = len(people)
         chain.append(entry)
-    evidence = {e.kind: e for e in wcc.evidence.all()}
+    evidence = {}
+    for item in wcc.evidence.all():
+        if item.file:
+            evidence.setdefault(item.kind, []).append(
+                {'id': item.pk, 'url': item.file.url, 'name': item.file.name.rsplit('/', 1)[-1], 'uploaded_at': item.uploaded_at})
     return {
         'flow': wcc.flow,
         'status': wcc.approval_status,
@@ -2296,9 +2303,8 @@ def _wcc_flow_data(wcc, user):
                     'time_on_job_minutes': int((wcc.finished_at - wcc.started_at).total_seconds() // 60)
                     if wcc.started_at and wcc.finished_at and wcc.finished_at > wcc.started_at else None},
         'evidence': [
-            {'kind': kind, 'label': label,
-             'file': {'url': evidence[kind].file.url, 'name': evidence[kind].file.name.rsplit('/', 1)[-1],
-                      'uploaded_at': evidence[kind].uploaded_at} if kind in evidence and evidence[kind].file else None}
+            {'kind': kind, 'label': label, 'files': evidence.get(kind, []),
+             'file': evidence[kind][0] if kind in evidence else None}
             for kind, label in WccEvidence.KIND_CHOICES
         ],
         'problems': stage3.problems(wcc) if ('submit' in actions or 'approve' in actions) else [],
@@ -2400,7 +2406,12 @@ class WorkOrderCompletionViewSet(LegacyActionsGuard, RoleBasedPermissionMixin, v
 
     @action(detail=True, methods=['post'], url_path='flow-evidence')
     def flow_evidence(self, request, pk=None):
-        return self._stage3_call(request, stage3.add_evidence, request.data.get('kind'), request.FILES.get('file'))
+        uploads = request.FILES.getlist('file') or request.FILES.getlist('files')
+        return self._stage3_call(request, stage3.add_evidence, request.data.get('kind'), uploads)
+
+    @action(detail=True, methods=['post'], url_path='flow-evidence-remove')
+    def flow_evidence_remove(self, request, pk=None):
+        return self._stage3_call(request, stage3.remove_evidence, request.data.get('evidence'))
 
     @action(detail=True, methods=['post'], url_path='flow-submit')
     def flow_submit(self, request, pk=None):

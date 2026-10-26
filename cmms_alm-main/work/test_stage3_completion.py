@@ -176,12 +176,17 @@ class Stage3CompletionTests(TestCase):
         response = self.post(self.tunde, f'{WCC}{wcc.pk}/flow-details/', {'vendor_rating': 7})
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
 
-    def test_new_evidence_replaces_old(self):
+    def test_several_files_per_kind_and_remove(self):
         wcc = self.started()
         self.post(self.tunde, f'{WCC}{wcc.pk}/flow-evidence/', {'kind': 'after_photo', 'file': upload('blurry.jpg')}, 'multipart')
         self.post(self.tunde, f'{WCC}{wcc.pk}/flow-evidence/', {'kind': 'after_photo', 'file': upload('clear.jpg')}, 'multipart')
-        self.assertEqual(wcc.evidence.filter(kind='after_photo').count(), 1)
+        self.assertEqual(wcc.evidence.filter(kind='after_photo').count(), 2)
+        blurry = wcc.evidence.get(kind='after_photo', file__contains='blurry')
+        response = self.post(self.tunde, f'{WCC}{wcc.pk}/flow-evidence-remove/', {'evidence': blurry.pk})
+        self.assertEqual(response.status_code, status.HTTP_200_OK, response.data)
         self.assertIn('clear', wcc.evidence.get(kind='after_photo').file.name)
+        after = next(e for e in response.data['evidence'] if e['kind'] == 'after_photo')
+        self.assertEqual(len(after['files']), 1)
 
     # ── verification and approval ────────────────────────────────────────────
 

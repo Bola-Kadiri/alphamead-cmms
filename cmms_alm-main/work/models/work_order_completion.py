@@ -113,7 +113,7 @@ class WorkOrderCompletion(OwnerPrivModel, Dated, models.Model):
 
 
 class WccEvidence(models.Model):
-    """One piece of required evidence on a five-stage WCC. One of each kind; a new upload replaces the old."""
+    """A file of required evidence on a five-stage WCC. Each kind needs at least one; several are allowed."""
 
     BEFORE_PHOTO = 'before_photo'
     AFTER_PHOTO = 'after_photo'
@@ -131,8 +131,7 @@ class WccEvidence(models.Model):
     uploaded_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
-        ordering = ['kind']
-        constraints = [models.UniqueConstraint(fields=['completion', 'kind'], name='one_evidence_per_kind')]
+        ordering = ['kind', 'uploaded_at']
 
     def __str__(self):
         return f"{self.get_kind_display()} · {self.completion}"

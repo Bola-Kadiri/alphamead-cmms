@@ -184,7 +184,8 @@ class PaymentVoucherViewSet(viewsets.ReadOnlyModelViewSet):
     @action(detail=False, methods=['post'], url_path='attach-receipt')
     def attach_receipt(self, request):
         try:
-            stage5.attach_receipt(self._selected(request), request.user, request.FILES.get('file'))
+            stage5.attach_receipt(self._selected(request), request.user,
+                                  request.FILES.getlist('file') or request.FILES.getlist('files'))
         except ActionRefused as exc:
             return Response({'error': str(exc)}, status=status.HTTP_400_BAD_REQUEST)
         return Response({'message': 'Receipt attached.'})

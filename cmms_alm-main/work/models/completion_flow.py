@@ -110,15 +110,27 @@ def save_details(wcc, user, *, started_at=None, finished_at=None, technician=Non
 
 
 @transaction.atomic
-def add_evidence(wcc, user, kind, upload):
+def add_evidence(wcc, user, kind, uploads):
+    """Add one or more files of one kind (e.g. several before photos). Earlier files are kept."""
     _require(wcc, 'Draft', 'Sent Back')
     _site_manager_check(user, wcc.work_order.facility)
     if kind not in REQUIRED_EVIDENCE:
         raise ActionRefused("Choose what this file is: before photo, after photo or signed checklist.")
-    if upload is None:
+    if uploads is not None and not isinstance(uploads, (list, tuple)):
+        uploads = [uploads]
+    if not uploads:
         raise ActionRefused("Choose a file to upload.")
-    WccEvidence.objects.filter(completion=wcc, kind=kind).delete()  # a new upload replaces the old one
-    WccEvidence.objects.create(completion=wcc, kind=kind, file=upload, uploaded_by=user)
+    for upload in uploads:
+        WccEvidence.objects.create(completion=wcc, kind=kind, file=upload, uploaded_by=user)
+
+
+def remove_evidence(wcc, user, evidence_id):
+    """Take one file off the certificate while it can still be changed."""
+    _require(wcc, 'Draft', 'Sent Back')
+    _site_manager_check(user, wcc.work_order.facility)
+    deleted, _ = WccEvidence.objects.filter(completion=wcc, pk=evidence_id).delete()
+    if not deleted:
+        raise ActionRefused("That file is not on this certificate.")
 
 
 def problems(wcc):

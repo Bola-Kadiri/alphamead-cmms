@@ -156,6 +156,13 @@ class Stage5PaymentTests(TestCase):
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
         self.assertIn('cannot confirm Paid', response.data['error'])
 
+    def test_several_receipts_at_once(self):
+        v = self.approved()
+        response = self.post(self.seun, f'{VOUCHERS}attach-receipt/',
+                             {'vouchers': [v.pk], 'file': [receipt('batch.pdf'), receipt('transfer-slip.pdf')]}, 'multipart')
+        self.assertEqual(response.status_code, status.HTTP_200_OK, response.data)
+        self.assertEqual(v.attachments.count(), 2)
+
     def test_paid_needs_the_receipt(self):
         v = self.approved()
         response = self.pay([v])

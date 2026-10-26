@@ -6,7 +6,11 @@ Client approves, or rejects and the job ends. Facilities not switched on are unt
 from datetime import timedelta
 
 from django.contrib.auth import get_user_model
-from django.test import TestCase
+import shutil
+import tempfile
+
+from django.core.files.uploadedfile import SimpleUploadedFile
+from django.test import TestCase, override_settings
 from django.utils import timezone
 from rest_framework import status
 from rest_framework.test import APIClient
@@ -221,6 +225,18 @@ class Stage1WorkRequestTests(TestCase):
         response = self.act(self.ada, wr.slug, 'flow-review', signature='Ada Test')
         self.assertEqual(response.status_code, status.HTTP_200_OK, response.data)
         self.assertEqual(response.data['history'][-1]['on_behalf_of'], 'Femi Test')
+
+    def test_requester_attaches_several_supporting_documents(self):
+        media = tempfile.mkdtemp()
+        self.addCleanup(shutil.rmtree, media, ignore_errors=True)
+        with override_settings(MEDIA_ROOT=media):
+            response = self.raise_request(resources=[
+                SimpleUploadedFile('leak-photo.jpg', b'\xff\xd8\xff photo', content_type='image/jpeg'),
+                SimpleUploadedFile('site-report.pdf', b'%PDF-1.4 report', content_type='application/pdf'),
+            ])
+            self.assertEqual(response.status_code, status.HTTP_201_CREATED, response.data)
+            data = self.api(self.femi).get(f"{WORK_REQUESTS}{response.data['slug']}/flow/").data
+        self.assertEqual(sorted(f['name'].split('_')[0].rsplit('.', 1)[0] for f in data['files']), ['leak-photo', 'site-report'])
 
     def test_flow_screen_data(self):
         wr = self.raised()
