@@ -17,7 +17,7 @@ from django.db import transaction
 from django.utils import timezone
 
 from work.models.action_log import history
-from work.models.approval_matrix import ApprovalMatrix, acting_for, team_members
+from work.models.approval_matrix import COMPANY_SLOTS, ApprovalMatrix, CompanyApprovers, acting_for, team_members
 from work.models.delegation import Delegation
 from work.models.flow_rules import ActionRefused, perform_action
 from work.models.time_limits import step_timing
@@ -122,8 +122,11 @@ def people_for(wr, slot):
     """Everyone who may act on `slot` for `wr` now: the team, or the named signer and any active stand-in."""
     if slot == 'requester':
         return list(team_members('requester', wr.facility))
-    matrix = ApprovalMatrix.objects.filter(facility=wr.facility).first()
-    signer = getattr(matrix, slot, None) if matrix else None
+    if slot in COMPANY_SLOTS:
+        signer = getattr(CompanyApprovers.current(), slot, None)
+    else:
+        matrix = ApprovalMatrix.objects.filter(facility=wr.facility).first()
+        signer = getattr(matrix, slot, None) if matrix else None
     if signer is None:
         return []
     stand_ins = [d.stand_in for d in Delegation.objects.active().filter(person=signer).select_related('stand_in')]

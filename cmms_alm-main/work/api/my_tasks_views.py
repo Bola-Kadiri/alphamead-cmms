@@ -8,6 +8,7 @@ from rest_framework.views import APIView
 
 from work.models import completion_flow as stage3
 from work.models import invoice_flow as stage4
+from work.models import payment_flow as stage5
 from work.models import work_order_flow as stage2
 from work.models import work_request_flow as stage1
 
@@ -106,5 +107,26 @@ class MyTasksView(APIView):
                 'step_label': stage4.STEP_LABELS.get(task['step'], task['step']),
                 'on_behalf_of': _who(task['on_behalf_of']),
                 'waiting_since': inv.updated_at, 'timing': _timing(task['timing']),
+            })
+        for task in stage5.my_tasks(request.user):
+            if task['kind'] == 'voucher_to_raise':
+                inv = task['invoice']
+                rows.append({
+                    'kind': 'voucher_to_raise', 'id': inv.id, 'slug': str(inv.id), 'number': inv.invoice_number,
+                    'facility': inv.facility.name if inv.facility_id else None,
+                    'description': inv.work_order.description if inv.work_order_id else '', 'priority': None,
+                    'status': inv.approval_status, 'step': 'ap_officer', 'step_label': stage5.STEP_LABELS['ap_officer'],
+                    'on_behalf_of': None, 'waiting_since': inv.updated_at, 'timing': None,
+                })
+                continue
+            v = task['voucher']
+            rows.append({
+                'kind': 'voucher', 'id': v.id, 'slug': str(v.id), 'number': v.voucher_number,
+                'facility': v.facility.name if v.facility_id else None,
+                'description': v.work_order.description, 'priority': None,
+                'status': v.status, 'step': task['step'],
+                'step_label': stage5.STEP_LABELS.get(task['step'], task['step']),
+                'on_behalf_of': _who(task['on_behalf_of']),
+                'waiting_since': v.updated_at, 'timing': _timing(task['timing']),
             })
         return Response(rows)

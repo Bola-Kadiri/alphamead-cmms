@@ -18,6 +18,7 @@ from cmms_instanta.permissions import (
 from work.models import (WorkRequest, WorkRequestQuotationItem, WorkOrder, Comment, PaymentItem,
                           PaymentRequisition, PPM, WorkOrderCompletion, WccEvidence, Invoice)
 from work.models.raise_payment_settings import RaisePaymentApprovalSettings
+from work.models.payment_voucher import PaymentVoucher
 from work.models import work_request_flow as stage1
 from work.models import work_order_flow as stage2
 from work.models import completion_flow as stage3
@@ -2516,7 +2517,18 @@ def _invoice_flow_data(inv, user):
         ],
         'timing': stage4.timing(inv),
         'my_actions': actions,
+        'payment': _invoice_payment(inv),
     }
+
+
+def _invoice_payment(inv):
+    """How the approved invoice's payment is going: being prepared, or paid (with the remittance)."""
+    if inv.approval_status != 'Approved':
+        return None
+    voucher = PaymentVoucher.objects.filter(invoice=inv, status='Paid').first()
+    if voucher is None:
+        return {'status': 'Being prepared', 'voucher_id': None, 'paid_at': None}
+    return {'status': 'Paid', 'voucher_id': voucher.pk, 'paid_at': voucher.paid_at}
 
 
 class InvoiceViewSet(LegacyActionsGuard, RoleBasedPermissionMixin, viewsets.ModelViewSet):

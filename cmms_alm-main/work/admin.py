@@ -3,6 +3,7 @@ from django.contrib import admin
 from .models import WorkRequest, WorkOrder, PaymentItem, PaymentRequisition, PPM
 from work.models import WorkOrderCompletion
 from work.models import RaisePaymentApprovalSettings, ApprovalMatrix, CompanyApprovers, FlowAction, Delegation, StageTimeLimit
+from work.models import PaymentVoucher, WithholdingTaxRate
 from utils.csv_import import is_super_admin
 
 
@@ -232,3 +233,21 @@ class StageTimeLimitAdmin(admin.ModelAdmin):
 
     def has_delete_permission(self, request, obj=None):
         return is_super_admin(request.user)
+
+
+@admin.register(WithholdingTaxRate)
+class WithholdingTaxRateAdmin(admin.ModelAdmin):
+    """Withholding tax rates; Finance keeps them from the app. Switch off rather than delete."""
+    list_display = ('name', 'rate', 'is_active', 'updated_at')
+    list_filter = ('is_active',)
+
+    def has_delete_permission(self, request, obj=None):
+        return False
+
+
+@admin.register(PaymentVoucher)
+class PaymentVoucherAdmin(SuperAdminReadOnlyAdmin):
+    """Five-stage payment vouchers, for reference; every change is made in the app."""
+    list_display = ('voucher_number', 'vendor', 'status', 'net_amount', 'paid_at')
+    list_filter = ('status',)
+    search_fields = ('voucher_number', 'vendor__name', 'bank_reference')

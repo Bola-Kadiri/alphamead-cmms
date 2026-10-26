@@ -7,6 +7,7 @@ from work.api.notification_views import NotificationViewSet
 from work.api.matrix_views import ApprovalMatrixViewSet, CompanyApproversView
 from work.api.delegation_views import DelegationViewSet
 from work.api.my_tasks_views import MyTasksView
+from work.api.payment_views import PaymentVoucherViewSet, WithholdingTaxRateViewSet
 
 router = DefaultRouter()
 router.register(r'work-requests', WorkRequestViewSet, basename='work-request')
@@ -20,6 +21,8 @@ router.register(r'invoices', InvoiceViewSet, basename='invoice')
 router.register(r'notifications', NotificationViewSet, basename='notification')
 router.register(r'approval-matrix', ApprovalMatrixViewSet, basename='approval-matrix')
 router.register(r'delegations', DelegationViewSet, basename='delegation')
+router.register(r'payment-vouchers', PaymentVoucherViewSet, basename='payment-voucher')
+router.register(r'wht-rates', WithholdingTaxRateViewSet, basename='wht-rate')
 
 urlpatterns = [
     path('company-approvers/', CompanyApproversView.as_view(), name='company-approvers'),
