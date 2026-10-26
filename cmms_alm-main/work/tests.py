@@ -47,8 +47,10 @@ class RaisePaymentWorkOrderTests(TestCase):
         self.reviewer = make_user('reviewer@example.com', 'REVIEWER')
         self.approver = make_user('approver@example.com', 'APPROVER')
         self.finance = make_user('finance@example.com', 'HEAD OF FINANCE & TREASURY')
-        # Second approver for bills of ₦1,000,000 or more (RaisePaymentApprovalSettings default).
+        # Second approver for bills of ₦100,000 or more (RaisePaymentApprovalSettings default).
         self.second_approver = make_user('wole.olufore@alphamead.com', 'APPROVER')
+        # Bills of ₦100,000 or more get their PO and quotation from Procurement & Store first.
+        self.procurement = make_user('procurement@example.com', 'PROCUREMENT AND STORE')
 
         self.facility = Facility.objects.create(name='HQ Office')
         self.electricity = AssetCategory.objects.create(
@@ -83,7 +85,7 @@ class RaisePaymentWorkOrderTests(TestCase):
             'withholding_tax': '5%',
             'reviewers': [self.reviewer.pk],
             'approver': self.approver.pk,
-            'final_approver': self.second_approver.pk,  # ₦1,182,365.62 ≥ ₦1,000,000
+            'final_approver': self.second_approver.pk,  # ₦1,182,365.62 ≥ ₦100,000
             'resources': [bill_file()],
         }
         data.update(overrides)
@@ -103,7 +105,7 @@ class RaisePaymentWorkOrderTests(TestCase):
         return slug
 
     def finish_approval(self, slug):
-        """Reviewer reviews; a bill of ₦1,000,000 or more then needs the second approver."""
+        """Reviewer reviews; a bill of ₦100,000 or more then needs the second approver."""
         self.client.force_authenticate(user=self.reviewer)
         response = self.client.post(f'{WORK_ORDERS}{slug}/approve-by-reviewer/')
         if response.status_code == status.HTTP_200_OK and response.data['approval_status'] == 'Awaiting Final Approval':
@@ -112,6 +114,12 @@ class RaisePaymentWorkOrderTests(TestCase):
         return response
 
     def approve(self, slug):
+        if WorkOrder.objects.get(slug=slug).approval_status == 'Awaiting Procurement':
+            self.client.force_authenticate(user=self.procurement)
+            response = self.client.post(f'{WORK_ORDERS}{slug}/procurement-submit/', {
+                'po_number': 'PO-0925', 'quotation_file': bill_file(),
+            }, format='multipart')
+            self.assertEqual(response.status_code, status.HTTP_200_OK, response.data)
         self.client.force_authenticate(user=self.approver)
         return self.client.post(f'{WORK_ORDERS}{slug}/approve-by-approver/')
 
@@ -169,7 +177,7 @@ class RaisePaymentWorkOrderTests(TestCase):
 
         work_order = WorkOrder.objects.get(slug=slug)
         self.assertEqual(work_order.approval_status, 'Approved')
-        self.assertEqual(work_order.final_approver, self.second_approver)  # ₦1,182,365.62 ≥ ₦1,000,000
+        self.assertEqual(work_order.final_approver, self.second_approver)  # ₦1,182,365.62 ≥ ₦100,000
         requisition = work_order.linked_payments.get()
         self.assertEqual(requisition.approval_status, 'approve')
         self.assertEqual(requisition.pay_to, self.ekedc)

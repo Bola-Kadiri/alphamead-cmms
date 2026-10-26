@@ -254,6 +254,8 @@ class RoleBasedPermission(BasePermission):
             # requisition feature; the real gate is the role check inside
             # PaymentRequisitionViewSet.disburse itself.
             'disburse',
+            # Raise Payment large bills — gated inside WorkOrderViewSet.
+            'procurement_submit', 'procurement_return', 'raise_payment_resubmit',
             # ppm / other
             'approve_order',
         }

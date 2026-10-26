@@ -273,7 +273,8 @@ class WorkOrderSerializer(serializers.ModelSerializer):
     next_step = serializers.SerializerMethodField()
     needs_second_approval = serializers.SerializerMethodField()
 
-    NEXT_STEP = {'Pending': 'approver', 'Approver Approved': 'reviewer', 'Awaiting Final Approval': 'final_approver'}
+    NEXT_STEP = {'Awaiting Procurement': 'procurement', 'Procurement Returned': 'requester', 'Pending': 'approver',
+                 'Approver Approved': 'reviewer', 'Awaiting Final Approval': 'final_approver'}
 
     def get_next_step(self, obj):
         return self.NEXT_STEP.get(obj.approval_status) if obj.is_approver_first else None
@@ -357,6 +358,7 @@ class WorkOrderSerializer(serializers.ModelSerializer):
             # Raise Payment approval route — set by the system, moved on only by the approval actions.
             'approval_route', 'final_approver_detail', 'final_approved_at',
             'final_approver_reason', 'next_step', 'needs_second_approval',
+            'needs_procurement', 'quotation_file', 'procurement_by', 'procurement_at', 'procurement_reason',
             # Closed/Pending/Rejected tracking, and the closure fields it sets —
             # managed exclusively by the set-status action (which also drives
             # the auto Payment Requisition).
@@ -434,7 +436,7 @@ class WorkOrderSerializer(serializers.ModelSerializer):
             )
         # Mid-approval on the approver-first route: the amount the approvers signed off can't change.
         if instance is not None and instance.is_approver_first and instance.approval_status in (
-                'Approver Approved', 'Awaiting Final Approval'):
+                'Awaiting Procurement', 'Approver Approved', 'Awaiting Final Approval'):
             raise serializers.ValidationError(
                 "This Raise Payment bill is being approved and can't be edited. Ask an approver to reject it "
                 "if it needs changes."
@@ -524,9 +526,14 @@ class WorkOrderSerializer(serializers.ModelSerializer):
     def create(self, validated_data):
         resource_uploads = validated_data.pop('resources', [])
         reviewers = validated_data.pop('reviewers', [])
-        # New Raise Payment bills go Approver → Reviewer (→ second approver for large bills).
+        # New Raise Payment bills go Approver → Reviewer; large bills start with Procurement & Store
+        # and end with the second approver.
         if validated_data.get('type') == WorkOrder.RAISE_PAYMENT and validated_data.get('payee'):
             validated_data['approval_route'] = WorkOrder.APPROVER_FIRST
+            if RaisePaymentApprovalSettings.current().needs_second_approval(
+                    validated_data.get('cost'), validated_data.get('currency')):
+                validated_data['needs_procurement'] = True
+                validated_data['approval_status'] = 'Awaiting Procurement'
         with transaction.atomic():
             instance = WorkOrder.objects.create(**validated_data)
             if reviewers:
@@ -539,6 +546,11 @@ class WorkOrderSerializer(serializers.ModelSerializer):
         reviewers = validated_data.pop('reviewers', None)
         for attr, value in validated_data.items():
             setattr(instance, attr, value)
+        # A bill edited up to the large-bill amount before the Approver acts now needs Procurement & Store.
+        if (instance.is_approver_first and instance.approval_status == 'Pending' and not instance.procurement_at
+                and RaisePaymentApprovalSettings.current().needs_second_approval(instance.cost, instance.currency)):
+            instance.needs_procurement = True
+            instance.approval_status = 'Awaiting Procurement'
         instance.save()
         if reviewers is not None:
             instance.reviewers.set(reviewers)

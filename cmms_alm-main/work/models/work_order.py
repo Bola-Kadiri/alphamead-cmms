@@ -101,7 +101,10 @@ class WorkOrder(OwnerPrivModel, Dated, Status, models.Model):
         ("Reviewer Rejected", "Reviewer Rejected"),
         ("Approver Rejected", "Approver Rejected"),
         ("Rejected", "Rejected"),
-        # Raise Payment, approver-first route (see approval_route).
+        # Raise Payment, approver-first route (see approval_route). Large bills start with
+        # Procurement & Store adding the PO and quotation (see needs_procurement).
+        ("Awaiting Procurement", "Awaiting Procurement"),
+        ("Procurement Returned", "Procurement Returned"),
         ("Approver Approved", "Approver Approved"),
         ("Awaiting Final Approval", "Awaiting Final Approval"),
         ("Final Approver Rejected", "Final Approver Rejected"),
@@ -578,6 +581,22 @@ class WorkOrder(OwnerPrivModel, Dated, Status, models.Model):
         blank=True, null=True,
         help_text="Reason given when the second approver rejects.",
     )
+
+    # Raise Payment, large bills: Procurement & Store adds the PO and the quotation
+    # before the Approver sees the bill (see RaisePaymentApprovalSettings).
+    needs_procurement = models.BooleanField(
+        default=False,
+        help_text="Raise Payment: Procurement & Store must add the PO and quotation before the Approver acts.",
+    )
+    quotation_file = models.FileField(upload_to='work_orders/quotations/', blank=True, null=True,
+                                      help_text="Raise Payment: the quotation Procurement & Store attached.")
+    procurement_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, blank=True, null=True, related_name='+',
+        help_text="Procurement & Store user who added the PO and quotation.",
+    )
+    procurement_at = models.DateTimeField(blank=True, null=True)
+    procurement_reason = models.TextField(blank=True, default='',
+                                          help_text="Why Procurement & Store returned the bill to the Requester.")
 
     @property
     def is_approver_first(self):

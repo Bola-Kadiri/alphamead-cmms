@@ -6,15 +6,16 @@ from django.db import models
 
 class RaisePaymentApprovalSettings(models.Model):
     """
-    Raise Payment second approval: a bill at or above `threshold` (in NGN),
-    or in any other currency, needs a final approval from the user whose
-    email is `second_approver_email`, after the Reviewer. One row, edited by
-    the Super Admin in Django admin, so neither needs a code change.
+    Raise Payment large bills: a bill at or above `threshold` (in NGN), or in any
+    other currency, goes Requester → Procurement & Store (PO and quotation) →
+    Approver → Reviewer → final approval by the user whose email is
+    `second_approver_email`. Smaller bills go Requester → Approver → Reviewer.
+    One row, edited by the Super Admin in Django admin, so neither needs a code change.
     """
 
     threshold = models.DecimalField(
-        max_digits=18, decimal_places=2, default=Decimal('1000000.00'),
-        help_text="Bills of this amount (NGN) or more need the second approval.",
+        max_digits=18, decimal_places=2, default=Decimal('100000.00'),
+        help_text="Bills of this amount (NGN) or more need Procurement & Store (PO and quotation) and the second approval.",
     )
     second_approver_email = models.EmailField(
         default='wole.olufore@alphamead.com',

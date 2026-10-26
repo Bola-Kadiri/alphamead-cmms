@@ -270,6 +270,11 @@ def on_work_request_reviewers_changed(sender, instance, action, pk_set, **kwargs
 # WORK ORDER
 # ===========================================================================
 
+def _procurement_team():
+    from django.contrib.auth import get_user_model
+    return get_user_model().objects.filter(roles='PROCUREMENT AND STORE', is_active=True)
+
+
 def _raise_payment_action(work_order, recipients, headline, message):
     """Raise Payment approver-first route: tell whoever acts next that it's their turn."""
     users = _users(recipients)
@@ -312,6 +317,13 @@ def on_work_order_saved(sender, instance, created, **kwargs):
             fresh = WorkOrder.objects.get(pk=instance.pk)
             ctx = {'instance': fresh}
 
+            if fresh.is_approver_first and current == 'Awaiting Procurement' and (created or previous != current):
+                _raise_payment_action(
+                    fresh, _procurement_team(), 'PO and Quotation Needed',
+                    'A Raise Payment bill needs its PO number and quotation before the Approver can act.',
+                )
+                return
+
             if created and fresh.is_approver_first:
                 _raise_payment_action(
                     fresh, fresh.approver, 'Awaiting Your Approval',
@@ -337,6 +349,21 @@ def on_work_order_saved(sender, instance, created, **kwargs):
                 return
 
             if previous == current:
+                return
+
+            if fresh.is_approver_first and current == 'Pending' and previous in ('Awaiting Procurement', 'Procurement Returned'):
+                _raise_payment_action(
+                    fresh, fresh.approver, 'Awaiting Your Approval',
+                    'A Raise Payment bill is ready for your approval. The Reviewer acts after you.',
+                )
+                return
+
+            if fresh.is_approver_first and current == 'Procurement Returned':
+                _raise_payment_action(
+                    fresh, fresh.owner or fresh.requester, 'Returned by Procurement',
+                    f'Procurement & Store returned this Raise Payment bill: {fresh.procurement_reason}. '
+                    'Please fix it and resubmit.',
+                )
                 return
 
             if fresh.is_approver_first and current == 'Approver Approved':

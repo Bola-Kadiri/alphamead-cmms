@@ -1253,7 +1253,9 @@ class WorkOrderViewSet(LegacyActionsGuard, RoleBasedPermissionMixin, viewsets.Mo
                 | five_stage & Q(facility__in=_signer_facilities(user, 'approver'))
             ).distinct().order_by('-id')
         if role == 'PROCUREMENT AND STORE':
-            return qs.filter(Q(owner=user) | Q(final_approver=user) | five_stage).distinct().order_by('-id')
+            return qs.filter(
+                Q(owner=user) | Q(final_approver=user) | five_stage | Q(needs_procurement=True)
+            ).distinct().order_by('-id')
         if role == 'REQUESTER':
             return qs.filter(
                 Q(owner=user) | Q(final_approver=user) | five_stage & Q(facility__in=accessible_facilities(user))
@@ -1493,6 +1495,11 @@ class WorkOrderViewSet(LegacyActionsGuard, RoleBasedPermissionMixin, viewsets.Mo
                 {"error": f"This bill is not waiting for the Approver (status '{instance.approval_status}')."},
                 status=status.HTTP_400_BAD_REQUEST,
             )
+        if instance.needs_procurement and not instance.procurement_at:
+            return Response(
+                {"error": "Procurement & Store must add the PO and quotation before the Approver can act."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
         if request.user.roles == 'APPROVER':
             limit_error = _exceeds_approval_limit(request.user, instance.cost)
             if limit_error:
@@ -1539,6 +1546,87 @@ class WorkOrderViewSet(LegacyActionsGuard, RoleBasedPermissionMixin, viewsets.Mo
                 status=status.HTTP_400_BAD_REQUEST,
             )
         return None
+
+    # Large bills: Procurement & Store adds the PO and quotation, or returns the bill to the Requester.
+
+    def _check_procurement(self, request, instance):
+        if not (instance.is_approver_first and instance.needs_procurement):
+            return Response({"error": "This bill does not go through Procurement & Store."},
+                            status=status.HTTP_400_BAD_REQUEST)
+        if request.user.roles not in ('PROCUREMENT AND STORE', 'ADMIN', 'SUPER ADMIN'):
+            return Response({"error": "Only Procurement & Store can add the PO and quotation."},
+                            status=status.HTTP_403_FORBIDDEN)
+        if request.user.pk in (instance.owner_id, instance.requester_id):
+            return Response({"error": "You raised this bill, so another Procurement & Store user must handle it."},
+                            status=status.HTTP_403_FORBIDDEN)
+        if instance.approval_status != 'Awaiting Procurement':
+            return Response(
+                {"error": f"This bill is not waiting for Procurement & Store (status '{instance.approval_status}')."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        return None
+
+    @action(detail=True, methods=['post'], url_path='procurement-submit')
+    def procurement_submit(self, request, slug=None):
+        instance = get_object_or_404(WorkOrder, slug=slug)
+        refused = self._check_procurement(request, instance)
+        if refused:
+            return refused
+        po_number = (request.data.get('po_number') or '').strip()
+        quotation = request.FILES.get('quotation_file')
+        errors = {}
+        if not po_number:
+            errors['po_number'] = "Enter the PO number."
+        if quotation is None and not instance.quotation_file:
+            errors['quotation_file'] = "Attach the quotation."
+        if errors:
+            return Response(errors, status=status.HTTP_400_BAD_REQUEST)
+        instance.po_number = po_number
+        instance.quotation_reference = (request.data.get('quotation_reference') or '').strip()
+        if quotation is not None:
+            instance.quotation_file = quotation
+        instance.procurement_by = request.user
+        instance.procurement_at = timezone.now()
+        instance.procurement_reason = ''
+        instance.approval_status = 'Pending'
+        instance.save(update_fields=['po_number', 'quotation_reference', 'quotation_file', 'procurement_by',
+                                     'procurement_at', 'procurement_reason', 'approval_status'])
+        return Response(self.get_serializer(instance).data, status=status.HTTP_200_OK)
+
+    @action(detail=True, methods=['post'], url_path='procurement-return')
+    def procurement_return(self, request, slug=None):
+        instance = get_object_or_404(WorkOrder, slug=slug)
+        refused = self._check_procurement(request, instance)
+        if refused:
+            return refused
+        reason = (request.data.get('procurement_reason') or '').strip()
+        if not reason:
+            return Response({"error": "Give a reason so the Requester knows what to fix."},
+                            status=status.HTTP_400_BAD_REQUEST)
+        instance.procurement_reason = reason
+        instance.approval_status = 'Procurement Returned'
+        instance.save(update_fields=['procurement_reason', 'approval_status'])
+        return Response(self.get_serializer(instance).data, status=status.HTTP_200_OK)
+
+    @action(detail=True, methods=['post'], url_path='raise-payment-resubmit')
+    def raise_payment_resubmit(self, request, slug=None):
+        """The Requester sends a bill Procurement & Store returned back in, after fixing it."""
+        instance = get_object_or_404(WorkOrder, slug=slug)
+        is_admin = request.user.roles in ('ADMIN', 'SUPER ADMIN')
+        if not (is_admin or request.user.pk in (instance.owner_id, instance.requester_id)):
+            return Response({"error": "Only the Requester who raised this bill can resubmit it."},
+                            status=status.HTTP_403_FORBIDDEN)
+        if instance.approval_status != 'Procurement Returned':
+            return Response(
+                {"error": f"Only a bill returned by Procurement & Store can be resubmitted (status '{instance.approval_status}')."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        # The amount decides the route again: a bill corrected below the threshold goes straight to the Approver.
+        large = RaisePaymentApprovalSettings.current().needs_second_approval(instance.cost, instance.currency)
+        instance.needs_procurement = large
+        instance.approval_status = 'Awaiting Procurement' if large else 'Pending'
+        instance.save(update_fields=['needs_procurement', 'approval_status'])
+        return Response(self.get_serializer(instance).data, status=status.HTTP_200_OK)
 
     @action(detail=True, methods=['post'], url_path='final-approve')
     def final_approve(self, request, slug=None):
