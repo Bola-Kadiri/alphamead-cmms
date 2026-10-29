@@ -491,7 +491,7 @@ class WorkOrderSerializer(serializers.ModelSerializer):
             if approval_settings.needs_second_approval(cost, value('currency')):
                 expected = approval_settings.second_approver()
                 selected = value('final_approver')
-                limit = f"NGN {approval_settings.threshold:,.0f}"
+                limit = f"NGN {approval_settings.final_approval_threshold:,.0f}"
                 if expected is None:
                     errors['final_approver'] = (
                         f"Bills of {limit} or more need a final approver, but no active AlphaCMMS user has the "
@@ -540,7 +540,7 @@ class WorkOrderSerializer(serializers.ModelSerializer):
         # and end with the second approver.
         if validated_data.get('type') == WorkOrder.RAISE_PAYMENT and validated_data.get('payee'):
             validated_data['approval_route'] = WorkOrder.APPROVER_FIRST
-            if RaisePaymentApprovalSettings.current().needs_second_approval(
+            if RaisePaymentApprovalSettings.current().needs_procurement(
                     validated_data.get('cost'), validated_data.get('currency')):
                 validated_data['needs_procurement'] = True
                 validated_data['approval_status'] = 'Awaiting Procurement'
@@ -558,7 +558,7 @@ class WorkOrderSerializer(serializers.ModelSerializer):
             setattr(instance, attr, value)
         # A bill edited up to the large-bill amount before the Approver acts now needs Procurement & Store.
         if (instance.is_approver_first and instance.approval_status == 'Pending' and not instance.procurement_at
-                and RaisePaymentApprovalSettings.current().needs_second_approval(instance.cost, instance.currency)):
+                and RaisePaymentApprovalSettings.current().needs_procurement(instance.cost, instance.currency)):
             instance.needs_procurement = True
             instance.approval_status = 'Awaiting Procurement'
         instance.save()

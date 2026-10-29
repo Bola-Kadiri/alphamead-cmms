@@ -1,9 +1,9 @@
 """
 Raise Payment approval order, decided by the bill amount:
   below ₦100,000:       Requester → Approver → Reviewer
-  ₦100,000 or more (or another currency):
-                        Requester → Procurement & Store (PO and quotation) → Approver → Reviewer
-                        → second (final) approval by the configured user.
+  ₦100,000 or more:     Requester → Procurement & Store (PO and quotation) → Approver → Reviewer
+  ₦500,000 or more (or another currency):
+                        … → Reviewer → second (final) approval by the configured user.
 Only new Raise Payment bills follow it; everything else is unchanged.
 """
 import shutil
@@ -73,7 +73,7 @@ class RaisePaymentApprovalRouteTests(TestCase):
         """Raise a bill; by default the Requester selects Wole when the amount needs it."""
         self.bill_no += 1
         if final_approver is self.AUTO:
-            final_approver = self.wole.pk if (currency != 'NGN' or Decimal(cost) >= Decimal('100000')) else None
+            final_approver = self.wole.pk if (currency != 'NGN' or Decimal(cost) >= Decimal('500000')) else None
         data = {
             'type': WorkOrder.RAISE_PAYMENT, 'invoice_no': f'BILL-{self.bill_no}',
             'description': 'EKEDC bill', 'category': self.category.pk, 'subcategory': self.subcategory.pk,
@@ -109,8 +109,8 @@ class RaisePaymentApprovalRouteTests(TestCase):
 
     # ── the Requester selects the final approver ─────────────────────────────
 
-    def test_final_approver_required_from_one_hundred_thousand(self):
-        response = self.post_bill('100000.00', final_approver=None)
+    def test_final_approver_required_from_five_hundred_thousand(self):
+        response = self.post_bill('500000.00', final_approver=None)
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
         self.assertIn('final_approver', response.data)
         self.assertFalse(WorkOrder.objects.exists())
@@ -120,8 +120,8 @@ class RaisePaymentApprovalRouteTests(TestCase):
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
         self.assertIn('final_approver', response.data)
 
-    def test_no_final_approver_below_one_hundred_thousand(self):
-        slug = self.raise_bill(SMALL, final_approver=self.wole.pk)
+    def test_no_final_approver_below_five_hundred_thousand(self):
+        slug = self.raise_bill('499999.99', final_approver=self.wole.pk)
         self.assertIsNone(WorkOrder.objects.get(slug=slug).final_approver)
 
     def test_selected_final_approver_is_on_the_bill_from_the_start(self):
@@ -135,7 +135,8 @@ class RaisePaymentApprovalRouteTests(TestCase):
         self.client.force_authenticate(user=self.requester)
         response = self.client.get(f'{WORK_ORDERS}final-approvers/')
         self.assertEqual(response.status_code, status.HTTP_200_OK, response.data)
-        self.assertEqual(response.data['threshold'], '100000.00')
+        self.assertEqual(response.data['threshold'], '500000.00')
+        self.assertEqual(response.data['procurement_threshold'], '100000.00')
         self.assertEqual([a['email'] for a in response.data['approvers']], ['wole.olufore@alphamead.com'])
 
     # ── below ₦100,000: Approver → Reviewer → paid ───────────────────────────
@@ -288,8 +289,20 @@ class RaisePaymentApprovalRouteTests(TestCase):
 
     # ── then Approver → Reviewer → second approval ───────────────────────────
 
-    def test_exactly_one_hundred_thousand_takes_the_full_route(self):
+    def test_from_one_hundred_thousand_procurement_but_no_final_approval(self):
         slug = self.raise_bill('100000.00')
+        self.assertEqual(self.status_of(slug), 'Awaiting Procurement')
+        self.procure(slug)
+        self.act(self.approver, slug, 'approve-by-approver')
+        response = self.act(self.reviewer, slug, 'approve-by-reviewer')
+        self.assertEqual(response.status_code, status.HTTP_200_OK, response.data)
+        self.assertEqual(response.data['approval_status'], 'Approved')  # below ₦500,000: no final approver
+        work_order = WorkOrder.objects.get(slug=slug)
+        self.assertIsNone(work_order.final_approver)
+        self.assertEqual(work_order.linked_payments.get().approval_status, 'approve')
+
+    def test_exactly_five_hundred_thousand_takes_the_full_route(self):
+        slug = self.raise_bill('500000.00')
         self.procure(slug)
         self.act(self.approver, slug, 'approve-by-approver')
         response = self.act(self.reviewer, slug, 'approve-by-reviewer')
@@ -351,6 +364,7 @@ class RaisePaymentApprovalRouteTests(TestCase):
     def test_threshold_and_approver_come_from_settings(self):
         settings = RaisePaymentApprovalSettings.current()
         settings.threshold = Decimal('3000000.00')
+        settings.final_approval_threshold = Decimal('3000000.00')
         settings.save()
         slug = self.raise_bill(LARGE)
         self.assertEqual(self.status_of(slug), 'Pending')  # below the raised threshold: no Procurement step

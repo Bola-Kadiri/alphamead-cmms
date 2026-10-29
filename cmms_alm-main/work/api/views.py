@@ -1469,7 +1469,8 @@ class WorkOrderViewSet(LegacyActionsGuard, RoleBasedPermissionMixin, viewsets.Mo
         approval_settings = RaisePaymentApprovalSettings.current()
         user = approval_settings.second_approver()
         return Response({
-            'threshold': str(approval_settings.threshold),
+            'threshold': str(approval_settings.final_approval_threshold),
+            'procurement_threshold': str(approval_settings.threshold),
             'currency': 'NGN',
             'approvers': [{'id': user.id, 'name': user.name, 'email': user.email}] if user else [],
         })
@@ -1639,7 +1640,7 @@ class WorkOrderViewSet(LegacyActionsGuard, RoleBasedPermissionMixin, viewsets.Mo
                 status=status.HTTP_400_BAD_REQUEST,
             )
         # The amount decides the route again: a bill corrected below the threshold goes straight to the Approver.
-        large = RaisePaymentApprovalSettings.current().needs_second_approval(instance.cost, instance.currency)
+        large = RaisePaymentApprovalSettings.current().needs_procurement(instance.cost, instance.currency)
         instance.needs_procurement = large
         instance.approval_status = 'Awaiting Procurement' if large else 'Pending'
         instance.save(update_fields=['needs_procurement', 'approval_status'])

@@ -133,10 +133,10 @@ class WorkOrderCompletionAdmin(admin.ModelAdmin):
 @admin.register(RaisePaymentApprovalSettings)
 class RaisePaymentApprovalSettingsAdmin(admin.ModelAdmin):
     """
-    One row: the amount from which a Raise Payment bill needs a second approval,
-    and who gives it. Only the Super Admin can see or change it.
+    One row: the amounts from which a Raise Payment bill needs Procurement & Store and the
+    final approval, and who gives it. Only the Super Admin can see or change it.
     """
-    list_display = ('threshold', 'second_approver_email', 'second_approver_account', 'updated_at')
+    list_display = ('threshold', 'final_approval_threshold', 'second_approver_email', 'second_approver_account', 'updated_at')
     readonly_fields = ('second_approver_account', 'updated_at')
 
     @admin.display(description='AlphaCMMS account')

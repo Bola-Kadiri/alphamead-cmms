@@ -6,16 +6,22 @@ from django.db import models
 
 class RaisePaymentApprovalSettings(models.Model):
     """
-    Raise Payment large bills: a bill at or above `threshold` (in NGN), or in any
-    other currency, goes Requester → Procurement & Store (PO and quotation) →
-    Approver → Reviewer → final approval by the user whose email is
-    `second_approver_email`. Smaller bills go Requester → Approver → Reviewer.
-    One row, edited by the Super Admin in Django admin, so neither needs a code change.
+    Raise Payment route by amount (NGN; a bill in any other currency takes the full route):
+      from `threshold`: Procurement & Store adds the PO and quotation before the Approver;
+      from `final_approval_threshold`: the user whose email is `second_approver_email` gives
+      the final approval after the Reviewer.
+    Requester → [Procurement & Store] → Approver → Reviewer → [final approver].
+    One row, edited by the Super Admin in Django admin, so none of it needs a code change.
     """
 
     threshold = models.DecimalField(
         max_digits=18, decimal_places=2, default=Decimal('100000.00'),
-        help_text="Bills of this amount (NGN) or more need Procurement & Store (PO and quotation) and the second approval.",
+        verbose_name="Procurement threshold",
+        help_text="Bills of this amount (NGN) or more need Procurement & Store (PO and quotation).",
+    )
+    final_approval_threshold = models.DecimalField(
+        max_digits=18, decimal_places=2, default=Decimal('500000.00'),
+        help_text="Bills of this amount (NGN) or more need the final approval of the second approver.",
     )
     second_approver_email = models.EmailField(
         default='wole.olufore@alphamead.com',
@@ -28,17 +34,23 @@ class RaisePaymentApprovalSettings(models.Model):
         verbose_name_plural = "Raise Payment approval settings"
 
     def __str__(self):
-        return f"Second approval from NGN {self.threshold:,.2f} by {self.second_approver_email}"
+        return (f"Procurement from NGN {self.threshold:,.2f}; final approval from "
+                f"NGN {self.final_approval_threshold:,.2f} by {self.second_approver_email}")
 
     @classmethod
     def current(cls):
         settings, _ = cls.objects.get_or_create(pk=1)
         return settings
 
-    def needs_second_approval(self, amount, currency):
+    def needs_procurement(self, amount, currency):
         if (currency or 'NGN') != 'NGN':
             return True
         return amount is not None and amount >= self.threshold
+
+    def needs_second_approval(self, amount, currency):
+        if (currency or 'NGN') != 'NGN':
+            return True
+        return amount is not None and amount >= self.final_approval_threshold
 
     def second_approver(self):
         return get_user_model().objects.filter(

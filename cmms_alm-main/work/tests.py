@@ -47,7 +47,7 @@ class RaisePaymentWorkOrderTests(TestCase):
         self.reviewer = make_user('reviewer@example.com', 'REVIEWER')
         self.approver = make_user('approver@example.com', 'APPROVER')
         self.finance = make_user('finance@example.com', 'HEAD OF FINANCE & TREASURY')
-        # Second approver for bills of ₦100,000 or more (RaisePaymentApprovalSettings default).
+        # Second approver for bills of ₦500,000 or more (RaisePaymentApprovalSettings default).
         self.second_approver = make_user('wole.olufore@alphamead.com', 'APPROVER')
         # Bills of ₦100,000 or more get their PO and quotation from Procurement & Store first.
         self.procurement = make_user('procurement@example.com', 'PROCUREMENT AND STORE')
@@ -85,7 +85,7 @@ class RaisePaymentWorkOrderTests(TestCase):
             'withholding_tax': '5%',
             'reviewers': [self.reviewer.pk],
             'approver': self.approver.pk,
-            'final_approver': self.second_approver.pk,  # ₦1,182,365.62 ≥ ₦100,000
+            'final_approver': self.second_approver.pk,  # ₦1,182,365.62 ≥ ₦500,000
             'resources': [bill_file()],
         }
         data.update(overrides)
