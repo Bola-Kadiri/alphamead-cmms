@@ -1577,35 +1577,36 @@ class WorkOrderViewSet(LegacyActionsGuard, RoleBasedPermissionMixin, viewsets.Mo
         if refused:
             return refused
         po_number = (request.data.get('po_number') or '').strip()
-        quotation = request.FILES.get('quotation_file')
+        po_document = request.FILES.get('po_document')
         errors = {}
         if not po_number:
             errors['po_number'] = "Enter the PO number."
-        po_amount = None
+        if po_document is None and not instance.po_document:
+            errors['po_document'] = "Attach the PO."
+        quotation_amount = None
         try:
-            po_amount = Decimal(str(request.data.get('po_amount') or '')).quantize(Decimal('0.01'))
+            quotation_amount = Decimal(str(request.data.get('quotation_amount') or '')).quantize(Decimal('0.01'))
         except Exception:
-            errors['po_amount'] = "Enter the PO cost."
-        if po_amount is not None and po_amount <= 0:
-            errors['po_amount'] = "Enter the PO cost."
-        elif po_amount is not None and po_amount != instance.cost:
-            # The PO must match the bill: the confirmed amount is what is paid.
-            errors['po_amount'] = (f"The PO cost {instance.currency} {po_amount:,.2f} does not match the bill amount "
-                                   f"{instance.currency} {instance.cost:,.2f}. Return the bill to the Requester if the bill is wrong.")
-        if quotation is None and not instance.quotation_file:
-            errors['quotation_file'] = "Attach the quotation."
+            errors['quotation_amount'] = "Enter the quotation amount."
+        if quotation_amount is not None and quotation_amount <= 0:
+            errors['quotation_amount'] = "Enter the quotation amount."
+        elif quotation_amount is not None and quotation_amount != instance.cost:
+            # The quotation must match the bill: the confirmed amount is what is paid.
+            errors['quotation_amount'] = (
+                f"The quotation amount {instance.currency} {quotation_amount:,.2f} does not match the bill amount "
+                f"{instance.currency} {instance.cost:,.2f}. Return the bill to the Requester if the bill is wrong.")
         if errors:
             return Response(errors, status=status.HTTP_400_BAD_REQUEST)
         instance.po_number = po_number
-        instance.po_amount = po_amount
+        if po_document is not None:
+            instance.po_document = po_document
+        instance.quotation_amount = quotation_amount
         instance.quotation_reference = (request.data.get('quotation_reference') or '').strip()
-        if quotation is not None:
-            instance.quotation_file = quotation
         instance.procurement_by = request.user
         instance.procurement_at = timezone.now()
         instance.procurement_reason = ''
         instance.approval_status = 'Pending'
-        instance.save(update_fields=['po_number', 'po_amount', 'quotation_reference', 'quotation_file', 'procurement_by',
+        instance.save(update_fields=['po_number', 'po_document', 'quotation_amount', 'quotation_reference', 'procurement_by',
                                      'procurement_at', 'procurement_reason', 'approval_status'])
         return Response(self.get_serializer(instance).data, status=status.HTTP_200_OK)
 

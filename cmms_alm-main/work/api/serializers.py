@@ -358,7 +358,8 @@ class WorkOrderSerializer(serializers.ModelSerializer):
             # Raise Payment approval route — set by the system, moved on only by the approval actions.
             'approval_route', 'final_approver_detail', 'final_approved_at',
             'final_approver_reason', 'next_step', 'needs_second_approval',
-            'needs_procurement', 'quotation_file', 'po_amount', 'procurement_by', 'procurement_at', 'procurement_reason',
+            'needs_procurement', 'quotation_file', 'quotation_amount', 'po_document',
+            'procurement_by', 'procurement_at', 'procurement_reason',
             # Closed/Pending/Rejected tracking, and the closure fields it sets —
             # managed exclusively by the set-status action (which also drives
             # the auto Payment Requisition).
@@ -447,7 +448,7 @@ class WorkOrderSerializer(serializers.ModelSerializer):
                 and (('cost' in attrs and attrs['cost'] != instance.cost)
                      or ('currency' in attrs and attrs['currency'] != instance.currency))):
             raise serializers.ValidationError(
-                {'cost': "Procurement & Store has confirmed this amount against the PO. Ask them to return the bill "
+                {'cost': "Procurement & Store has confirmed this amount against the quotation. Ask them to return the bill "
                          "if the amount must change."}
             )
 

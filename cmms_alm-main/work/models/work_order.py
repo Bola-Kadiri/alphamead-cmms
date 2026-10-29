@@ -588,12 +588,15 @@ class WorkOrder(OwnerPrivModel, Dated, Status, models.Model):
         default=False,
         help_text="Raise Payment: Procurement & Store must add the PO and quotation before the Approver acts.",
     )
+    # Kept for bills where Procurement & Store attached a quotation file before the quotation became a typed amount.
     quotation_file = models.FileField(upload_to='work_orders/quotations/', blank=True, null=True,
-                                      help_text="Raise Payment: the quotation Procurement & Store attached.")
-    po_amount = models.DecimalField(
+                                      help_text="Raise Payment (earlier bills): the quotation file Procurement & Store attached.")
+    quotation_amount = models.DecimalField(
         max_digits=18, decimal_places=2, blank=True, null=True,
-        help_text="Raise Payment: the PO cost Procurement & Store entered. Must match the bill amount; it is what is paid.",
+        help_text="Raise Payment: the quotation amount Procurement & Store entered. Must match the bill amount; it is what is paid.",
     )
+    po_document = models.FileField(upload_to='work_orders/purchase_orders/', blank=True, null=True,
+                                   help_text="Raise Payment: the Purchase Order Procurement & Store attached.")
     procurement_by = models.ForeignKey(
         settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, blank=True, null=True, related_name='+',
         help_text="Procurement & Store user who added the PO and quotation.",
