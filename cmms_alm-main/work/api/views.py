@@ -257,10 +257,17 @@ class WorkRequestViewSet(LegacyActionsGuard, RoleBasedPermissionMixin, viewsets.
     lookup_value_regex = r'(?:work|procument)[a-z0-9\-]*'
 
     def _base_queryset(self):
+        # Everything the list rows show is loaded up front, once per page, not once per row.
         return WorkRequest.objects.select_related(
-            'requester', 'approver', 'category', 'subcategory',
-            'facility', 'asset', 'department', 'vendor', 'po_vendor',
-        ).prefetch_related('reviewers', 'request_to', 'resources')
+            'requester', 'approver', 'category', 'subcategory__asset_category',
+            'facility__client', 'facility__cluster', 'zone__facility', 'subsystem__zone', 'subsystem__building',
+            'asset__category', 'asset__subcategory__asset_category', 'department',
+            'vendor', 'po_vendor', 'technician',
+        ).prefetch_related(
+            'reviewers', 'request_to', 'resources', 'quotation_items',
+            'category__subcategories', 'subcategory__asset_category__subcategories',
+            'asset__category__subcategories', 'asset__subcategory__asset_category__subcategories',
+        )
 
     def get_queryset(self):
         user = self.request.user
@@ -1234,10 +1241,16 @@ class WorkOrderViewSet(LegacyActionsGuard, RoleBasedPermissionMixin, viewsets.Mo
     lookup_field = 'slug'
 
     def _base_queryset(self):
+        # Everything the list rows show is loaded up front, once per page, not once per row.
         return WorkOrder.objects.select_related(
-            'requester', 'request_to', 'approver',
-            'category', 'subcategory', 'facility', 'asset',
-        ).prefetch_related('reviewers', 'resources')
+            'requester', 'request_to', 'approver', 'final_approver', 'technician',
+            'category', 'subcategory__asset_category', 'facility__client', 'facility__cluster',
+            'asset__category', 'asset__subcategory__asset_category', 'vendor', 'payee', 'source_work_request',
+        ).prefetch_related(
+            'reviewers', 'resources', 'source_work_request__quotation_items',
+            'category__subcategories', 'subcategory__asset_category__subcategories',
+            'asset__category__subcategories', 'asset__subcategory__asset_category__subcategories',
+        )
 
     def get_queryset(self):
         user = self.request.user

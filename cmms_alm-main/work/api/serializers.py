@@ -57,7 +57,8 @@ class WorkRequestSerializer(serializers.ModelSerializer):
     subsystem = serializers.PrimaryKeyRelatedField(queryset=Subsystem.objects.all(), required=False, allow_null=True)
     asset = serializers.PrimaryKeyRelatedField(queryset=Asset.objects.all(), required=False, allow_null=True)
     category = serializers.PrimaryKeyRelatedField(queryset=AssetCategory.objects.all())
-    subcategory = serializers.PrimaryKeyRelatedField(queryset=AssetSubCategory.objects.all())
+    # Optional: the Requester may not know the exact component. When given, it must belong to the category.
+    subcategory = serializers.PrimaryKeyRelatedField(queryset=AssetSubCategory.objects.all(), required=False, allow_null=True)
 
     requester_detail = SimpleUserSerializer(source='requester', read_only=True)
     request_to_detail = SimpleUserSerializer(source='request_to', many=True, read_only=True)

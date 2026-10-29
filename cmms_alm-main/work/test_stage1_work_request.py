@@ -93,6 +93,14 @@ class Stage1WorkRequestTests(TestCase):
 
     # ── raising ──────────────────────────────────────────────────────────────
 
+    def test_subcategory_is_optional(self):
+        data = {'type': 'Work', 'facility': self.agbara.pk, 'category': self.hvac.pk, 'priority': 'High',
+                'description': 'Reception AC not cooling; component unknown.'}
+        with self.captureOnCommitCallbacks(execute=True):
+            response = self.api(self.tunde).post(WORK_REQUESTS, data, format='multipart')
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED, response.data)
+        self.assertIsNone(WorkRequest.objects.get(slug=response.data['slug']).subcategory)
+
     def test_raise_routes_to_the_category_manager(self):
         wr = self.raised()
         self.assertEqual(wr.flow, WorkRequest.FIVE_STAGE)

@@ -18,8 +18,9 @@ class AssetCategorySerializer(serializers.ModelSerializer):
     subcategories = serializers.SerializerMethodField()
 
     def get_subcategories(self, obj):
+        # Sorted in Python so a list page can load every category's subcategories in one query.
         return AssetSubCategoryInlineSerializer(
-            obj.subcategories.all().order_by('-id'),
+            sorted(obj.subcategories.all(), key=lambda sub: sub.id, reverse=True),
             many=True
         ).data
 
