@@ -117,7 +117,7 @@ class RaisePaymentWorkOrderTests(TestCase):
         if WorkOrder.objects.get(slug=slug).approval_status == 'Awaiting Procurement':
             self.client.force_authenticate(user=self.procurement)
             response = self.client.post(f'{WORK_ORDERS}{slug}/procurement-submit/', {
-                'po_number': 'PO-0925', 'po_document': bill_file(), 'quotation_file': bill_file(),
+                'po_number': 'PO-0925', 'po_amount': str(WorkOrder.objects.get(slug=slug).cost), 'quotation_file': bill_file(),
             }, format='multipart')
             self.assertEqual(response.status_code, status.HTTP_200_OK, response.data)
         self.client.force_authenticate(user=self.approver)

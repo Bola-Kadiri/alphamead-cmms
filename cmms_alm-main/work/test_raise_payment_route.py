@@ -95,10 +95,10 @@ class RaisePaymentApprovalRouteTests(TestCase):
         self.client.force_authenticate(user=user)
         return self.client.post(f'{WORK_ORDERS}{slug}/{action}/', data or {}, format=fmt)
 
-    def procure(self, slug, user=None):
+    def procure(self, slug, user=None, po_amount=None):
         response = self.act(user or self.procurement, slug, 'procurement-submit', {
             'po_number': 'PO-2026-0101', 'quotation_reference': 'Q-77',
-            'po_document': SimpleUploadedFile('po.pdf', b'%PDF-1.4 po', content_type='application/pdf'),
+            'po_amount': po_amount or str(WorkOrder.objects.get(slug=slug).cost),
             'quotation_file': SimpleUploadedFile('quote.pdf', b'%PDF-1.4 quote', content_type='application/pdf'),
         }, 'multipart')
         self.assertEqual(response.status_code, status.HTTP_200_OK, response.data)
@@ -209,7 +209,7 @@ class RaisePaymentApprovalRouteTests(TestCase):
         response = self.act(self.procurement, slug, 'procurement-submit', {}, 'multipart')
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
         self.assertIn('po_number', response.data)
-        self.assertIn('po_document', response.data)
+        self.assertIn('po_amount', response.data)
         self.assertIn('quotation_file', response.data)
 
         response = self.procure(slug)
@@ -217,8 +217,26 @@ class RaisePaymentApprovalRouteTests(TestCase):
         self.assertEqual(response.data['next_step'], 'approver')
         work_order = WorkOrder.objects.get(slug=slug)
         self.assertEqual((work_order.po_number, work_order.procurement_by), ('PO-2026-0101', self.procurement))
-        self.assertTrue(work_order.po_document)
+        self.assertEqual(work_order.po_amount, Decimal(LARGE))
         self.assertTrue(work_order.quotation_file)
+
+    def test_po_cost_must_match_the_bill_amount(self):
+        slug = self.raise_bill(LARGE)
+        response = self.act(self.procurement, slug, 'procurement-submit', {
+            'po_number': 'PO-1', 'po_amount': '2400000.00',
+            'quotation_file': SimpleUploadedFile('quote.pdf', b'%PDF-1.4 quote', content_type='application/pdf'),
+        }, 'multipart')
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIn('does not match the bill amount', str(response.data['po_amount']))
+        self.assertEqual(self.status_of(slug), 'Awaiting Procurement')
+
+    def test_amount_is_locked_once_procurement_confirms_it(self):
+        slug = self.raise_bill(LARGE)
+        self.procure(slug)
+        self.client.force_authenticate(user=self.requester)
+        response = self.client.patch(f'{WORK_ORDERS}{slug}/', {'cost': '2600000.00'}, format='multipart')
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertEqual(WorkOrder.objects.get(slug=slug).cost, Decimal(LARGE))
 
     def test_only_procurement_adds_the_po(self):
         slug = self.raise_bill(LARGE)

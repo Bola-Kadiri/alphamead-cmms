@@ -2,6 +2,7 @@
 
 import json
 import logging
+from decimal import Decimal
 
 from rest_framework import viewsets, status
 from rest_framework.exceptions import PermissionDenied, ValidationError
@@ -1576,28 +1577,35 @@ class WorkOrderViewSet(LegacyActionsGuard, RoleBasedPermissionMixin, viewsets.Mo
         if refused:
             return refused
         po_number = (request.data.get('po_number') or '').strip()
-        po_document = request.FILES.get('po_document')
         quotation = request.FILES.get('quotation_file')
         errors = {}
         if not po_number:
             errors['po_number'] = "Enter the PO number."
-        if po_document is None and not instance.po_document:
-            errors['po_document'] = "Attach the PO."
+        po_amount = None
+        try:
+            po_amount = Decimal(str(request.data.get('po_amount') or '')).quantize(Decimal('0.01'))
+        except Exception:
+            errors['po_amount'] = "Enter the PO cost."
+        if po_amount is not None and po_amount <= 0:
+            errors['po_amount'] = "Enter the PO cost."
+        elif po_amount is not None and po_amount != instance.cost:
+            # The PO must match the bill: the confirmed amount is what is paid.
+            errors['po_amount'] = (f"The PO cost {instance.currency} {po_amount:,.2f} does not match the bill amount "
+                                   f"{instance.currency} {instance.cost:,.2f}. Return the bill to the Requester if the bill is wrong.")
         if quotation is None and not instance.quotation_file:
             errors['quotation_file'] = "Attach the quotation."
         if errors:
             return Response(errors, status=status.HTTP_400_BAD_REQUEST)
         instance.po_number = po_number
+        instance.po_amount = po_amount
         instance.quotation_reference = (request.data.get('quotation_reference') or '').strip()
-        if po_document is not None:
-            instance.po_document = po_document
         if quotation is not None:
             instance.quotation_file = quotation
         instance.procurement_by = request.user
         instance.procurement_at = timezone.now()
         instance.procurement_reason = ''
         instance.approval_status = 'Pending'
-        instance.save(update_fields=['po_number', 'quotation_reference', 'po_document', 'quotation_file', 'procurement_by',
+        instance.save(update_fields=['po_number', 'po_amount', 'quotation_reference', 'quotation_file', 'procurement_by',
                                      'procurement_at', 'procurement_reason', 'approval_status'])
         return Response(self.get_serializer(instance).data, status=status.HTTP_200_OK)
 
