@@ -98,6 +98,7 @@ class RaisePaymentApprovalRouteTests(TestCase):
     def procure(self, slug, user=None):
         response = self.act(user or self.procurement, slug, 'procurement-submit', {
             'po_number': 'PO-2026-0101', 'quotation_reference': 'Q-77',
+            'po_document': SimpleUploadedFile('po.pdf', b'%PDF-1.4 po', content_type='application/pdf'),
             'quotation_file': SimpleUploadedFile('quote.pdf', b'%PDF-1.4 quote', content_type='application/pdf'),
         }, 'multipart')
         self.assertEqual(response.status_code, status.HTTP_200_OK, response.data)
@@ -208,6 +209,7 @@ class RaisePaymentApprovalRouteTests(TestCase):
         response = self.act(self.procurement, slug, 'procurement-submit', {}, 'multipart')
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
         self.assertIn('po_number', response.data)
+        self.assertIn('po_document', response.data)
         self.assertIn('quotation_file', response.data)
 
         response = self.procure(slug)
@@ -215,6 +217,7 @@ class RaisePaymentApprovalRouteTests(TestCase):
         self.assertEqual(response.data['next_step'], 'approver')
         work_order = WorkOrder.objects.get(slug=slug)
         self.assertEqual((work_order.po_number, work_order.procurement_by), ('PO-2026-0101', self.procurement))
+        self.assertTrue(work_order.po_document)
         self.assertTrue(work_order.quotation_file)
 
     def test_only_procurement_adds_the_po(self):

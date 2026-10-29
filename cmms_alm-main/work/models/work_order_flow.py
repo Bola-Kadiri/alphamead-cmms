@@ -173,11 +173,20 @@ def submit(wo, user):
     _tell_next(wo)
 
 
+def client_signs(wo):
+    """Whether the client approves the price: only when the facility has a client."""
+    return wo.facility_id is not None and wo.facility.client_id is not None
+
+
 @transaction.atomic
 def review(wo, user, signature, note=''):
     _require(wo, 'Awaiting Review')
     perform_action(wo, STAGE, 'approver', 'reviewed', user, facility=wo.facility, signature=signature, reason=note)
-    _set_status(wo, 'Awaiting Client', is_reviewed=True)
+    if client_signs(wo):
+        _set_status(wo, 'Awaiting Client', is_reviewed=True)
+    else:
+        # No client to approve the price: the Approver's check is the final approval.
+        _set_status(wo, 'Approved', is_reviewed=True, is_approved=True, approved=True, digital_signature=signature.strip())
     _tell_next(wo)
 
 
@@ -316,7 +325,7 @@ MESSAGES = {
     'Awaiting Review': ("Work Order to review", "A Work Order is waiting for your review of scope and price."),
     'Sent Back': ("Work Order sent back", "A Work Order was sent back to Procurement & Store. Please re-price it and resubmit."),
     'Awaiting Client': ("Price awaiting your approval", "A Work Order price is waiting for your approval."),
-    'Approved': ("Work Order approved", "The client approved the price. The contractor has been asked to accept the job."),
+    'Approved': ("Work Order approved", "The price is approved. The contractor has been asked to accept the job."),
     'Client Rejected': ("Work Order rejected by the client", "The client rejected the price. The job has ended."),
 }
 

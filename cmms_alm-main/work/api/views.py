@@ -1181,7 +1181,7 @@ def _wo_flow_data(wo, user):
         pricing['margin_percent'] = round(float(margin / wo.client_price * 100), 1) if wo.client_price else None
 
     chain = []
-    for step in ('procurement', 'approver', 'client_rep'):
+    for step in ('procurement', 'approver') + (('client_rep',) if stage2.client_signs(wo) else ()):
         people = stage2.people_for(wo, step)
         entry = {'step': step, 'label': stage2.STEP_LABELS[step], 'kind': 'team' if step == 'procurement' else 'named'}
         if step == 'procurement':
@@ -1576,23 +1576,28 @@ class WorkOrderViewSet(LegacyActionsGuard, RoleBasedPermissionMixin, viewsets.Mo
         if refused:
             return refused
         po_number = (request.data.get('po_number') or '').strip()
+        po_document = request.FILES.get('po_document')
         quotation = request.FILES.get('quotation_file')
         errors = {}
         if not po_number:
             errors['po_number'] = "Enter the PO number."
+        if po_document is None and not instance.po_document:
+            errors['po_document'] = "Attach the PO."
         if quotation is None and not instance.quotation_file:
             errors['quotation_file'] = "Attach the quotation."
         if errors:
             return Response(errors, status=status.HTTP_400_BAD_REQUEST)
         instance.po_number = po_number
         instance.quotation_reference = (request.data.get('quotation_reference') or '').strip()
+        if po_document is not None:
+            instance.po_document = po_document
         if quotation is not None:
             instance.quotation_file = quotation
         instance.procurement_by = request.user
         instance.procurement_at = timezone.now()
         instance.procurement_reason = ''
         instance.approval_status = 'Pending'
-        instance.save(update_fields=['po_number', 'quotation_reference', 'quotation_file', 'procurement_by',
+        instance.save(update_fields=['po_number', 'quotation_reference', 'po_document', 'quotation_file', 'procurement_by',
                                      'procurement_at', 'procurement_reason', 'approval_status'])
         return Response(self.get_serializer(instance).data, status=status.HTTP_200_OK)
 
@@ -2597,7 +2602,11 @@ def _invoice_flow_data(inv, user):
         'entered_for_vendor': inv.entered_for_vendor,
         'chain': chain,
         'vendor': {'id': inv.vendor_id, 'name': inv.vendor.name, 'has_bank_details': inv.vendor.has_bank_details,
-                   'bank': inv.vendor.bank, 'account_last4': (inv.vendor.account_number or '')[-4:]} if inv.vendor_id else None,
+                   'bank': inv.vendor.bank, 'account_last4': (inv.vendor.account_number or '')[-4:],
+                   # AP and Finance see the full account; the contractor sees only the last 4 digits.
+                   **({} if user.roles == 'CONTRACTOR' else {
+                       'account_name': inv.vendor.account_name, 'account_number': inv.vendor.account_number or ''})}
+        if inv.vendor_id else None,
         'work_order': {'slug': wo.slug, 'number': wo.work_order_number, 'amount': str(wo.cost) if wo.cost is not None else None,
                        'description': wo.description} if wo else None,
         'completion': {'id': wcc.pk, 'number': wcc.wcc_number, 'status': wcc.approval_status} if wcc else None,

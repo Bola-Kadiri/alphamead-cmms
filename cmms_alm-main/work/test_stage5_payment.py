@@ -212,6 +212,18 @@ class Stage5PaymentTests(TestCase):
 
     # ── who sees what ────────────────────────────────────────────────────────
 
+    def test_finance_sees_the_full_account_to_pay_into(self):
+        v = self.approved()
+        for user in (self.seun, self.ibrahim, self.adaeze):
+            vendor = self.api(user).get(f'{VOUCHERS}{v.pk}/').data['vendor']
+            self.assertEqual((vendor['account_name'], vendor['account_number']), ('Cool Air', '2223334445'), user.email)
+        row = self.api(self.adaeze).get(f'{VOUCHERS}to-pay/').data[0]
+        self.assertEqual(row['account_number'], '2223334445')
+        # The contractor sees only the last 4 digits on the invoice.
+        vendor = self.api(self.emeka).get(f'/work/api/invoices/{self.inv.pk}/flow/').data['vendor']
+        self.assertNotIn('account_number', vendor)
+        self.assertEqual(vendor['account_last4'], '4445')
+
     def test_contractor_sees_only_paid_vouchers(self):
         v = self.approved()
         self.assertEqual(self.api(self.emeka).get(VOUCHERS).data, [])

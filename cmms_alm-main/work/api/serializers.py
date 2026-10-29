@@ -358,7 +358,7 @@ class WorkOrderSerializer(serializers.ModelSerializer):
             # Raise Payment approval route — set by the system, moved on only by the approval actions.
             'approval_route', 'final_approver_detail', 'final_approved_at',
             'final_approver_reason', 'next_step', 'needs_second_approval',
-            'needs_procurement', 'quotation_file', 'procurement_by', 'procurement_at', 'procurement_reason',
+            'needs_procurement', 'quotation_file', 'po_document', 'procurement_by', 'procurement_at', 'procurement_reason',
             # Closed/Pending/Rejected tracking, and the closure fields it sets —
             # managed exclusively by the set-status action (which also drives
             # the auto Payment Requisition).

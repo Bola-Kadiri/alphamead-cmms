@@ -162,11 +162,14 @@ class ApprovalMatrixTests(TestCase):
         self.assertEqual(len(response.data['problems']), 3)  # approver, client rep, head of finance
         self.assertFalse(ApprovalMatrix.objects.get(facility=self.agbara).is_live)
 
-    def test_facility_without_client_cannot_go_live(self):
+    def test_facility_without_client_goes_live_without_a_client_rep(self):
         self.set_head_of_finance()
+        self.femi.facility.add(self.lekki)
+        make_user('ade@example.com', 'REQUESTER', [self.lekki])
+        self.api.patch(f'{MATRIX}{self.lekki.pk}/', {'approver': self.femi.pk}, format='json')
         response = self.api.post(f'{MATRIX}{self.lekki.pk}/go-live/')
-        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
-        self.assertIn('no client', ' '.join(response.data['problems']))
+        self.assertEqual(response.status_code, status.HTTP_200_OK, response.data)
+        self.assertTrue(ApprovalMatrix.objects.get(facility=self.lekki).is_live)
 
     def test_live_facility_cannot_lose_a_signer(self):
         self.go_live_agbara()

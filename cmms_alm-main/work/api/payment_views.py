@@ -37,6 +37,8 @@ def _row(v):
     return {
         'id': v.pk, 'number': v.voucher_number, 'status': v.status, 'status_label': v.get_status_display(),
         'vendor': v.vendor.name, 'bank': v.vendor.bank, 'account_last4': (v.vendor.account_number or '')[-4:],
+        # Only the finance side lists vouchers, so the full account to pay into is shown.
+        'account_name': v.vendor.account_name, 'account_number': v.vendor.account_number or '',
         'invoice': v.invoice.vendor_invoice_number or v.invoice.invoice_number,
         'description': v.work_order.description, 'facility': v.facility.name if v.facility_id else None,
         'net_amount': str(v.net_amount), 'failure_reason': v.failure_reason or None,
@@ -67,7 +69,9 @@ def voucher_flow_data(v, user):
         'status_label': v.get_status_display(),
         'waiting_on': stage5.waiting_on(v),
         'chain': chain,
+        # The full account to pay into, read live from the vendor record (kept by the Super Admin).
         'vendor': {'id': v.vendor_id, 'name': v.vendor.name, 'bank': v.vendor.bank,
+                   'account_name': v.vendor.account_name, 'account_number': v.vendor.account_number or '',
                    'account_last4': (v.vendor.account_number or '')[-4:], 'has_bank_details': v.vendor.has_bank_details},
         'invoice': {'id': inv.pk, 'number': inv.invoice_number, 'vendor_invoice_number': inv.vendor_invoice_number},
         'work_order': {'slug': wo.slug, 'number': wo.work_order_number, 'description': wo.description,

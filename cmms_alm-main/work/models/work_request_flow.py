@@ -43,8 +43,9 @@ def facility_is_live(facility):
 
 
 def client_approves(wr):
+    """Whether the client signs off the request: never for a facility with no client."""
     client = wr.facility.client if wr.facility_id else None
-    return client is None or client.approves_work_requests
+    return client is not None and client.approves_work_requests
 
 
 def _require(wr, *statuses):

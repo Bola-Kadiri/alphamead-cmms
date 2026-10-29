@@ -140,8 +140,8 @@ def trail(v):
             a = stamps.filter(action__in=actions).order_by('-at', '-id').first()
             return {'by': a.actor_name, 'at': a.at, 'on_behalf_of': a.on_behalf_of_name or None} if a else None
 
-        # A Work Request the client does not sign off is finally approved by the Approver's check.
-        approved = last('approved') or (last('reviewed') if final == 'Fully Approved' else None)
+        # A Work Request or Work Order the client does not sign off is finally approved by the Approver's check.
+        approved = last('approved') or (last('reviewed') if stage[0] in '12' else None)
         rows.append({'stage': stage, 'document': label(doc), 'raised': last('raised'), 'reviewed': last('reviewed'),
                      'approved': approved, 'ok': doc.approval_status == final and approved is not None})
     return rows

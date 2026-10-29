@@ -159,6 +159,10 @@ class ApprovalMatrix(models.Model):
     def __str__(self):
         return f"Approval matrix · {self.facility}"
 
+    def required_slots(self):
+        """A facility with no client has no client steps, so no Client Contract Rep to name."""
+        return [slot for slot in FACILITY_SLOTS if slot != 'client_rep' or self.facility.client_id is not None]
+
     def named_person(self, slot):
         if slot in COMPANY_SLOTS:
             return getattr(CompanyApprovers.current(), slot)
@@ -167,7 +171,8 @@ class ApprovalMatrix(models.Model):
     def problems(self):
         """Everything stopping this facility from going live; empty when it is ready."""
         named = [error for slot in FACILITY_SLOTS
-                 if (error := slot_error(slot, getattr(self, slot), self.facility))]
+                 if slot in self.required_slots()
+                 and (error := slot_error(slot, getattr(self, slot), self.facility))]
         return named + CompanyApprovers.current().problems() + team_problems(self.facility)
 
     def chain(self):
