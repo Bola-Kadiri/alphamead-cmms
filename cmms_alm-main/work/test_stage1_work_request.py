@@ -254,6 +254,34 @@ class Stage1WorkRequestTests(TestCase):
         self.assertEqual(data['timing']['state'], 'on_time')
         self.assertEqual(self.api(self.tunde).get(f'{WORK_REQUESTS}{wr.slug}/flow/').data['my_actions'], [])
 
+    def test_trail_shows_who_did_what_and_who_has_it(self):
+        wr = self.raised()
+        trail = self.api(self.tunde).get(f'{WORK_REQUESTS}{wr.slug}/flow/').data['trail']
+        self.assertEqual([e['action'] for e in trail['events']], ['raised'])
+        self.assertEqual(trail['events'][0]['actor']['email'], 'tunde@example.com')
+        self.assertEqual(trail['waiting']['step'], 'approver')
+        self.assertEqual([p['name'] for p in trail['waiting']['people']], ['Femi Test'])
+        self.assertEqual([u['step'] for u in trail['upcoming']], ['client_rep', 'procurement'])
+
+        self.act(self.femi, wr.slug, 'flow-send-back', reason='Add a photo of the leak')
+        trail = self.api(self.tunde).get(f'{WORK_REQUESTS}{wr.slug}/flow/').data['trail']
+        self.assertEqual((trail['events'][-1]['state'], trail['events'][-1]['reason']), ('returned', 'Add a photo of the leak'))
+        self.assertEqual(trail['waiting']['label'], 'Fix and resubmit')
+
+        self.act(self.tunde, wr.slug, 'flow-resubmit')
+        self.act(self.femi, wr.slug, 'flow-review', signature='Femi Test')
+        data = self.api(self.ngozi).get(f'{WORK_REQUESTS}{wr.slug}/flow/').data
+        self.assertEqual(data['trail']['waiting']['step'], 'client_rep')
+        # Staff emails are not shown to the client.
+        self.assertTrue(all(e['actor']['email'] == '' for e in data['trail']['events']))
+        self.assertEqual([s['state'] for s in data['job']], ['current', 'next', 'next', 'next', 'next'])
+
+        self.act(self.ngozi, wr.slug, 'flow-approve', signature='Ngozi Test')
+        data = self.api(self.tunde).get(f'{WORK_REQUESTS}{wr.slug}/flow/').data
+        self.assertEqual(data['trail']['closed'], 'approved')
+        self.assertIsNone(data['trail']['waiting'])
+        self.assertEqual([s['state'] for s in data['job']][:2], ['done', 'current'])
+
     def test_client_acts_through_their_real_login(self):
         wr = self.raised()
         self.act(self.femi, wr.slug, 'flow-review', signature='Femi Test')

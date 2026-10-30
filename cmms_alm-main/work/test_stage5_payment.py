@@ -224,6 +224,17 @@ class Stage5PaymentTests(TestCase):
         self.assertNotIn('account_number', vendor)
         self.assertEqual(vendor['account_last4'], '4445')
 
+    def test_job_strip_follows_the_job_to_payment(self):
+        from work.models.work_request_trail import job
+        wr = self.wo.source_work_request
+        self.assertEqual([s['state'] for s in job(wr)], ['done', 'done', 'done', 'done', 'current'])
+        v = self.approved()
+        self.attach([v])
+        self.pay([v])
+        stages = job(wr)
+        self.assertEqual([s['state'] for s in stages], ['done'] * 5)
+        self.assertEqual(stages[4]['link'], f'/dashboard/payments/{v.pk}')
+
     def test_contractor_sees_only_paid_vouchers(self):
         v = self.approved()
         self.assertEqual(self.api(self.emeka).get(VOUCHERS).data, [])

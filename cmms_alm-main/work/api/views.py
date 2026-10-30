@@ -25,6 +25,7 @@ from work.models import work_request_flow as stage1
 from work.models import work_order_flow as stage2
 from work.models import completion_flow as stage3
 from work.models import invoice_flow as stage4
+from work.models import work_request_trail
 from work.models.action_log import history
 from work.models.approval_matrix import ApprovalMatrix
 from work.models.delegation import Delegation
@@ -242,6 +243,9 @@ def _flow_data(wr, user):
         'timing': timing,
         'my_actions': stage1.available_actions(wr, user) if wr.pk else [],
         'replaces': {'slug': wr.replaces.slug, 'number': wr.replaces.work_request_number} if wr.replaces_id else None,
+        # Approval trail (who did each step, with emails, and who has it now) and the whole job's five stages.
+        'trail': work_request_trail.trail(wr, user) if wr.pk else None,
+        'job': work_request_trail.job(wr) if wr.pk else None,
         # The Requester's supporting documents.
         'files': [{'id': f.id, 'url': f.file.url if f.file else None, 'name': f.file.name.rsplit('/', 1)[-1] if f.file else ''}
                   for f in wr.resources.all()] if wr.pk else [],
