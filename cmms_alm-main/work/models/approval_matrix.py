@@ -198,6 +198,15 @@ class ApprovalMatrix(models.Model):
         self.save(update_fields=['is_live', 'updated_at'])
 
 
+def location_approver(facility):
+    """The facility's named Approver (Category Manager) from the Approval Matrix, if set and active."""
+    if facility is None:
+        return None
+    matrix = ApprovalMatrix.objects.filter(facility=facility).select_related('approver').first()
+    approver = matrix.approver if matrix else None
+    return approver if approver is not None and approver.is_active else None
+
+
 def acting_for(user, slot, facility, vendor=None, amount=None):
     """
     May `user` act on step `slot` of a job at `facility`? The one check every stage uses.

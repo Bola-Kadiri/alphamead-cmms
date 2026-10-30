@@ -506,6 +506,13 @@ class WorkOrderSerializer(serializers.ModelSerializer):
                     errors['final_approver'] = f"The final approver for bills of {limit} or more must be {expected.name}."
             else:
                 attrs['final_approver'] = None
+        # A new bill goes to the location's Approver from the Approval Matrix; the Requester
+        # chooses only where the location has none set yet. Bills already raised keep theirs.
+        if instance is None:
+            from work.models.approval_matrix import location_approver
+            matrix_approver = location_approver(value('facility'))
+            if matrix_approver is not None:
+                attrs['approver'] = matrix_approver
         if value('source_work_request') or value('source_ppm'):
             errors['type'] = "A Raise Payment work order is raised directly, not from a work request or PPM."
         has_bill = bool(attrs.get('resources')) or (instance is not None and instance.resources.exists())

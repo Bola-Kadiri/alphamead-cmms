@@ -19,7 +19,10 @@ from rest_framework.test import APIClient
 from accounts.models import Vendor
 from asset_inventory.models import AssetCategory, AssetSubCategory
 from facility.models import Facility
-from work.models import Notification, PaymentRequisition, RaisePaymentApprovalSettings, WorkOrder
+from django.utils import timezone
+from datetime import timedelta
+
+from work.models import ApprovalMatrix, Delegation, Notification, PaymentRequisition, RaisePaymentApprovalSettings, WorkOrder
 
 User = get_user_model()
 TEMP_MEDIA = tempfile.mkdtemp()
@@ -424,6 +427,38 @@ class RaisePaymentApprovalRouteTests(TestCase):
             self.raise_bill(SMALL)
         self.assertTrue(Notification.objects.filter(recipient=self.approver).exists())
         self.assertFalse(Notification.objects.filter(recipient=self.procurement).exists())
+
+    # ── the location's Approver ──────────────────────────────────────────────
+
+    def test_bill_goes_to_the_locations_approver(self):
+        femi = make_user('femi@example.com', 'APPROVER')
+        ApprovalMatrix.objects.create(facility=self.facility, approver=femi)
+        slug = self.raise_bill()  # the form sent self.approver; the location's Approver wins
+        self.assertEqual(WorkOrder.objects.get(slug=slug).approver, femi)
+        self.client.force_authenticate(user=self.requester)
+        response = self.client.get(f'{WORK_ORDERS}location-approver/', {'facility': self.facility.pk})
+        self.assertEqual(response.data['approver']['id'], femi.pk)
+
+    def test_requester_chooses_where_the_location_has_no_approver(self):
+        slug = self.raise_bill()
+        self.assertEqual(WorkOrder.objects.get(slug=slug).approver, self.approver)
+        self.client.force_authenticate(user=self.requester)
+        response = self.client.get(f'{WORK_ORDERS}location-approver/', {'facility': self.facility.pk})
+        self.assertIsNone(response.data['approver'])
+
+    def test_stand_in_is_told_and_sees_the_bill(self):
+        ApprovalMatrix.objects.create(facility=self.facility, approver=self.approver)
+        tola = make_user('tola@example.com', 'APPROVER')
+        now = timezone.now()
+        Delegation.objects.create(person=self.approver, stand_in=tola, starts_at=now - timedelta(hours=1),
+                                  ends_at=now + timedelta(days=3), reason='Annual leave')
+        with self.captureOnCommitCallbacks(execute=True):
+            slug = self.raise_bill()
+        self.assertTrue(Notification.objects.filter(recipient=tola, title__contains='Awaiting Your Approval').exists())
+        self.client.force_authenticate(user=tola)
+        rows = self.client.get(WORK_ORDERS).data
+        rows = rows['results'] if isinstance(rows, dict) else rows
+        self.assertIn(slug, [row['slug'] for row in rows])
 
     # ── everything else unchanged ────────────────────────────────────────────
 

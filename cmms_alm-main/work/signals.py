@@ -50,6 +50,8 @@ def _users(queryset_or_user):
     """Return a list of user instances."""
     if queryset_or_user is None:
         return []
+    if isinstance(queryset_or_user, (list, tuple)):
+        return [user for user in queryset_or_user if user]
     if hasattr(queryset_or_user, 'all'):
         return list(queryset_or_user.all())
     return [queryset_or_user] if queryset_or_user else []
@@ -270,6 +272,15 @@ def on_work_request_reviewers_changed(sender, instance, action, pk_set, **kwargs
 # WORK ORDER
 # ===========================================================================
 
+def _with_stand_ins(user):
+    """The user plus anyone currently covering for them (Cover while away)."""
+    if user is None:
+        return []
+    from work.models.delegation import Delegation
+    stand_ins = [d.stand_in for d in Delegation.objects.active().filter(person=user).select_related('stand_in')]
+    return [user] + [s for s in stand_ins if s.is_active]
+
+
 def _procurement_team():
     from django.contrib.auth import get_user_model
     return get_user_model().objects.filter(roles='PROCUREMENT AND STORE', is_active=True)
@@ -326,7 +337,7 @@ def on_work_order_saved(sender, instance, created, **kwargs):
 
             if created and fresh.is_approver_first:
                 _raise_payment_action(
-                    fresh, fresh.approver, 'Awaiting Your Approval',
+                    fresh, _with_stand_ins(fresh.approver), 'Awaiting Your Approval',
                     'A Raise Payment bill has been raised and needs your approval. The Reviewer acts after you.',
                 )
                 return
@@ -353,7 +364,7 @@ def on_work_order_saved(sender, instance, created, **kwargs):
 
             if fresh.is_approver_first and current == 'Pending' and previous in ('Awaiting Procurement', 'Procurement Returned'):
                 _raise_payment_action(
-                    fresh, fresh.approver, 'Awaiting Your Approval',
+                    fresh, _with_stand_ins(fresh.approver), 'Awaiting Your Approval',
                     'A Raise Payment bill is ready for your approval. The Reviewer acts after you.',
                 )
                 return

@@ -1265,8 +1265,10 @@ class WorkOrderViewSet(LegacyActionsGuard, RoleBasedPermissionMixin, viewsets.Mo
         if role == 'REVIEWER':
             return qs.filter(Q(reviewers=user) | Q(final_approver=user)).distinct().order_by('-id')
         if role == 'APPROVER':
+            # Plus the bills of an Approver this user is covering for while they are away.
+            covered = Delegation.objects.active().filter(stand_in=user).values('person_id')
             return qs.filter(
-                Q(approver=user) | Q(final_approver=user)
+                Q(approver=user) | Q(final_approver=user) | Q(approver__in=covered)
                 | five_stage & Q(facility__in=_signer_facilities(user, 'approver'))
             ).distinct().order_by('-id')
         if role == 'PROCUREMENT AND STORE':
@@ -1475,6 +1477,15 @@ class WorkOrderViewSet(LegacyActionsGuard, RoleBasedPermissionMixin, viewsets.Mo
 
     # ── Raise Payment, approver-first route: Approver → Reviewer → second approver for
     # large bills (see RaisePaymentApprovalSettings). Other work orders never come here.
+
+    @action(detail=False, methods=['get'], url_path='location-approver')
+    def location_approver(self, request):
+        """The Approver a Raise Payment bill at this facility goes to (from the Approval Matrix), if set."""
+        from work.models.approval_matrix import location_approver
+        facility = Facility.objects.filter(pk=request.query_params.get('facility') or None).first()
+        approver = location_approver(facility)
+        return Response({'approver': {'id': approver.id, 'name': approver.name.strip() or approver.email,
+                                      'email': approver.email} if approver else None})
 
     @action(detail=False, methods=['get'], url_path='final-approvers')
     def final_approvers(self, request):
