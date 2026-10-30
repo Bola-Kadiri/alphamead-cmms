@@ -273,6 +273,17 @@ class WorkOrderSerializer(serializers.ModelSerializer):
     )
     next_step = serializers.SerializerMethodField()
     needs_second_approval = serializers.SerializerMethodField()
+    # Raise Payment: who is meant to act at each step, who did, and when. Built only on a
+    # bill's own page (not in lists), so list pages stay fast.
+    approval_trail = serializers.SerializerMethodField()
+
+    def get_approval_trail(self, obj):
+        view = self.context.get('view')
+        request = self.context.get('request')
+        if not obj.is_approver_first or not getattr(view, 'detail', False):
+            return None
+        from work.models.raise_payment_trail import trail
+        return trail(obj, getattr(request, 'user', None))
 
     NEXT_STEP = {'Awaiting Procurement': 'procurement', 'Procurement Returned': 'requester', 'Pending': 'approver',
                  'Approver Approved': 'reviewer', 'Awaiting Final Approval': 'final_approver'}
@@ -358,7 +369,7 @@ class WorkOrderSerializer(serializers.ModelSerializer):
             'accepted_at', 'accepted_by', 'confirmed_start_date', 'contractor_technician',
             # Raise Payment approval route — set by the system, moved on only by the approval actions.
             'approval_route', 'final_approver_detail', 'final_approved_at',
-            'final_approver_reason', 'next_step', 'needs_second_approval',
+            'final_approver_reason', 'next_step', 'needs_second_approval', 'approval_trail',
             'needs_procurement', 'quotation_file', 'quotation_amount', 'po_document',
             'procurement_by', 'procurement_at', 'procurement_reason',
             # Closed/Pending/Rejected tracking, and the closure fields it sets —
@@ -557,6 +568,10 @@ class WorkOrderSerializer(serializers.ModelSerializer):
             if reviewers:
                 instance.reviewers.set(reviewers)
             self._attach_files(instance, resource_uploads, 'work_order_resources')
+            request = self.context.get('request')
+            if instance.is_approver_first and request is not None:
+                from work.models.raise_payment_trail import stamp
+                stamp(instance, 'raised', request.user)
         return instance
 
     def update(self, instance, validated_data):

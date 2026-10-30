@@ -31,6 +31,9 @@ ACTION_CHOICES = [
     ('accepted', 'Accepted'),
     ('paid', 'Paid'),
     ('payment_failed', 'Payment failed'),
+    # Raise Payment (see raise_payment_trail).
+    ('procured', 'PO & quotation added'),
+    ('final_approved', 'Final approval'),
 ]
 
 

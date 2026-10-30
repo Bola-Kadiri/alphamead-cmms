@@ -20,6 +20,7 @@ from work.models import (WorkRequest, WorkRequestQuotationItem, WorkOrder, Comme
                           PaymentRequisition, PPM, WorkOrderCompletion, WccEvidence, Invoice)
 from work.models.raise_payment_settings import RaisePaymentApprovalSettings
 from work.models.payment_voucher import PaymentVoucher
+from work.models.raise_payment_trail import stamp as stamp_raise_payment
 from work.models import work_request_flow as stage1
 from work.models import work_order_flow as stage2
 from work.models import completion_flow as stage3
@@ -1536,6 +1537,7 @@ class WorkOrderViewSet(LegacyActionsGuard, RoleBasedPermissionMixin, viewsets.Mo
         instance.is_approved = True
         instance.approval_status = 'Approver Approved'
         instance.save(update_fields=['is_approved', 'approval_status'])
+        stamp_raise_payment(instance, 'approved', request.user)
         return Response(self.get_serializer(instance).data, status=status.HTTP_200_OK)
 
     def _raise_payment_review(self, request, instance):
@@ -1546,7 +1548,11 @@ class WorkOrderViewSet(LegacyActionsGuard, RoleBasedPermissionMixin, viewsets.Mo
             )
         approval_settings = RaisePaymentApprovalSettings.current()
         if not approval_settings.needs_second_approval(instance.cost, instance.currency):
-            return self._release_raise_payment(instance, request.user, is_reviewed=True)
+            response = self._release_raise_payment(instance, request.user, is_reviewed=True)
+            if response.status_code == status.HTTP_200_OK:
+                stamp_raise_payment(instance, 'reviewed', request.user)
+                response.data = self.get_serializer(instance).data
+            return response
 
         selected = instance.final_approver
         second_approver = selected if selected is not None and selected.is_active else approval_settings.second_approver()
@@ -1561,6 +1567,7 @@ class WorkOrderViewSet(LegacyActionsGuard, RoleBasedPermissionMixin, viewsets.Mo
         instance.final_approver = second_approver
         instance.approval_status = 'Awaiting Final Approval'
         instance.save(update_fields=['is_reviewed', 'final_approver', 'approval_status'])
+        stamp_raise_payment(instance, 'reviewed', request.user)
         return Response(self.get_serializer(instance).data, status=status.HTTP_200_OK)
 
     def _check_final_approver(self, request, instance):
@@ -1633,6 +1640,7 @@ class WorkOrderViewSet(LegacyActionsGuard, RoleBasedPermissionMixin, viewsets.Mo
         instance.approval_status = 'Pending'
         instance.save(update_fields=['po_number', 'po_document', 'quotation_amount', 'quotation_reference', 'procurement_by',
                                      'procurement_at', 'procurement_reason', 'approval_status'])
+        stamp_raise_payment(instance, 'procured', request.user)
         return Response(self.get_serializer(instance).data, status=status.HTTP_200_OK)
 
     @action(detail=True, methods=['post'], url_path='procurement-return')
@@ -1648,6 +1656,7 @@ class WorkOrderViewSet(LegacyActionsGuard, RoleBasedPermissionMixin, viewsets.Mo
         instance.procurement_reason = reason
         instance.approval_status = 'Procurement Returned'
         instance.save(update_fields=['procurement_reason', 'approval_status'])
+        stamp_raise_payment(instance, 'sent_back', request.user, reason)
         return Response(self.get_serializer(instance).data, status=status.HTTP_200_OK)
 
     @action(detail=True, methods=['post'], url_path='raise-payment-resubmit')
@@ -1668,6 +1677,7 @@ class WorkOrderViewSet(LegacyActionsGuard, RoleBasedPermissionMixin, viewsets.Mo
         instance.needs_procurement = large
         instance.approval_status = 'Awaiting Procurement' if large else 'Pending'
         instance.save(update_fields=['needs_procurement', 'approval_status'])
+        stamp_raise_payment(instance, 'resubmitted', request.user)
         return Response(self.get_serializer(instance).data, status=status.HTTP_200_OK)
 
     @action(detail=True, methods=['post'], url_path='final-approve')
@@ -1676,7 +1686,11 @@ class WorkOrderViewSet(LegacyActionsGuard, RoleBasedPermissionMixin, viewsets.Mo
         refused = self._check_final_approver(request, instance)
         if refused:
             return refused
-        return self._release_raise_payment(instance, request.user, final_approved_at=timezone.now())
+        response = self._release_raise_payment(instance, request.user, final_approved_at=timezone.now())
+        if response.status_code == status.HTTP_200_OK:
+            stamp_raise_payment(instance, 'final_approved', request.user)
+            response.data = self.get_serializer(instance).data
+        return response
 
     @action(detail=True, methods=['post'], url_path='final-reject')
     def final_reject(self, request, slug=None):
@@ -1693,6 +1707,7 @@ class WorkOrderViewSet(LegacyActionsGuard, RoleBasedPermissionMixin, viewsets.Mo
         instance.final_approver_reason = reason
         instance.approval_status = 'Final Approver Rejected'
         instance.save(update_fields=['final_approver_reason', 'approval_status'])
+        stamp_raise_payment(instance, 'rejected', request.user, reason)
         return Response(self.get_serializer(instance).data, status=status.HTTP_200_OK)
 
     @action(detail=True, methods=['post'], url_path='approve-by-reviewer')
@@ -1745,6 +1760,7 @@ class WorkOrderViewSet(LegacyActionsGuard, RoleBasedPermissionMixin, viewsets.Mo
         instance.approval_status = 'Reviewer Rejected'
         instance.is_reviewed = False
         instance.save(update_fields=['reviewer_reason', 'approval_status', 'is_reviewed'])
+        stamp_raise_payment(instance, 'rejected', request.user, reviewer_reason)
         serializer = self.get_serializer(instance)
         return Response(serializer.data, status=status.HTTP_200_OK)
 
@@ -1832,6 +1848,7 @@ class WorkOrderViewSet(LegacyActionsGuard, RoleBasedPermissionMixin, viewsets.Mo
         instance.approver_reason = approver_reason
         instance.approval_status = 'Approver Rejected'
         instance.save(update_fields=['approver_reason', 'approval_status'])
+        stamp_raise_payment(instance, 'rejected', request.user, approver_reason)
         serializer = self.get_serializer(instance)
         return Response(serializer.data, status=status.HTTP_200_OK)
 
@@ -2157,6 +2174,7 @@ class PaymentRequisitionViewSet(RoleBasedPermissionMixin, viewsets.ModelViewSet)
             raise_payment_orders = instance.work_orders.filter(type=WorkOrder.RAISE_PAYMENT, payee__isnull=False)
             if raise_payment_orders.exists():
                 for work_order in raise_payment_orders:
+                    stamp_raise_payment(work_order, 'paid', request.user)
                     if work_order.work_status != 'closed':
                         work_order.work_status = 'closed'
                         work_order.completed_at = now

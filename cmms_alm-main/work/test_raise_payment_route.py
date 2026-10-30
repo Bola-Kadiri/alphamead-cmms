@@ -460,6 +460,73 @@ class RaisePaymentApprovalRouteTests(TestCase):
         rows = rows['results'] if isinstance(rows, dict) else rows
         self.assertIn(slug, [row['slug'] for row in rows])
 
+    # ── approval trail ───────────────────────────────────────────────────────
+
+    def trail(self, slug, user=None):
+        self.client.force_authenticate(user=user or self.requester)
+        return self.client.get(f'{WORK_ORDERS}{slug}/').data['approval_trail']
+
+    def test_trail_shows_who_did_each_step_and_who_has_it_now(self):
+        slug = self.raise_bill(LARGE)
+        self.procure(slug)
+        self.act(self.approver, slug, 'approve-by-approver')
+        trail = self.trail(slug)
+        self.assertEqual([e['action'] for e in trail['events']], ['raised', 'procured', 'approved'])
+        self.assertEqual(trail['events'][2]['actor']['email'], 'approver@example.com')
+        self.assertTrue(all(e['recorded'] for e in trail['events']))
+        self.assertEqual(trail['waiting']['step'], 'reviewer')
+        self.assertEqual([p['email'] for p in trail['waiting']['people']], ['reviewer@example.com'])
+        self.assertEqual([u['step'] for u in trail['upcoming']], ['final', 'payment'])
+
+        self.act(self.reviewer, slug, 'approve-by-reviewer')
+        self.act(self.wole, slug, 'final-approve')
+        trail = self.trail(slug)
+        self.assertEqual([e['action'] for e in trail['events']], ['raised', 'procured', 'approved', 'reviewed', 'final_approved'])
+        self.assertEqual(trail['waiting']['step'], 'payment')
+
+    def test_trail_records_a_return_and_a_rejection_with_reasons(self):
+        slug = self.raise_bill(LARGE)
+        self.act(self.procurement, slug, 'procurement-return', {'procurement_reason': 'Wrong bill attached'})
+        self.act(self.requester, slug, 'raise-payment-resubmit')
+        self.procure(slug)
+        self.act(self.approver, slug, 'reject-by-approver', {'approver_reason': 'Meter number wrong'})
+        trail = self.trail(slug)
+        self.assertEqual([e['action'] for e in trail['events']], ['raised', 'sent_back', 'resubmitted', 'procured', 'rejected'])
+        self.assertEqual(trail['events'][1]['reason'], 'Wrong bill attached')
+        self.assertEqual((trail['events'][-1]['state'], trail['events'][-1]['reason']), ('rejected', 'Meter number wrong'))
+        self.assertEqual(trail['closed'], 'rejected')
+        self.assertIsNone(trail['waiting'])
+
+    def test_stand_in_approval_shows_on_behalf_of(self):
+        tola = make_user('tola@example.com', 'APPROVER')
+        now = timezone.now()
+        Delegation.objects.create(person=self.approver, stand_in=tola, starts_at=now - timedelta(hours=1),
+                                  ends_at=now + timedelta(days=2), reason='Leave')
+        slug = self.raise_bill()
+        self.act(tola, slug, 'approve-by-approver')
+        event = self.trail(slug)['events'][-1]
+        self.assertEqual((event['actor']['email'], event['on_behalf_of']['email']), ('tola@example.com', 'approver@example.com'))
+
+    def test_older_bill_shows_assigned_people_as_not_recorded(self):
+        old = WorkOrder.objects.create(
+            type=WorkOrder.RAISE_PAYMENT, requester=self.requester, owner=self.requester, facility=self.facility,
+            category=self.category, subcategory=self.subcategory, payee=self.payee, cost=Decimal('50000.00'),
+            currency='NGN', approver=self.approver, invoice_no='OLD-9', approval_route=WorkOrder.APPROVER_FIRST,
+            approval_status='Approver Approved',
+        )
+        old.reviewers.set([self.reviewer])
+        trail = self.trail(old.slug)
+        self.assertEqual([(e['action'], e['recorded']) for e in trail['events']], [('raised', False), ('approved', False)])
+        self.assertEqual(trail['events'][1]['assigned'][0]['email'], 'approver@example.com')
+        self.assertEqual(trail['waiting']['step'], 'reviewer')
+
+    def test_trail_only_on_the_bill_page_not_in_lists(self):
+        self.raise_bill()
+        self.client.force_authenticate(user=self.requester)
+        rows = self.client.get(WORK_ORDERS).data
+        rows = rows['results'] if isinstance(rows, dict) else rows
+        self.assertIsNone(rows[0]['approval_trail'])
+
     # ── everything else unchanged ────────────────────────────────────────────
 
     def test_bill_already_in_progress_keeps_old_order(self):
