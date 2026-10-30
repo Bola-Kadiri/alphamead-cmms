@@ -288,10 +288,10 @@ class RaisePaymentWorkOrderTests(TestCase):
 
     # ── category ↔ subcategory mapping ───────────────────────────────────────
 
-    def test_subcategory_is_required(self):
+    def test_subcategory_is_optional(self):
         response = self.create(subcategory=None)
-        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
-        self.assertIn('subcategory', response.data)
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED, response.data)
+        self.assertIsNone(WorkOrder.objects.get(slug=response.data['slug']).subcategory)
 
     def test_subcategory_must_belong_to_category(self):
         response = self.create(subcategory=self.generator_sub.pk)

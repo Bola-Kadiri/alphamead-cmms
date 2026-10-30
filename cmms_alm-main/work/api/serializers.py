@@ -465,10 +465,10 @@ class WorkOrderSerializer(serializers.ModelSerializer):
                 f"'{category.name}' is not on the known-cost list. Raise Payment is only for "
                 "categories an Admin has marked as known-cost; other jobs must start from a work request."
             )
-        # The bill type (e.g. EKEDC) must be a subcategory of the chosen category.
+        # The bill type (e.g. EKEDC) is optional; when given it must be an active subcategory of the category.
         subcategory = value('subcategory')
         if not subcategory:
-            errors['subcategory'] = "Select the bill type (e.g. EKEDC)."
+            pass
         elif category and subcategory.asset_category_id != category.pk:
             errors['subcategory'] = f"'{subcategory.name}' is not under '{category.name}'."
         elif not subcategory.is_active:
