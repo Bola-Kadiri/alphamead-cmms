@@ -119,6 +119,7 @@ class RaisePaymentWorkOrderTests(TestCase):
             response = self.client.post(f'{WORK_ORDERS}{slug}/procurement-submit/', {
                 'po_number': 'PO-0925', 'po_document': bill_file(),
                 'quotation_amount': str(WorkOrder.objects.get(slug=slug).cost),
+                'client_price': str(WorkOrder.objects.get(slug=slug).cost),
             }, format='multipart')
             self.assertEqual(response.status_code, status.HTTP_200_OK, response.data)
         self.client.force_authenticate(user=self.approver)

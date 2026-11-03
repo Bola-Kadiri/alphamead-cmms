@@ -103,6 +103,7 @@ class RaisePaymentApprovalRouteTests(TestCase):
             'po_number': 'PO-2026-0101', 'quotation_reference': 'Q-77',
             'po_document': SimpleUploadedFile('po.pdf', b'%PDF-1.4 po', content_type='application/pdf'),
             'quotation_amount': quotation_amount or str(WorkOrder.objects.get(slug=slug).cost),
+            'client_price': '2750000.00',
         }, 'multipart')
         self.assertEqual(response.status_code, status.HTTP_200_OK, response.data)
         return response
@@ -215,6 +216,7 @@ class RaisePaymentApprovalRouteTests(TestCase):
         self.assertIn('po_number', response.data)
         self.assertIn('po_document', response.data)
         self.assertIn('quotation_amount', response.data)
+        self.assertIn('client_price', response.data)
 
         response = self.procure(slug)
         self.assertEqual(response.data['approval_status'], 'Pending')
@@ -222,7 +224,24 @@ class RaisePaymentApprovalRouteTests(TestCase):
         work_order = WorkOrder.objects.get(slug=slug)
         self.assertEqual((work_order.po_number, work_order.procurement_by), ('PO-2026-0101', self.procurement))
         self.assertEqual(work_order.quotation_amount, Decimal(LARGE))
+        self.assertEqual(work_order.client_price, Decimal('2750000.00'))
         self.assertTrue(work_order.po_document)
+
+    def test_cost_to_client_can_be_zero_but_not_negative(self):
+        slug = self.raise_bill(LARGE)
+        data = {
+            'po_number': 'PO-1', 'quotation_amount': LARGE, 'client_price': '-1',
+            'po_document': SimpleUploadedFile('po.pdf', b'%PDF-1.4 po', content_type='application/pdf'),
+        }
+        response = self.act(self.procurement, slug, 'procurement-submit', data, 'multipart')
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIn('client_price', response.data)
+
+        data['client_price'] = '0'
+        data['po_document'] = SimpleUploadedFile('po.pdf', b'%PDF-1.4 po', content_type='application/pdf')
+        response = self.act(self.procurement, slug, 'procurement-submit', data, 'multipart')
+        self.assertEqual(response.status_code, status.HTTP_200_OK, response.data)
+        self.assertEqual(WorkOrder.objects.get(slug=slug).client_price, Decimal('0.00'))
 
     def test_quotation_amount_must_match_the_bill_amount(self):
         slug = self.raise_bill(LARGE)

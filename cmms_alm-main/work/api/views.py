@@ -1631,18 +1631,27 @@ class WorkOrderViewSet(LegacyActionsGuard, RoleBasedPermissionMixin, viewsets.Mo
             errors['quotation_amount'] = (
                 f"The quotation amount {instance.currency} {quotation_amount:,.2f} does not match the bill amount "
                 f"{instance.currency} {instance.cost:,.2f}. Return the bill to the Requester if the bill is wrong.")
+        # What the client is billed for this bill; 0 when it is not recharged to the client.
+        client_price = None
+        try:
+            client_price = Decimal(str(request.data.get('client_price') or '')).quantize(Decimal('0.01'))
+        except Exception:
+            errors['client_price'] = "Enter the cost to client (0 if the client is not charged)."
+        if client_price is not None and client_price < 0:
+            errors['client_price'] = "The cost to client cannot be negative."
         if errors:
             return Response(errors, status=status.HTTP_400_BAD_REQUEST)
         instance.po_number = po_number
         if po_document is not None:
             instance.po_document = po_document
         instance.quotation_amount = quotation_amount
+        instance.client_price = client_price
         instance.quotation_reference = (request.data.get('quotation_reference') or '').strip()
         instance.procurement_by = request.user
         instance.procurement_at = timezone.now()
         instance.procurement_reason = ''
         instance.approval_status = 'Pending'
-        instance.save(update_fields=['po_number', 'po_document', 'quotation_amount', 'quotation_reference', 'procurement_by',
+        instance.save(update_fields=['po_number', 'po_document', 'quotation_amount', 'client_price', 'quotation_reference', 'procurement_by',
                                      'procurement_at', 'procurement_reason', 'approval_status'])
         stamp_raise_payment(instance, 'procured', request.user)
         return Response(self.get_serializer(instance).data, status=status.HTTP_200_OK)
