@@ -131,6 +131,15 @@ class Stage2WorkOrderTests(TestCase):
         response = self.post(self.tunde, f'{WORK_ORDERS}flow-start/', {'work_request': self.wr.slug})
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
 
+    def test_procurement_sees_the_requesters_documents(self):
+        from django.contrib.contenttypes.models import ContentType
+        from utils.models import FileAttachment
+        FileAttachment.objects.create(content_type=ContentType.objects.get_for_model(WorkRequest), object_id=self.wr.pk,
+                                      file=SimpleUploadedFile('leak.jpg', b'img', content_type='image/jpeg'))
+        wo = self.start()
+        files = self.api(self.chidi).get(f'{WORK_ORDERS}{wo.slug}/flow/').data['request_files']
+        self.assertEqual([f['name'] for f in files], ['leak.jpg'])
+
     def test_one_work_order_per_request(self):
         self.start()
         response = self.post(self.chidi, f'{WORK_ORDERS}flow-start/', {'work_request': self.wr.slug})

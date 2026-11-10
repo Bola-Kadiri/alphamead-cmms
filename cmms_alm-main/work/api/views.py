@@ -1223,6 +1223,9 @@ def _wo_flow_data(wo, user):
         'accepted': {'at': wo.accepted_at, 'start_date': wo.confirmed_start_date,
                      'technician': wo.contractor_technician} if wo.accepted_at else None,
         'source_work_request': {'slug': wr.slug, 'number': wr.work_request_number} if wr else None,
+        # The Requester's supporting documents from the Work Request, so Procurement & Store see them here.
+        'request_files': [{'id': f.id, 'url': f.file.url if f.file else None, 'name': f.file.name.rsplit('/', 1)[-1] if f.file else ''}
+                          for f in wr.resources.all()] if wr else [],
         'history': [
             {'action': a.action, 'label': a.get_action_display(), 'actor': a.actor_name, 'role': a.actor_role,
              'on_behalf_of': a.on_behalf_of_name or None, 'reason': a.reason or None, 'signature': a.signature or None,
