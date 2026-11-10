@@ -7,7 +7,7 @@ from decimal import Decimal
 from rest_framework import viewsets, status
 from rest_framework.exceptions import PermissionDenied, ValidationError
 from rest_framework.response import Response
-from rest_framework.permissions import IsAuthenticated
+from rest_framework.permissions import IsAuthenticated, SAFE_METHODS
 from rest_framework.decorators import action
 from django.utils import timezone
 from django.utils.dateparse import parse_datetime
@@ -287,9 +287,12 @@ class WorkRequestViewSet(LegacyActionsGuard, RoleBasedPermissionMixin, viewsets.
             # specifically assigned to this user, plus any still-unrouted
             # Pending Review request, so any Procurement & Store user can
             # pick it up.
-            return qs.filter(
-                Q(request_to=user) | Q(request_to__isnull=True, approval_status='Pending Review')
-            ).distinct().order_by('-id')
+            visible = Q(request_to=user) | Q(request_to__isnull=True, approval_status='Pending Review')
+            if self.request.method in SAFE_METHODS:
+                # View-only: a Fully Approved request is where their Work Order starts, so they can
+                # open it (and the Requester's documents) from the Work Order page.
+                visible |= Q(approval_status='Fully Approved')
+            return qs.filter(visible).distinct().order_by('-id')
         five_stage = Q(flow=WorkRequest.FIVE_STAGE)
         if role == 'APPROVER':
             return qs.filter(

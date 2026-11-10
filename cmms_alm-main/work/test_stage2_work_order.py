@@ -140,6 +140,17 @@ class Stage2WorkOrderTests(TestCase):
         files = self.api(self.chidi).get(f'{WORK_ORDERS}{wo.slug}/flow/').data['request_files']
         self.assertEqual([f['name'] for f in files], ['leak.jpg'])
 
+    def test_procurement_can_open_the_approved_request_but_not_change_it(self):
+        wo = self.start()
+        api = self.api(self.chidi)
+        self.assertEqual(api.get(f'/work/api/work-requests/{self.wr.slug}/').status_code, status.HTTP_200_OK)
+        self.assertEqual(api.get(f'/work/api/work-requests/{self.wr.slug}/flow/').status_code, status.HTTP_200_OK)
+        response = api.patch(f'/work/api/work-requests/{self.wr.slug}/', {'description': 'Changed'}, format='json')
+        self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
+        self.wr.refresh_from_db()
+        self.assertEqual(self.wr.description, 'Reception AC not cooling')
+        self.assertEqual(wo.source_work_request_id, self.wr.pk)
+
     def test_one_work_order_per_request(self):
         self.start()
         response = self.post(self.chidi, f'{WORK_ORDERS}flow-start/', {'work_request': self.wr.slug})
