@@ -13,7 +13,7 @@ from drf_yasg.utils import swagger_auto_schema
 from drf_yasg import openapi
 from mail_templated import EmailMessage
 
-from cmms_instanta.permissions import RoleBasedPermissionMixin, SuperAdminWriteOrReadOnly
+from cmms_instanta.permissions import RoleBasedPermissionMixin, SuperAdminWriteOrReadOnly, VendorWritePermission
 from accounts.vendor_import import (
     import_vendors_from_csv, TEMPLATE_HEADER as VENDOR_TEMPLATE_HEADER, TEMPLATE_ROWS as VENDOR_TEMPLATE_ROWS,
 )
@@ -147,8 +147,9 @@ class PersonnelViewSet(viewsets.ModelViewSet):
 class VendorViewSet(viewsets.ModelViewSet):
     queryset = Vendor.objects.all().order_by('-id')
     serializer_class = VendorSerializer
-    # Bank details drive payments: everyone can view, only a Super Admin can change.
-    permission_classes = [SuperAdminWriteOrReadOnly]
+    # Bank details drive payments: everyone can view; Super Admin and Procurement & Store
+    # can add and edit; only a Super Admin can delete (or bulk import, checked below).
+    permission_classes = [VendorWritePermission]
     lookup_field = 'slug'
     pagination_class = None
 
