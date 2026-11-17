@@ -130,7 +130,8 @@ class VendorBulkUploadTests(TestCase):
 
 
 class VendorPermissionTests(TestCase):
-    """Vendors (bank details): everyone can view; only a Super Admin can change them."""
+    """Vendors (bank details): everyone can view; only a Super Admin can change them
+    (Procurement & Store can too, see ProcurementAddVendorTests)."""
 
     def setUp(self):
         self.client = APIClient()
@@ -140,7 +141,7 @@ class VendorPermissionTests(TestCase):
         )
 
     def test_other_roles_can_view_but_not_change(self):
-        for role in ('REQUESTER', 'ADMIN', 'PROCUREMENT AND STORE', 'HEAD OF FINANCE & TREASURY'):
+        for role in ('REQUESTER', 'ADMIN', 'HEAD OF FINANCE & TREASURY'):
             self.client.force_authenticate(user=make_user(f'{role.replace(" ", "")}@example.com', role))
             self.assertEqual(self.client.get('/accounts/api/vendors/').status_code, status.HTTP_200_OK)
             self.assertEqual(self.client.patch(f'/accounts/api/vendors/{self.vendor.slug}/',
@@ -223,3 +224,34 @@ class AdminVendorBulkUploadTests(TestCase):
         response = self.client.get(self.URL + 'template/')
         self.assertEqual(response.status_code, 200)
         self.assertTrue(response.content.decode().startswith('name,type,phone'))
+
+
+class ProcurementAddVendorTests(TestCase):
+    """Procurement & Store can add, edit and delete vendors, like a Super Admin."""
+
+    def setUp(self):
+        self.api = APIClient()
+        self.ps = make_user('ps@example.com', 'PROCUREMENT AND STORE')
+        self.requester = make_user('req@example.com', 'REQUESTER')
+        self.vendor = Vendor.objects.create(name='Old Vendor', type='Company', email='old@vendor.example')
+
+    def test_procurement_can_add_a_vendor(self):
+        self.api.force_authenticate(self.ps)
+        r = self.api.post('/accounts/api/vendors/', {'name': 'New Vendor', 'type': 'Company', 'email': 'new@vendor.example', 'currency': 'NGN'}, format='json')
+        self.assertEqual(r.status_code, status.HTTP_201_CREATED, r.data)
+        self.assertTrue(Vendor.objects.filter(name='New Vendor').exists())
+
+    def test_procurement_can_edit_and_delete_a_vendor(self):
+        self.api.force_authenticate(self.ps)
+        url = f'/accounts/api/vendors/{self.vendor.slug}/'
+        r = self.api.patch(url, {'name': 'Changed'}, format='json')
+        self.assertEqual(r.status_code, status.HTTP_200_OK, r.data)
+        self.vendor.refresh_from_db()
+        self.assertEqual(self.vendor.name, 'Changed')
+        self.assertEqual(self.api.delete(f'/accounts/api/vendors/{self.vendor.slug}/').status_code, status.HTTP_204_NO_CONTENT)
+        self.assertFalse(Vendor.objects.filter(pk=self.vendor.pk).exists())
+
+    def test_other_roles_cannot_add_a_vendor(self):
+        self.api.force_authenticate(self.requester)
+        r = self.api.post('/accounts/api/vendors/', {'name': 'Nope', 'type': 'Company', 'currency': 'NGN'}, format='json')
+        self.assertEqual(r.status_code, status.HTTP_403_FORBIDDEN)

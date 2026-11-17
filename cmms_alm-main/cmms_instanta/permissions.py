@@ -66,10 +66,9 @@ class SuperAdminWriteOrReadOnly(BasePermission):
 class VendorWritePermission(BasePermission):
     """
     Vendors: every logged-in user can view them (the work order forms need them).
-    A Super Admin can add, edit or delete; Procurement & Store can add and edit,
-    but not delete.
+    A Super Admin and Procurement & Store can add, edit and delete them.
     """
-    message = "Only a Super Admin or Procurement & Store can add or edit vendors, and only a Super Admin can delete them."
+    message = "Only a Super Admin or Procurement & Store can add, edit or delete vendors."
 
     def has_permission(self, request, view):
         user = request.user
@@ -80,7 +79,7 @@ class VendorWritePermission(BasePermission):
         role = getattr(user, 'roles', None)
         if user.is_superuser or role == 'SUPER ADMIN':
             return True
-        return role == 'PROCUREMENT AND STORE' and request.method != 'DELETE'
+        return role == 'PROCUREMENT AND STORE'
 
 
 class RoleBasedPermission(BasePermission):

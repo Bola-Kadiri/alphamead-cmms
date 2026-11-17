@@ -148,7 +148,7 @@ class VendorViewSet(viewsets.ModelViewSet):
     queryset = Vendor.objects.all().order_by('-id')
     serializer_class = VendorSerializer
     # Bank details drive payments: everyone can view; Super Admin and Procurement & Store
-    # can add and edit; only a Super Admin can delete (or bulk import, checked below).
+    # can add, edit and delete; only a Super Admin can bulk import (checked below).
     permission_classes = [VendorWritePermission]
     lookup_field = 'slug'
     pagination_class = None
