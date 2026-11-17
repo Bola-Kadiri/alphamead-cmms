@@ -155,5 +155,6 @@ def trail(wo, viewer):
         'upcoming': upcoming,
         'closed': 'rejected' if rejected else ('paid' if paid else None),
         'po_number': wo.po_number or None,
+        'no_po_needed': wo.no_po_needed,
         'quotation_amount': str(wo.quotation_amount) if wo.quotation_amount is not None else None,
     }

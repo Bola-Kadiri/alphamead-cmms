@@ -285,6 +285,16 @@ class WorkOrderSerializer(serializers.ModelSerializer):
         from work.models.raise_payment_trail import trail
         return trail(obj, getattr(request, 'user', None))
 
+    # Raise Payment bills that need no PO: the quote lines Procurement & Store priced them with.
+    raise_payment_lines = serializers.SerializerMethodField()
+
+    def get_raise_payment_lines(self, obj):
+        if not (obj.is_approver_first and obj.no_po_needed):
+            return []
+        return [{'id': line.id, 'description': line.description, 'quantity': str(line.quantity),
+                 'amount': str(line.unit_cost_vendor), 'total': f'{line.total_vendor:.2f}'}
+                for line in obj.quote_lines.all()]
+
     NEXT_STEP = {'Awaiting Procurement': 'procurement', 'Procurement Returned': 'requester', 'Pending': 'approver',
                  'Approver Approved': 'reviewer', 'Awaiting Final Approval': 'final_approver'}
 
@@ -370,7 +380,7 @@ class WorkOrderSerializer(serializers.ModelSerializer):
             # Raise Payment approval route — set by the system, moved on only by the approval actions.
             'approval_route', 'final_approver_detail', 'final_approved_at',
             'final_approver_reason', 'next_step', 'needs_second_approval', 'approval_trail',
-            'needs_procurement', 'quotation_file', 'quotation_amount', 'po_document',
+            'needs_procurement', 'quotation_file', 'quotation_amount', 'po_document', 'no_po_needed', 'raise_payment_lines',
             'procurement_by', 'procurement_at', 'procurement_reason',
             # Closed/Pending/Rejected tracking, and the closure fields it sets —
             # managed exclusively by the set-status action (which also drives

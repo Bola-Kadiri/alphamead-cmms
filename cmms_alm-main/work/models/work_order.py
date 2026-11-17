@@ -597,6 +597,11 @@ class WorkOrder(OwnerPrivModel, Dated, Status, models.Model):
     )
     po_document = models.FileField(upload_to='work_orders/purchase_orders/', blank=True, null=True,
                                    help_text="Raise Payment: the Purchase Order Procurement & Store attached.")
+    no_po_needed = models.BooleanField(
+        default=False,
+        help_text="Raise Payment: Procurement & Store said this bill needs no PO. They priced it as quote lines "
+                  "(quote_lines) instead, and the lines' total is the quotation amount.",
+    )
     procurement_by = models.ForeignKey(
         settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, blank=True, null=True, related_name='+',
         help_text="Procurement & Store user who added the PO and quotation.",

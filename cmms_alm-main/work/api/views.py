@@ -19,6 +19,7 @@ from cmms_instanta.permissions import (
 from work.models import (WorkRequest, WorkRequestQuotationItem, WorkOrder, Comment, PaymentItem,
                           PaymentRequisition, PPM, WorkOrderCompletion, WccEvidence, Invoice)
 from work.models.raise_payment_settings import RaisePaymentApprovalSettings
+from work.models.work_order import WorkOrderQuoteLine
 from work.models.payment_voucher import PaymentVoucher
 from work.models.raise_payment_trail import stamp as stamp_raise_payment
 from work.models import work_request_flow as stage1
@@ -1613,23 +1614,47 @@ class WorkOrderViewSet(LegacyActionsGuard, RoleBasedPermissionMixin, viewsets.Mo
         return None
 
     @action(detail=True, methods=['post'], url_path='procurement-submit')
+    @transaction.atomic
     def procurement_submit(self, request, slug=None):
         instance = get_object_or_404(WorkOrder, slug=slug)
         refused = self._check_procurement(request, instance)
         if refused:
             return refused
+        # P&S say whether the bill needs a PO. Without one they price it as quote lines
+        # (item, quantity, amount each) and the lines' total is the quotation amount.
+        no_po_needed = str(request.data.get('no_po_needed') or '').lower() in ('true', '1', 'yes')
         po_number = (request.data.get('po_number') or '').strip()
         po_document = request.FILES.get('po_document')
         errors = {}
-        if not po_number:
-            errors['po_number'] = "Enter the PO number."
-        if po_document is None and not instance.po_document:
-            errors['po_document'] = "Attach the PO."
+        lines = []
         quotation_amount = None
-        try:
-            quotation_amount = Decimal(str(request.data.get('quotation_amount') or '')).quantize(Decimal('0.01'))
-        except Exception:
-            errors['quotation_amount'] = "Enter the quotation amount."
+        if no_po_needed:
+            po_number, po_document = '', None
+            raw = request.data.get('lines') or '[]'
+            try:
+                raw = json.loads(raw) if isinstance(raw, str) else raw
+                for row in raw:
+                    description = str(row.get('description') or '').strip()
+                    quantity = Decimal(str(row.get('quantity'))).quantize(Decimal('0.01'))
+                    amount = Decimal(str(row.get('amount'))).quantize(Decimal('0.01'))
+                    if not description or quantity <= 0 or amount < 0:
+                        raise ValueError
+                    lines.append((description, quantity, amount))
+            except Exception:
+                errors['lines'] = "Each quote line needs an item, a quantity above 0 and an amount."
+            if not lines and 'lines' not in errors:
+                errors['lines'] = "Add at least one quote line."
+            if lines:
+                quotation_amount = sum((q * a for _, q, a in lines), Decimal('0')).quantize(Decimal('0.01'))
+        else:
+            if not po_number:
+                errors['po_number'] = "Enter the PO number."
+            if po_document is None and not instance.po_document:
+                errors['po_document'] = "Attach the PO."
+            try:
+                quotation_amount = Decimal(str(request.data.get('quotation_amount') or '')).quantize(Decimal('0.01'))
+            except Exception:
+                errors['quotation_amount'] = "Enter the quotation amount."
         if quotation_amount is not None and quotation_amount <= 0:
             errors['quotation_amount'] = "Enter the quotation amount."
         elif quotation_amount is not None and quotation_amount != instance.cost:
@@ -1647,9 +1672,19 @@ class WorkOrderViewSet(LegacyActionsGuard, RoleBasedPermissionMixin, viewsets.Mo
             errors['client_price'] = "The cost to client cannot be negative."
         if errors:
             return Response(errors, status=status.HTTP_400_BAD_REQUEST)
+        instance.no_po_needed = no_po_needed
         instance.po_number = po_number
-        if po_document is not None:
+        if no_po_needed:
+            instance.po_document = None
+        elif po_document is not None:
             instance.po_document = po_document
+        # Replace any lines from an earlier submission (e.g. a bill that was returned and resubmitted).
+        instance.quote_lines.all().delete()
+        WorkOrderQuoteLine.objects.bulk_create([
+            WorkOrderQuoteLine(work_order=instance, description=description, quantity=quantity,
+                               unit_cost_vendor=amount, unit_cost_client=amount)
+            for description, quantity, amount in lines
+        ])
         instance.quotation_amount = quotation_amount
         instance.client_price = client_price
         instance.quotation_reference = (request.data.get('quotation_reference') or '').strip()
@@ -1657,7 +1692,7 @@ class WorkOrderViewSet(LegacyActionsGuard, RoleBasedPermissionMixin, viewsets.Mo
         instance.procurement_at = timezone.now()
         instance.procurement_reason = ''
         instance.approval_status = 'Pending'
-        instance.save(update_fields=['po_number', 'po_document', 'quotation_amount', 'client_price', 'quotation_reference', 'procurement_by',
+        instance.save(update_fields=['no_po_needed', 'po_number', 'po_document', 'quotation_amount', 'client_price', 'quotation_reference', 'procurement_by',
                                      'procurement_at', 'procurement_reason', 'approval_status'])
         stamp_raise_payment(instance, 'procured', request.user)
         return Response(self.get_serializer(instance).data, status=status.HTTP_200_OK)
