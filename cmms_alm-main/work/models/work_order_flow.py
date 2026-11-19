@@ -87,14 +87,29 @@ def start(wr, user):
 
 # ── pricing ──────────────────────────────────────────────────────────────────
 
-def _decimal(value, label):
+def _decimal(value, label, max_digits=18):
     try:
         number = Decimal(str(value))
     except Exception:
         raise ActionRefused(f"{label} must be a number.")
+    if not number.is_finite():
+        raise ActionRefused(f"{label} must be a number.")
     if number < 0:
         raise ActionRefused(f"{label} cannot be negative.")
+    # The database stores 2 decimal places; anything bigger than the column holds is refused here
+    # with a clear message instead of failing on save.
+    if number.quantize(Decimal('0.01')).adjusted() >= max_digits - 2:
+        raise ActionRefused(f"{label} is too large.")
     return number
+
+
+def _text(value, label, field, model=WorkOrder):
+    """Trimmed text, refused with a clear message when longer than its database column."""
+    text = (value or '').strip()
+    limit = model._meta.get_field(field).max_length
+    if limit and len(text) > limit:
+        raise ActionRefused(f"{label} can be at most {limit} characters (it has {len(text)}). Shorten it and save again.")
+    return text
 
 
 @transaction.atomic
@@ -106,10 +121,10 @@ def save_pricing(wo, user, *, lines=None, vendor=None, quotation_reference=None,
     if lines is not None:
         clean = []
         for index, line in enumerate(lines, start=1):
-            description = (line.get('description') or '').strip()
+            description = _text(line.get('description'), f"Line {index} description", 'description', WorkOrderQuoteLine)
             if not description:
                 raise ActionRefused(f"Line {index}: enter a description.")
-            quantity = _decimal(line.get('quantity', 1), f"Line {index} quantity")
+            quantity = _decimal(line.get('quantity', 1), f"Line {index} quantity", max_digits=12)
             if quantity <= 0:
                 raise ActionRefused(f"Line {index}: quantity must be more than 0.")
             clean.append(WorkOrderQuoteLine(
@@ -117,18 +132,32 @@ def save_pricing(wo, user, *, lines=None, vendor=None, quotation_reference=None,
                 unit_cost_vendor=_decimal(line.get('unit_cost_vendor'), f"Line {index} vendor cost"),
                 unit_cost_client=_decimal(line.get('unit_cost_client'), f"Line {index} client price"),
             ))
+        cost = sum((l.total_vendor for l in clean), Decimal('0'))
+        client_price = sum((l.total_client for l in clean), Decimal('0'))
+        for total, label, field in ((cost, "The total vendor cost", 'cost'), (client_price, "The total client price", 'client_price')):
+            column = WorkOrder._meta.get_field(field)
+            if total.quantize(Decimal('0.01')).adjusted() >= column.max_digits - column.decimal_places:
+                raise ActionRefused(f"{label} is too large to save.")
         wo.quote_lines.all().delete()
         WorkOrderQuoteLine.objects.bulk_create(clean)
-        wo.cost = sum((l.total_vendor for l in clean), Decimal('0'))
-        wo.client_price = sum((l.total_client for l in clean), Decimal('0'))
+        wo.cost = cost
+        wo.client_price = client_price
     if vendor is not None:
         wo.vendor = vendor
     if quotation_reference is not None:
-        wo.quotation_reference = quotation_reference.strip()
+        wo.quotation_reference = _text(quotation_reference, "The quotation reference", 'quotation_reference')
     if po_number is not None:
-        wo.po_number = po_number.strip()
+        wo.po_number = _text(po_number, "The PO number", 'po_number')
     if expected_start_date is not None:
-        wo.expected_start_date = expected_start_date or None
+        start = None
+        if expected_start_date:
+            try:
+                start = parse_date(str(expected_start_date))
+            except ValueError:
+                start = None
+            if start is None:
+                raise ActionRefused("The expected start date is not a valid date.")
+        wo.expected_start_date = start
     wo.save()
     if files:
         from django.contrib.contenttypes.models import ContentType

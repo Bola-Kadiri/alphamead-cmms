@@ -228,3 +228,17 @@ FRONTEND_URL = config('FRONTEND_URL', default='https://alpha-cmms.alphamead.com'
 # This ensures it sends even while you are developing (DEBUG=True)
 # O365_ACTUALLY_SEND_IN_DEBUG = True
 # O365_MAIL_MAILBOX_KWARGS = {'resource': 'samson.omamuzo@alphamead.com'}
+
+
+# Server errors (500s) with their traceback go to the console, which Gunicorn sends to its
+# journal (`journalctl -u gunicorn`). Without this, a crash in production leaves no trace.
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'handlers': {
+        'console': {'class': 'logging.StreamHandler'},
+    },
+    'loggers': {
+        'django.request': {'handlers': ['console'], 'level': 'ERROR', 'propagate': False},
+    },
+}

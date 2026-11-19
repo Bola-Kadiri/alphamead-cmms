@@ -131,6 +131,24 @@ class Stage2WorkOrderTests(TestCase):
         response = self.post(self.tunde, f'{WORK_ORDERS}flow-start/', {'work_request': self.wr.slug})
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
 
+    def test_pricing_too_long_or_invalid_gets_a_clear_message_not_a_crash(self):
+        # These used to fail with a server error (500) and nothing was saved.
+        wo = self.start()
+        path = f'{WORK_ORDERS}{wo.slug}/flow-pricing/'
+        for data, words in (
+            ({'quotation_reference': 'x' * 101}, 'at most 100 characters'),
+            ({'po_number': 'x' * 101}, 'at most 100 characters'),
+            ({'expected_start_date': '28/10/2026'}, 'not a valid date'),
+            ({'lines': json.dumps([{'description': 'x' * 256, 'quantity': 1, 'unit_cost_vendor': '1', 'unit_cost_client': '1'}])},
+             'at most 255 characters'),
+            ({'lines': json.dumps([{'description': 'Big', 'quantity': 1, 'unit_cost_vendor': '150000000', 'unit_cost_client': '160000000'}])},
+             'too large'),
+        ):
+            response = self.post(self.bola, path, data, fmt='multipart')
+            self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST, data)
+            self.assertIn(words, response.data['error'])
+        self.assertEqual(self.price(wo).status_code, status.HTTP_200_OK)
+
     def test_procurement_sees_the_requesters_documents(self):
         from django.contrib.contenttypes.models import ContentType
         from utils.models import FileAttachment
