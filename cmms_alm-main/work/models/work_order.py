@@ -407,9 +407,10 @@ class WorkOrder(OwnerPrivModel, Dated, Status, models.Model):
         max_digits=18, decimal_places=2, blank=True, null=True,
         help_text="What the client is billed (sum of the client prices on the quote lines). `cost` is the vendor cost."
     )
-    quotation_reference = models.CharField(max_length=100, blank=True, default='',
+    # 500 characters: P&S sometimes enter several references (or PO numbers) in one box.
+    quotation_reference = models.CharField(max_length=500, blank=True, default='',
                                            help_text="The vendor's quotation reference.")
-    po_number = models.CharField(max_length=100, blank=True, default='', help_text="Purchase Order number.")
+    po_number = models.CharField(max_length=500, blank=True, default='', help_text="Purchase Order number.")
     accepted_at = models.DateTimeField(blank=True, null=True, help_text="When the contractor accepted the job.")
     accepted_by = models.ForeignKey(
         settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, blank=True, null=True, related_name='+',

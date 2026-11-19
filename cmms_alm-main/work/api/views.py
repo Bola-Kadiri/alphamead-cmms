@@ -1670,6 +1670,16 @@ class WorkOrderViewSet(LegacyActionsGuard, RoleBasedPermissionMixin, viewsets.Mo
             errors['client_price'] = "Enter the cost to client (0 if the client is not charged)."
         if client_price is not None and client_price < 0:
             errors['client_price'] = "The cost to client cannot be negative."
+        # Too-long text would otherwise fail at the database as a server error.
+        quotation_reference = (request.data.get('quotation_reference') or '').strip()
+        for field, label, value in (('po_number', 'The PO number', po_number),
+                                    ('quotation_reference', 'The quotation reference', quotation_reference)):
+            limit = WorkOrder._meta.get_field(field).max_length
+            if len(value) > limit:
+                errors[field] = f"{label} can be at most {limit} characters (it has {len(value)})."
+        line_limit = WorkOrderQuoteLine._meta.get_field('description').max_length
+        if any(len(description) > line_limit for description, _, _ in lines):
+            errors['lines'] = f"Each quote line item can be at most {line_limit} characters."
         if errors:
             return Response(errors, status=status.HTTP_400_BAD_REQUEST)
         instance.no_po_needed = no_po_needed
@@ -1687,7 +1697,7 @@ class WorkOrderViewSet(LegacyActionsGuard, RoleBasedPermissionMixin, viewsets.Mo
         ])
         instance.quotation_amount = quotation_amount
         instance.client_price = client_price
-        instance.quotation_reference = (request.data.get('quotation_reference') or '').strip()
+        instance.quotation_reference = quotation_reference
         instance.procurement_by = request.user
         instance.procurement_at = timezone.now()
         instance.procurement_reason = ''
