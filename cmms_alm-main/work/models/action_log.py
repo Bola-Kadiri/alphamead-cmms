@@ -34,6 +34,8 @@ ACTION_CHOICES = [
     # Raise Payment (see raise_payment_trail).
     ('procured', 'PO & quotation added'),
     ('final_approved', 'Final approval'),
+    # Super Admin changed someone else's work (see super_admin_override).
+    ('edited', 'Edited by Super Admin'),
 ]
 
 
@@ -98,18 +100,24 @@ def _name(user):
     return (user.name.strip() or user.email) if user else ''
 
 
-def record_action(document, stage, action, actor, *, reason='', signature='', on_behalf_of=None, facility=None):
-    """Stamp an action on `document`. Call it in the same transaction as the change it records."""
+def record_action(document, stage, action, actor, *, reason='', signature='', on_behalf_of=None, facility=None,
+                  on_behalf_of_name=''):
+    """Stamp an action on `document`. Call it in the same transaction as the change it records.
+
+    on_behalf_of_name: shown when there is no single person acted for, e.g. "Procurement & Store"
+    when the Super Admin acts for a team.
+    """
     content_type = ContentType.objects.get_for_model(document)
     now = timezone.now()
+    # A Super Admin edit is not a step, so step timings run from the previous real step.
     previous = (FlowAction.objects.filter(content_type=content_type, object_id=document.pk)
-                .order_by('-at', '-id').values_list('at', flat=True).first())
+                .exclude(action='edited').order_by('-at', '-id').values_list('at', flat=True).first())
     if facility is None:
         facility = getattr(document, 'facility', None)
     return FlowAction.objects.create(
         content_type=content_type, object_id=document.pk, stage=stage, action=action,
         facility=facility, actor=actor, actor_name=_name(actor), actor_role=getattr(actor, 'roles', ''),
-        on_behalf_of=on_behalf_of, on_behalf_of_name=_name(on_behalf_of),
+        on_behalf_of=on_behalf_of, on_behalf_of_name=_name(on_behalf_of) or (on_behalf_of_name or '').strip(),
         reason=reason, signature=signature, at=now,
         since_previous=(now - previous) if previous else None,
     )

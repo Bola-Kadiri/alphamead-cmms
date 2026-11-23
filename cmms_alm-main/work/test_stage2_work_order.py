@@ -226,8 +226,9 @@ class Stage2WorkOrderTests(TestCase):
         wo = self.start()
         response = self.post(self.bola, f'{WORK_ORDERS}{wo.slug}/flow-submit/')
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
-        for text in ('Choose the vendor', 'quote line', 'quotation reference', 'PO number', 'start date', 'quotation.'):
+        for text in ('Choose the vendor', 'quote line', 'quotation reference', 'PO number', 'start date'):
             self.assertIn(text, response.data['error'])
+        self.assertNotIn('Attach', response.data['error'])  # the Purchase Order (PO) file is optional
 
     def test_vendor_must_be_payable(self):
         wo = self.start()

@@ -19,6 +19,7 @@ from work.models import work_request_flow as stage1
 from work.models.action_log import history
 from work.models.approval_matrix import acting_for, team_members
 from work.models.flow_rules import ActionRefused, perform_action
+from work.models.super_admin_override import clean_reason, is_super_admin, record_override, tell
 from work.models.time_limits import step_timing
 from work.models.work_order import WorkOrder, WorkOrderQuoteLine
 from work.models.work_request import WorkRequest
@@ -60,6 +61,21 @@ def _procurement_check(user, facility):
         raise ActionRefused("Only Procurement & Store can price a work order.")
 
 
+def acting_as_super_admin(wo, user):
+    """The Super Admin, not being Procurement & Store, may edit and submit the pricing for them."""
+    return (WAITING_ON.get(wo.approval_status) == 'procurement' and is_super_admin(user)
+            and not acting_for(user, 'procurement', wo.facility)[0])
+
+
+def _maker_override(user, facility, reason):
+    """None for Procurement & Store; for the Super Admin acting for them, their (required) reason."""
+    if acting_for(user, 'procurement', facility)[0]:
+        return None
+    if is_super_admin(user):
+        return clean_reason(reason)
+    raise ActionRefused("Only Procurement & Store can price a work order.")
+
+
 # ── the queue and starting a work order ──────────────────────────────────────
 
 def ready_requests():
@@ -74,7 +90,8 @@ def start(wr, user):
     """Open a Work Order for pricing from a client-approved Work Request."""
     if wr.flow != WorkRequest.FIVE_STAGE or wr.approval_status != 'Fully Approved':
         raise ActionRefused("Only a client-approved Work Request can become a Work Order.")
-    _procurement_check(user, wr.facility)
+    if not is_super_admin(user):  # the Super Admin may open it for pricing too
+        _procurement_check(user, wr.facility)
     if wr.derived_work_orders.filter(flow=WorkOrder.FIVE_STAGE).exists():
         raise ActionRefused("This Work Request already has a Work Order.")
     return WorkOrder.objects.create(
@@ -114,14 +131,16 @@ def _text(value, label, field, model=WorkOrder):
 
 @transaction.atomic
 def save_pricing(wo, user, *, lines=None, vendor=None, quotation_reference=None, po_number=None,
-                 expected_start_date=None, files=(), no_po_needed=None):
+                 expected_start_date=None, files=(), no_po_needed=None, override_reason=None):
     """Save what Procurement & Store has so far. Checked for completeness only on submit.
 
     no_po_needed: P&S's "This work order needs a PO" switch turned off. No PO number is then
     needed (and any typed one is cleared); everything else on the pricing stays as it is.
+
+    override_reason: required when the Super Admin edits for Procurement & Store.
     """
     _require(wo, 'Pricing', 'Sent Back')
-    _procurement_check(user, wo.facility)
+    override = _maker_override(user, wo.facility, override_reason)
     if lines is not None:
         clean = []
         for index, line in enumerate(lines, start=1):
@@ -173,6 +192,10 @@ def save_pricing(wo, user, *, lines=None, vendor=None, quotation_reference=None,
         content_type = ContentType.objects.get_for_model(wo)
         for upload in files:
             FileAttachment.objects.create(content_type=content_type, object_id=wo.pk, file=upload)
+    if override is not None:
+        record_override(wo, STAGE, 'edited', user, override, STEP_LABELS['procurement'], facility=wo.facility)
+        tell(people_for(wo, 'procurement'), user, wo, STAGE,
+             f"edited the pricing on Work Order {wo.work_order_number}", override)
 
 
 def pricing_problems(wo):
@@ -198,13 +221,20 @@ def pricing_problems(wo):
 # ── actions ──────────────────────────────────────────────────────────────────
 
 @transaction.atomic
-def submit(wo, user):
+def submit(wo, user, override_reason=None):
     _require(wo, 'Pricing', 'Sent Back')
+    # The Super Admin may submit for Procurement & Store, with a reason; everyone else as before.
+    override = clean_reason(override_reason) if acting_as_super_admin(wo, user) else None
     problems = pricing_problems(wo)
     if problems:
         raise ActionRefused(' '.join(problems))
     action = 'raised' if wo.approval_status == 'Pricing' else 'resubmitted'
-    perform_action(wo, STAGE, 'procurement', action, user, facility=wo.facility)
+    if override is None:
+        perform_action(wo, STAGE, 'procurement', action, user, facility=wo.facility)
+    else:
+        record_override(wo, STAGE, action, user, override, STEP_LABELS['procurement'], facility=wo.facility)
+        tell(people_for(wo, 'procurement'), user, wo, STAGE,
+             f"submitted Work Order {wo.work_order_number} for review", override)
     _set_status(wo, 'Awaiting Review')
     _tell_next(wo)
 
@@ -302,6 +332,8 @@ def available_actions(wo, user):
                    and acting_for(user, 'contractor', wo.facility, vendor=wo.vendor)[0])
         return ['accept'] if allowed else []
     slot = WAITING_ON.get(status)
+    if acting_as_super_admin(wo, user):
+        return ['edit_pricing', 'submit']  # maker step only, with a reason
     if slot is None or not acting_for(user, slot, wo.facility)[0]:
         return []
     if slot == 'procurement':

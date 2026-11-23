@@ -22,6 +22,7 @@ ACTIONS = {
     'final_approved': ('Final approval', 'Final approver'),
     'rejected': ('Rejected', ''),
     'paid': ('Paid', 'Head of Finance & Treasury'),
+    'edited': ('Edited by Super Admin', 'Super Admin'),
 }
 STEP_ACTION = {'raised': 'raised', 'procurement': 'procured', 'approver': 'approved', 'reviewer': 'reviewed',
                'final': 'final_approved', 'payment': 'paid'}
@@ -44,12 +45,16 @@ def _stand_in_for(wo, user):
     return wo.approver if covering else None
 
 
-def stamp(wo, action, user, reason=''):
-    """Record a Raise Payment action. Only bills on the approver-first route keep a trail."""
+def stamp(wo, action, user, reason='', on_behalf_of_name=''):
+    """Record a Raise Payment action. Only bills on the approver-first route keep a trail.
+
+    on_behalf_of_name: the step the Super Admin acted for (e.g. "Procurement & Store").
+    """
     if not wo.is_approver_first or user is None:
         return None
     on_behalf_of = _stand_in_for(wo, user) if action in ('approved', 'rejected') else None
-    return record_action(wo, STAGE, action, user, reason=(reason or '').strip(), on_behalf_of=on_behalf_of)
+    return record_action(wo, STAGE, action, user, reason=(reason or '').strip(), on_behalf_of=on_behalf_of,
+                         on_behalf_of_name=on_behalf_of_name)
 
 
 # ── the trail ────────────────────────────────────────────────────────────────
@@ -128,7 +133,9 @@ def trail(wo, viewer):
             role = STEP_ROLE[rejected[0]]
         events.append({'action': s.action, 'label': label, 'role': role, 'state': state,
                        'actor': _person(s.actor, show_email) or {'id': None, 'name': s.actor_name, 'email': ''},
-                       'on_behalf_of': _person(s.on_behalf_of, show_email), 'at': s.at,
+                       'on_behalf_of': _person(s.on_behalf_of, show_email) or (
+                           {'id': None, 'name': s.on_behalf_of_name, 'email': ''} if s.on_behalf_of_name else None),
+                       'at': s.at,
                        'took_seconds': s.since_previous.total_seconds() if s.since_previous else None,
                        'reason': s.reason or None, 'recorded': True, 'assigned': []})
     # A rejection from before recording began.

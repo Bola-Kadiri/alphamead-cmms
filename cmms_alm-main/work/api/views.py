@@ -22,6 +22,7 @@ from work.models.raise_payment_settings import RaisePaymentApprovalSettings
 from work.models.work_order import WorkOrderQuoteLine
 from work.models.payment_voucher import PaymentVoucher
 from work.models.raise_payment_trail import stamp as stamp_raise_payment
+from work.models import super_admin_override
 from work.models import work_request_flow as stage1
 from work.models import work_order_flow as stage2
 from work.models import completion_flow as stage3
@@ -1239,6 +1240,8 @@ def _wo_flow_data(wo, user):
         ],
         'timing': stage2.timing(wo),
         'my_actions': actions,
+        # The Super Admin is editing/submitting for Procurement & Store: the screen asks for a reason.
+        'acting_as_super_admin': stage2.acting_as_super_admin(wo, user),
     }
 
 
@@ -1300,10 +1303,22 @@ class WorkOrderViewSet(LegacyActionsGuard, RoleBasedPermissionMixin, viewsets.Mo
         return qs.filter(Q(owner=user) | Q(final_approver=user)).order_by('-id')
 
     def update(self, request, *args, **kwargs):
-        if self.get_object().flow == WorkOrder.FIVE_STAGE:
+        instance = self.get_object()
+        if instance.flow == WorkOrder.FIVE_STAGE:
             return Response({'error': "Change this work order through its own screen actions."},
                             status=status.HTTP_400_BAD_REQUEST)
-        return super().update(request, *args, **kwargs)
+        response = super().update(request, *args, **kwargs)
+        # The Super Admin edited someone else's Raise Payment bill: say so in its history.
+        raisers = [u for u in (instance.owner, instance.requester) if u is not None]
+        if (response.status_code < 300 and instance.is_approver_first
+                and super_admin_override.is_super_admin(request.user)
+                and request.user.pk not in [u.pk for u in raisers]):
+            reason = (request.data.get('override_reason') or '').strip() or "Edited the bill details."
+            stamp_raise_payment(instance, 'edited', request.user, super_admin_override.PREFIX + reason,
+                                on_behalf_of_name='Requester')
+            super_admin_override.tell(raisers, request.user, instance, 'work_order',
+                                      f"edited your Raise Payment {instance.work_order_number}", reason)
+        return response
 
     def destroy(self, request, *args, **kwargs):
         if self.get_object().flow == WorkOrder.FIVE_STAGE:
@@ -1373,12 +1388,12 @@ class WorkOrderViewSet(LegacyActionsGuard, RoleBasedPermissionMixin, viewsets.Mo
             request, stage2.save_pricing, lines=lines, vendor=vendor,
             quotation_reference=request.data.get('quotation_reference'), po_number=request.data.get('po_number'),
             expected_start_date=start if start is not None else None, files=request.FILES.getlist('resources'),
-            no_po_needed=no_po_needed,
+            no_po_needed=no_po_needed, override_reason=request.data.get('override_reason'),
         )
 
     @action(detail=True, methods=['post'], url_path='flow-submit')
     def flow_submit(self, request, slug=None):
-        return self._stage2_call(request, stage2.submit)
+        return self._stage2_call(request, stage2.submit, override_reason=request.data.get('override_reason'))
 
     @action(detail=True, methods=['post'], url_path='flow-review')
     def flow_review(self, request, slug=None):
@@ -1685,6 +1700,12 @@ class WorkOrderViewSet(LegacyActionsGuard, RoleBasedPermissionMixin, viewsets.Mo
         line_limit = WorkOrderQuoteLine._meta.get_field('description').max_length
         if any(len(description) > line_limit for description, _, _ in lines):
             errors['lines'] = f"Each quote line item can be at most {line_limit} characters."
+        # The Super Admin acting for Procurement & Store gives a reason for the history.
+        override = None
+        if super_admin_override.is_super_admin(request.user):
+            override = (request.data.get('override_reason') or '').strip()
+            if not override:
+                errors['override_reason'] = "You are acting as Super Admin for Procurement & Store. Give a reason."
         if errors:
             return Response(errors, status=status.HTTP_400_BAD_REQUEST)
         instance.no_po_needed = no_po_needed
@@ -1709,7 +1730,14 @@ class WorkOrderViewSet(LegacyActionsGuard, RoleBasedPermissionMixin, viewsets.Mo
         instance.approval_status = 'Pending'
         instance.save(update_fields=['no_po_needed', 'po_number', 'po_document', 'quotation_amount', 'client_price', 'quotation_reference', 'procurement_by',
                                      'procurement_at', 'procurement_reason', 'approval_status'])
-        stamp_raise_payment(instance, 'procured', request.user)
+        if override:
+            stamp_raise_payment(instance, 'procured', request.user, super_admin_override.PREFIX + override,
+                                on_behalf_of_name='Procurement & Store')
+            super_admin_override.tell(
+                get_user_model().objects.filter(roles='PROCUREMENT AND STORE'), request.user, instance, 'work_order',
+                f"added the PO step on Raise Payment {instance.work_order_number}", override)
+        else:
+            stamp_raise_payment(instance, 'procured', request.user)
         return Response(self.get_serializer(instance).data, status=status.HTTP_200_OK)
 
     @action(detail=True, methods=['post'], url_path='procurement-return')
@@ -1741,12 +1769,26 @@ class WorkOrderViewSet(LegacyActionsGuard, RoleBasedPermissionMixin, viewsets.Mo
                 {"error": f"Only a bill returned by Procurement & Store can be resubmitted (status '{instance.approval_status}')."},
                 status=status.HTTP_400_BAD_REQUEST,
             )
+        # The Super Admin resubmitting someone else's bill gives a reason for the history.
+        raisers = [u for u in (instance.owner, instance.requester) if u is not None]
+        override = None
+        if super_admin_override.is_super_admin(request.user) and request.user.pk not in [u.pk for u in raisers]:
+            override = (request.data.get('override_reason') or '').strip()
+            if not override:
+                return Response({"override_reason": "You are acting as Super Admin for the Requester. Give a reason."},
+                                status=status.HTTP_400_BAD_REQUEST)
         # The amount decides the route again: a bill corrected below the threshold goes straight to the Approver.
         large = RaisePaymentApprovalSettings.current().needs_procurement(instance.cost, instance.currency)
         instance.needs_procurement = large
         instance.approval_status = 'Awaiting Procurement' if large else 'Pending'
         instance.save(update_fields=['needs_procurement', 'approval_status'])
-        stamp_raise_payment(instance, 'resubmitted', request.user)
+        if override:
+            stamp_raise_payment(instance, 'resubmitted', request.user, super_admin_override.PREFIX + override,
+                                on_behalf_of_name='Requester')
+            super_admin_override.tell(raisers, request.user, instance, 'work_order',
+                                      f"resubmitted your Raise Payment {instance.work_order_number}", override)
+        else:
+            stamp_raise_payment(instance, 'resubmitted', request.user)
         return Response(self.get_serializer(instance).data, status=status.HTTP_200_OK)
 
     @action(detail=True, methods=['post'], url_path='final-approve')
