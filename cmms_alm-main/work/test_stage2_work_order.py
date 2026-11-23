@@ -181,6 +181,13 @@ class Stage2WorkOrderTests(TestCase):
         self.assertEqual(response.status_code, status.HTTP_200_OK, response.data)
         self.assertEqual(response.data['status'], 'Awaiting Review')
 
+    def test_purchase_order_file_is_optional(self):
+        wo = self.start()
+        self.assertEqual(self.price(wo, with_file=False).status_code, status.HTTP_200_OK)
+        response = self.post(self.bola, f'{WORK_ORDERS}{wo.slug}/flow-submit/')
+        self.assertEqual(response.status_code, status.HTTP_200_OK, response.data)
+        self.assertEqual(response.data['status'], 'Awaiting Review')
+
     def test_procurement_sees_the_requesters_documents(self):
         from django.contrib.contenttypes.models import ContentType
         from utils.models import FileAttachment

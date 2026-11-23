@@ -191,8 +191,7 @@ def pricing_problems(wo):
         problems.append("Enter the PO number.")
     if not wo.expected_start_date:
         problems.append("Enter the expected start date.")
-    if not wo.resources.exists():
-        problems.append("Attach the vendor's quotation.")
+    # The attached Purchase Order (PO) file is optional.
     return problems
 
 
