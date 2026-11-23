@@ -114,8 +114,12 @@ def _text(value, label, field, model=WorkOrder):
 
 @transaction.atomic
 def save_pricing(wo, user, *, lines=None, vendor=None, quotation_reference=None, po_number=None,
-                 expected_start_date=None, files=()):
-    """Save what Procurement & Store has so far. Checked for completeness only on submit."""
+                 expected_start_date=None, files=(), no_po_needed=None):
+    """Save what Procurement & Store has so far. Checked for completeness only on submit.
+
+    no_po_needed: P&S's "This work order needs a PO" switch turned off. No PO number is then
+    needed (and any typed one is cleared); everything else on the pricing stays as it is.
+    """
     _require(wo, 'Pricing', 'Sent Back')
     _procurement_check(user, wo.facility)
     if lines is not None:
@@ -146,8 +150,12 @@ def save_pricing(wo, user, *, lines=None, vendor=None, quotation_reference=None,
         wo.vendor = vendor
     if quotation_reference is not None:
         wo.quotation_reference = _text(quotation_reference, "The quotation reference", 'quotation_reference')
+    if no_po_needed is not None:
+        wo.no_po_needed = bool(no_po_needed)
     if po_number is not None:
         wo.po_number = _text(po_number, "The PO number", 'po_number')
+    if wo.no_po_needed:
+        wo.po_number = ''
     if expected_start_date is not None:
         start = None
         if expected_start_date:
@@ -179,7 +187,7 @@ def pricing_problems(wo):
         problems.append("The client price cannot be lower than the vendor cost.")
     if not wo.quotation_reference:
         problems.append("Enter the quotation reference.")
-    if not wo.po_number:
+    if not wo.po_number and not wo.no_po_needed:
         problems.append("Enter the PO number.")
     if not wo.expected_start_date:
         problems.append("Enter the expected start date.")

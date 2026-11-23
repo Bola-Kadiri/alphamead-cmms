@@ -155,6 +155,32 @@ class Stage2WorkOrderTests(TestCase):
         wo.refresh_from_db()
         self.assertEqual(wo.quotation_reference, long_ref.strip())
 
+    def test_po_switch_off_submits_without_a_po_and_on_needs_it_again(self):
+        wo = self.start()
+        path = f'{WORK_ORDERS}{wo.slug}/flow-pricing/'
+        self.price(wo)
+        # Switch off: the typed PO is cleared and the work order submits without one.
+        response = self.post(self.bola, path, {'no_po_needed': 'true', 'po_number': 'PO-IGNORED'}, fmt='multipart')
+        self.assertEqual(response.status_code, status.HTTP_200_OK, response.data)
+        self.assertTrue(response.data['no_po_needed'])
+        self.assertEqual(response.data['po_number'], '')
+        wo.refresh_from_db()
+        self.assertEqual((wo.no_po_needed, wo.po_number, wo.quotation_reference), (True, '', 'CA-Q-2210'))
+        self.assertEqual(wo.quote_lines.count(), 1)  # pricing untouched
+        # Saving without the switch field (an older screen) leaves it off.
+        self.post(self.bola, path, {'quotation_reference': 'CA-Q-2211'}, fmt='multipart')
+        wo.refresh_from_db()
+        self.assertTrue(wo.no_po_needed)
+        # Switch back on: the PO number is required again.
+        self.post(self.bola, path, {'no_po_needed': 'false', 'po_number': ''}, fmt='multipart')
+        response = self.post(self.bola, f'{WORK_ORDERS}{wo.slug}/flow-submit/')
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIn('Enter the PO number', response.data['error'])
+        self.post(self.bola, path, {'no_po_needed': 'true'}, fmt='multipart')
+        response = self.post(self.bola, f'{WORK_ORDERS}{wo.slug}/flow-submit/')
+        self.assertEqual(response.status_code, status.HTTP_200_OK, response.data)
+        self.assertEqual(response.data['status'], 'Awaiting Review')
+
     def test_procurement_sees_the_requesters_documents(self):
         from django.contrib.contenttypes.models import ContentType
         from utils.models import FileAttachment

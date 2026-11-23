@@ -1219,6 +1219,7 @@ def _wo_flow_data(wo, user):
             'id': wo.vendor_id, 'name': wo.vendor.name, 'has_bank_details': wo.vendor.has_bank_details},
         'quotation_reference': wo.quotation_reference,
         'po_number': wo.po_number,
+        'no_po_needed': wo.no_po_needed,
         'expected_start_date': wo.expected_start_date,
         'files': [{'id': f.id, 'url': f.file.url if f.file else None, 'name': f.file.name.rsplit('/', 1)[-1] if f.file else ''}
                   for f in wo.resources.all()] if not is_client else [],
@@ -1365,10 +1366,14 @@ class WorkOrderViewSet(LegacyActionsGuard, RoleBasedPermissionMixin, viewsets.Mo
             if vendor is None:
                 return Response({'error': "That vendor does not exist."}, status=status.HTTP_400_BAD_REQUEST)
         start = request.data.get('expected_start_date')
+        # The "needs a PO" switch; left out (older screens) means unchanged.
+        no_po = request.data.get('no_po_needed')
+        no_po_needed = None if no_po is None else str(no_po).lower() in ('true', '1', 'yes')
         return self._stage2_call(
             request, stage2.save_pricing, lines=lines, vendor=vendor,
             quotation_reference=request.data.get('quotation_reference'), po_number=request.data.get('po_number'),
             expected_start_date=start if start is not None else None, files=request.FILES.getlist('resources'),
+            no_po_needed=no_po_needed,
         )
 
     @action(detail=True, methods=['post'], url_path='flow-submit')
