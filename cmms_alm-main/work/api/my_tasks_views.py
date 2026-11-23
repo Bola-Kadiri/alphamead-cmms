@@ -11,6 +11,7 @@ from work.models import invoice_flow as stage4
 from work.models import payment_flow as stage5
 from work.models import work_order_flow as stage2
 from work.models import work_request_flow as stage1
+from work.models import raise_payment_trail
 
 
 def _who(user):
@@ -128,5 +129,17 @@ class MyTasksView(APIView):
                 'step_label': stage5.STEP_LABELS.get(task['step'], task['step']),
                 'on_behalf_of': _who(task['on_behalf_of']),
                 'waiting_since': v.updated_at, 'timing': _timing(task['timing']),
+            })
+        # Raise Payment bills (approver-first route): P&S, the Requester after a return, Approver, Reviewer, final approver.
+        for task in raise_payment_trail.my_tasks(request.user):
+            wo = task['order']
+            rows.append({
+                'kind': 'raise_payment', 'id': wo.id, 'slug': wo.slug, 'number': wo.work_order_number,
+                'facility': wo.facility.name if wo.facility_id else None, 'description': wo.description,
+                'priority': wo.priority, 'status': wo.approval_status, 'step': task['step'],
+                'step_label': raise_payment_trail.STEP_ROLE[task['step']],
+                'what': raise_payment_trail.TASK_LABEL[task['step']],
+                'on_behalf_of': _who(task['on_behalf_of']),
+                'waiting_since': task['waiting_since'], 'timing': None,
             })
         return Response(rows)

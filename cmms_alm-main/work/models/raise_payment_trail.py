@@ -165,3 +165,39 @@ def trail(wo, viewer):
         'no_po_needed': wo.no_po_needed,
         'quotation_amount': str(wo.quotation_amount) if wo.quotation_amount is not None else None,
     }
+
+
+# ── My Tasks ─────────────────────────────────────────────────────────────────
+
+# Steps where a Raise Payment bill waits for someone (payment itself is done from Payments).
+TASK_STEPS = {'Awaiting Procurement': 'procurement', 'Procurement Returned': 'raised', 'Pending': 'approver',
+              'Approver Approved': 'reviewer', 'Awaiting Final Approval': 'final'}
+TASK_LABEL = {'procurement': 'Add the PO and quotation', 'raised': 'Fix and resubmit the bill',
+              'approver': 'Approve the bill', 'reviewer': 'Review the bill', 'final': 'Give final approval'}
+
+
+def my_tasks(user):
+    """Raise Payment bills waiting on `user`, oldest first: the same people the bill's trail names."""
+    from django.db.models import Q
+    from work.models.delegation import Delegation
+    from work.models.work_order import WorkOrder
+
+    if user is None or not user.is_active:
+        return []
+    covered = list(Delegation.objects.active().filter(stand_in=user).values_list('person_id', flat=True))
+    mine = (Q(approval_status='Procurement Returned') & (Q(owner=user) | Q(requester=user))
+            | Q(approval_status='Pending') & (Q(approver=user) | Q(approver__in=covered))
+            | Q(approval_status='Approver Approved', reviewers=user)
+            | Q(approval_status='Awaiting Final Approval', final_approver=user))
+    if user.roles == 'PROCUREMENT AND STORE':
+        # Any P&S user, except on a bill they raised themselves.
+        mine |= Q(approval_status='Awaiting Procurement') & ~Q(owner=user) & ~Q(requester=user)
+    bills = (WorkOrder.objects.filter(approval_route=WorkOrder.APPROVER_FIRST, approval_status__in=TASK_STEPS)
+             .filter(mine).distinct().select_related('facility', 'approver').order_by('updated_at'))
+    tasks = []
+    for wo in bills:
+        step = TASK_STEPS[wo.approval_status]
+        on_behalf_of = wo.approver if step == 'approver' and wo.approver_id != user.pk else None
+        last = history(wo).order_by('-at', '-id').values_list('at', flat=True).first()
+        tasks.append({'order': wo, 'step': step, 'on_behalf_of': on_behalf_of, 'waiting_since': last or wo.updated_at})
+    return tasks
