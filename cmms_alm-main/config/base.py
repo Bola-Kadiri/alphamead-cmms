@@ -65,6 +65,15 @@ MIDDLEWARE = [
     'cmms_instanta.client_access.ClientAccessMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    # A file over the attachment limit gets a clear message (see cmms_instanta/upload_limits.py).
+    'cmms_instanta.upload_limits.FileTooLargeMiddleware',
+]
+
+# Any single attachment can be at most 15 MB; checked first, then Django's usual handlers store it.
+FILE_UPLOAD_HANDLERS = [
+    'cmms_instanta.upload_limits.MaxFileSizeUploadHandler',
+    'django.core.files.uploadhandler.MemoryFileUploadHandler',
+    'django.core.files.uploadhandler.TemporaryFileUploadHandler',
 ]
 
 ROOT_URLCONF = 'cmms_instanta.urls'
