@@ -35,6 +35,7 @@ from drf_yasg import openapi
 
 class StoreViewSet(RoleBasedPermissionMixin, viewsets.ModelViewSet):
     queryset = Store.objects.select_related('facility', 'warehouse').all().order_by('-id')
+    search_fields = ['code', 'name', 'location', 'facility__name']  # ?search=
     serializer_class = StoreSerializer
     # feature = "store_management"
     permission_classes = [IsAuthenticated]
@@ -45,6 +46,7 @@ class StoreViewSet(RoleBasedPermissionMixin, viewsets.ModelViewSet):
 
 class WarehouseViewSet(RoleBasedPermissionMixin, viewsets.ModelViewSet):
     queryset = Warehouse.objects.all().order_by('-id')
+    search_fields = ['code', 'name', 'address', 'facility__name']  # ?search=
     serializer_class = WarehouseSerializer
     feature = "inventory_register"
     # permission_classes = [IsAuthenticated]
@@ -55,6 +57,7 @@ class WarehouseViewSet(RoleBasedPermissionMixin, viewsets.ModelViewSet):
 
 class AssetViewSet(RoleBasedPermissionMixin, viewsets.ModelViewSet):
     queryset = Asset.objects.all().order_by('-created_at')
+    search_fields = ['asset_name', 'asset_tag', 'serial_number', 'location', 'facility__name', 'building__name', 'category__name', 'subcategory__name']  # ?search=
     serializer_class = AssetSerializer
     feature = "asset_register"
     # permission_classes = [IsAuthenticated]
@@ -113,6 +116,7 @@ class AssetViewSet(RoleBasedPermissionMixin, viewsets.ModelViewSet):
 
 class InventoryViewSet(RoleBasedPermissionMixin, viewsets.ModelViewSet):
     queryset = Inventory.objects.all().order_by('-updated_at')
+    search_fields = ['part_no', 'tag', 'serial_number', 'purchase_number', 'vendor__name']  # ?search=
     serializer_class = InventorySerializer
     feature = "inventory_adjustment"
     # permission_classes = [IsAuthenticated]
@@ -124,6 +128,7 @@ class InventoryViewSet(RoleBasedPermissionMixin, viewsets.ModelViewSet):
 
 class ItemViewSet(RoleBasedPermissionMixin, viewsets.ModelViewSet):
     queryset = Item.objects.all().order_by('name')
+    search_fields = ['name', 'description']  # ?search=
     serializer_class = ItemSerializer
     feature = "item_request"
     # permission_classes = [IsAuthenticated]
@@ -133,6 +138,7 @@ class TransferViewSet(RoleBasedPermissionMixin, viewsets.ModelViewSet):
     queryset = Transfer.objects.select_related(
         'request_from', 'transfer_to', 'requested_by', 'category', 'subcategory'
     ).prefetch_related('items', 'confirmation_required_from')
+    search_fields = ['type', 'category__name', 'subcategory__name']  # ?search=
     serializer_class = TransferSerializer
     permission_classes = [IsAuthenticated]
     feature = "movement_history"
@@ -156,6 +162,7 @@ class TransferViewSet(RoleBasedPermissionMixin, viewsets.ModelViewSet):
 """
 class TransferViewSet(RoleBasedPermissionMixin, viewsets.ModelViewSet):
     queryset = Transfer.objects.all().order_by('-id')
+    search_fields = ['type', 'category__name', 'subcategory__name']  # ?search=
     serializer_class = TransferSerializer
     feature = "transfer_form"
     permission_classes = [IsAuthenticated]
@@ -167,6 +174,7 @@ class TransferViewSet(RoleBasedPermissionMixin, viewsets.ModelViewSet):
 
 class MovementHistoryViewSet(viewsets.ModelViewSet):
     queryset = MovementHistory.objects.select_related('inventory', 'user', 'from_store', 'to_store').all().order_by('-movement_date')
+    search_fields = ['model', 'description']  # ?search=
     serializer_class = MovementHistorySerializer
     feature = "movement_history"
     # permission_classes = [IsAuthenticated]
@@ -177,26 +185,31 @@ class MovementHistoryViewSet(viewsets.ModelViewSet):
 
 class InventoryTypeViewSet(viewsets.ModelViewSet):
     queryset = InventoryType.objects.all()
+    search_fields = ['code', 'type']  # ?search=
     serializer_class = InventoryTypeSerializer
 
 
 class ManufacturerViewSet(viewsets.ModelViewSet):
     queryset = Manufacturer.objects.all()
+    search_fields = ['name']  # ?search=
     serializer_class = ManufacturerSerializer
 
 
 class ModelReferenceViewSet(viewsets.ModelViewSet):
     queryset = ModelReference.objects.all()
+    search_fields = ['code', 'name', 'manufacturer__name']  # ?search=
     serializer_class = ModelReferenceSerializer
 
 
 class InventoryReferenceViewSet(viewsets.ModelViewSet):
     queryset = InventoryReference.objects.all()
+    search_fields = ['inventory_type__type', 'manufacturer__name', 'model_reference__name']  # ?search=
     serializer_class = InventoryReferenceSerializer
 
 
 class AssetCategoryViewSet(viewsets.ModelViewSet):
     queryset = AssetCategory.objects.all().order_by('-id')
+    search_fields = ['code', 'name', 'type']  # ?search=
     serializer_class = AssetCategorySerializer
     feature = "asset_category"
     pagination_class = None
@@ -213,6 +226,7 @@ class AssetCategoryViewSet(viewsets.ModelViewSet):
 
 class AssetSubCategoryViewSet(viewsets.ModelViewSet):
     queryset = AssetSubCategory.objects.all().order_by('-id')
+    search_fields = ['code', 'name', 'asset_category__name']  # ?search=
     serializer_class = AssetSubCategorySerializer
     feature = "asset_subcategory"
     pagination_class = None
@@ -244,6 +258,7 @@ class AssetSubCategoryViewSet(viewsets.ModelViewSet):
 
 class DepartmentViewSet(viewsets.ModelViewSet):
     queryset = Department.objects.all().order_by('-id')
+    search_fields = ['code', 'name']  # ?search=
     serializer_class = DepartmentSerializer
     # feature = "department_management"
     permission_classes = [IsAuthenticated]
@@ -254,6 +269,7 @@ class DepartmentViewSet(viewsets.ModelViewSet):
 
 class ItemRequestViewSet(RoleBasedPermissionMixin, viewsets.ModelViewSet):
     queryset = ItemRequest.objects.all()
+    search_fields = ['name', 'description']  # ?search=
     serializer_class = ItemRequestSerializer
     permission_classes = [IsAuthenticated]
     feature = "item_request"
@@ -341,6 +357,7 @@ class ItemRequestViewSet(RoleBasedPermissionMixin, viewsets.ModelViewSet):
 """
 class ItemRequestViewSet(RoleBasedPermissionMixin, viewsets.ModelViewSet):
     queryset = ItemRequest.objects.all()
+    search_fields = ['name', 'description']  # ?search=
     serializer_class = ItemRequestSerializer
     permission_classes = [IsAuthenticated]
     feature = "item_request"

@@ -16,6 +16,7 @@ from .serializers import (
 
 class RegionViewSet(RoleBasedPermissionMixin, viewsets.ModelViewSet):
     queryset = Region.objects.all().order_by('-id')
+    search_fields = ['name', 'country']  # ?search=
     serializer_class = RegionSerializer
     feature = "requisition"
 
@@ -24,6 +25,7 @@ class RegionViewSet(RoleBasedPermissionMixin, viewsets.ModelViewSet):
 
 class ClusterViewSet(RoleBasedPermissionMixin, viewsets.ModelViewSet):
     queryset = Cluster.objects.all().order_by('-id')
+    search_fields = ['name', 'region__name']  # ?search=
     serializer_class = ClusterSerializer
     feature = "requisition"
 
@@ -32,6 +34,7 @@ class ClusterViewSet(RoleBasedPermissionMixin, viewsets.ModelViewSet):
 
 class FacilityViewSet(RoleBasedPermissionMixin, viewsets.ModelViewSet):
     queryset = Facility.objects.all().order_by('-id')
+    search_fields = ['code', 'name', 'type', 'client__name', 'cluster__name']  # ?search=
     serializer_class = FacilitySerializer
     feature = "requisition"
     lookup_field = 'code'
@@ -52,6 +55,7 @@ class FacilityViewSet(RoleBasedPermissionMixin, viewsets.ModelViewSet):
 
 class ZoneViewSet(RoleBasedPermissionMixin, viewsets.ModelViewSet):
     queryset = Zone.objects.all().order_by('-id')
+    search_fields = ['code', 'name', 'facility__name']  # ?search=
     serializer_class = ZoneSerializer
     feature = "requisition"
     
@@ -73,6 +77,7 @@ class ZoneViewSet(RoleBasedPermissionMixin, viewsets.ModelViewSet):
         
 class BuildingViewSet(RoleBasedPermissionMixin, viewsets.ModelViewSet):
     queryset = Building.objects.all().order_by('-id')
+    search_fields = ['code', 'name', 'facility__name', 'zone__name']  # ?search=
     serializer_class = BuildingSerializer
     feature = "requisition"
     pagination_class = None
@@ -91,6 +96,7 @@ class BuildingViewSet(RoleBasedPermissionMixin, viewsets.ModelViewSet):
 
 class SubsystemViewSet(RoleBasedPermissionMixin, viewsets.ModelViewSet):
     queryset = Subsystem.objects.all().order_by('-id')
+    search_fields = ['name', 'building__name', 'facility__name']  # ?search=
     serializer_class = SubsystemSerializer
     feature = "requisition"
 

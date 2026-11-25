@@ -259,6 +259,7 @@ class WorkRequestViewSet(LegacyActionsGuard, RoleBasedPermissionMixin, viewsets.
                       'reviewer_reject', 'final_approve', 'final_reject', 'resubmit'}
     guarded_model = WorkRequest
     serializer_class = WorkRequestSerializer
+    search_fields = ['work_request_number', 'type', 'description', 'po_number', 'invoice_no', 'facility__name', 'category__name', 'asset__asset_name', 'department__name', 'requester__first_name', 'requester__last_name']  # ?search=
     feature = 'work_request'
     lookup_field = 'slug'
     lookup_value_regex = r'(?:work|procument)[a-z0-9\-]*'
@@ -1251,6 +1252,7 @@ class WorkOrderViewSet(LegacyActionsGuard, RoleBasedPermissionMixin, viewsets.Mo
                       'approve', 'unlock_resubmission'}
     guarded_model = WorkOrder
     queryset = WorkOrder.objects.all().order_by('-id')
+    search_fields = ['work_order_number', 'description', 'invoice_no', 'po_number', 'quotation_reference', 'facility__name', 'category__name', 'payee__name', 'vendor__name']  # ?search=
     serializer_class = WorkOrderSerializer
     permission_classes = [IsAuthenticated]
     feature = "work_order"
@@ -2186,6 +2188,7 @@ class WorkOrderViewSet(LegacyActionsGuard, RoleBasedPermissionMixin, viewsets.Mo
 
 class PaymentRequisitionViewSet(RoleBasedPermissionMixin, viewsets.ModelViewSet):
     queryset = PaymentRequisition.objects.all().order_by('-id')
+    search_fields = ['requisition_number', 'remark', 'comment']  # ?search=
     serializer_class = PaymentRequisitionSerializer
     permission_classes = [IsAuthenticated]
 
@@ -2341,12 +2344,14 @@ class PaymentRequisitionViewSet(RoleBasedPermissionMixin, viewsets.ModelViewSet)
 
 class PaymentItemViewSet(RoleBasedPermissionMixin, viewsets.ModelViewSet):
     queryset = PaymentItem.objects.all().order_by('-id')
+    search_fields = ['item_name', 'description']  # ?search=
     serializer_class = PaymentItemSerializer
     feature = "requisition"
 
 
 class CommentViewSet(RoleBasedPermissionMixin, viewsets.ModelViewSet):
     queryset = Comment.objects.all().order_by('-id')
+    search_fields = ['message']  # ?search=
     serializer_class = CommentSerializer
     feature = "comment"
 
@@ -2492,6 +2497,7 @@ class WorkOrderCompletionViewSet(LegacyActionsGuard, RoleBasedPermissionMixin, v
     guarded_model = WorkOrderCompletion
     lookup_kwarg = 'pk'
     queryset = WorkOrderCompletion.objects.all().order_by('-id')
+    search_fields = ['wcc_number', 'technician', 'approval_status', 'work_order__work_order_number', 'work_order__description']  # ?search=
     serializer_class = WorkOrderCompletionSerializer
     permission_classes = [IsAuthenticated]
     feature = 'work_order'
@@ -2807,6 +2813,7 @@ class InvoiceViewSet(LegacyActionsGuard, RoleBasedPermissionMixin, viewsets.Mode
     guarded_model = Invoice
     lookup_kwarg = 'pk'
     queryset = Invoice.objects.all().order_by('-id')
+    search_fields = ['invoice_number', 'vendor_invoice_number', 'status', 'notes', 'vendor__name', 'work_order__work_order_number']  # ?search=
     serializer_class = InvoiceSerializer
     permission_classes = [IsAuthenticated]
     feature = 'work_order'

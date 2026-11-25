@@ -13,6 +13,7 @@ from cmms_instanta.permissions import RoleBasedPermissionMixin
 
 class PPMCalendarViewSet(RoleBasedPermissionMixin, viewsets.ReadOnlyModelViewSet):
     queryset = PPM.objects.all()
+    search_fields = ['description', 'category__name']  # ?search=
     serializer_class = PPMCalendarSerializer
     # permission_classes = [permissions.IsAuthenticated]
     feature = "ppm_setting"

@@ -26,6 +26,7 @@ class RequestForQuotationViewSet(RoleBasedPermissionMixin, viewsets.ModelViewSet
     ViewSet for managing Request for Quotation (RFQ)
     """
     queryset = RequestForQuotation.objects.all()
+    search_fields = ['title', 'terms', 'facility__name']  # ?search=
     serializer_class = RequestForQuotationSerializer
     permission_classes = [IsAuthenticated]
     feature = "request_quotation"
@@ -131,6 +132,7 @@ class PurchaseOrderViewSet(RoleBasedPermissionMixin, viewsets.ModelViewSet):
     ViewSet for managing Purchase Orders
     """
     queryset = PurchaseOrder.objects.all()
+    search_fields = ['type', 'contact_person', 'ship_to', 'vendor__name', 'facility__name']  # ?search=
     serializer_class = PurchaseOrderSerializer
     permission_classes = [IsAuthenticated]
     feature = "purchase_order"
@@ -219,6 +221,7 @@ class PurchaseOrderRequisitionViewSet(RoleBasedPermissionMixin, viewsets.ModelVi
     ViewSet for managing Purchase Order Requisitions
     """
     queryset = PurchaseOrderRequisition.objects.all()
+    search_fields = ['title', 'invoice_number', 'sage_reference_number', 'description', 'vendor__name']  # ?search=
     serializer_class = PurchaseOrderRequisitionSerializer
     permission_classes = [IsAuthenticated]
     feature = "purchase_order_requisition"
@@ -307,6 +310,7 @@ class GoodsReceivedNoteViewSet(RoleBasedPermissionMixin, viewsets.ModelViewSet):
     ViewSet for managing Goods Received Notes (GRN)
     """
     queryset = GoodsReceivedNote.objects.all()
+    search_fields = ['grn_number', 'delivery_note_number', 'invoice_number', 'vendor__name']  # ?search=
     serializer_class = GoodsReceivedNoteSerializer
     permission_classes = [IsAuthenticated]
     feature = "goods_received_note"
@@ -395,6 +399,7 @@ class VendorContractViewSet(RoleBasedPermissionMixin, viewsets.ModelViewSet):
     ViewSet for managing Vendor Contracts
     """
     queryset = VendorContract.objects.all()
+    search_fields = ['contract_title', 'vendor__name']  # ?search=
     serializer_class = VendorContractSerializer
     permission_classes = [IsAuthenticated]
     feature = "vendor_contract"

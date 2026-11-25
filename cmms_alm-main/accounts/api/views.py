@@ -109,6 +109,7 @@ class OnboardingViewSet(viewsets.ViewSet):
         
 class UserViewSet(viewsets.ModelViewSet):
     queryset = User.objects.all().order_by("-id")
+    search_fields = ['first_name', 'last_name', 'email', 'username', 'phone', 'designation', 'roles']  # ?search=
     permission_classes = [AllowAny]
     lookup_field = 'slug'
 
@@ -136,6 +137,7 @@ Have another view that takes the token, validate the token and helps you change 
 
 class PersonnelViewSet(viewsets.ModelViewSet):
     queryset = Personnel.objects.all().order_by('-id')
+    search_fields = ['staff_number', 'email', 'phone_number', 'user__first_name', 'user__last_name', 'user__email']  # ?search=
     serializer_class = PersonnelSerializer
     permission_classes = [IsAuthenticated]
     lookup_field = 'slug'
@@ -146,6 +148,7 @@ class PersonnelViewSet(viewsets.ModelViewSet):
 
 class VendorViewSet(viewsets.ModelViewSet):
     queryset = Vendor.objects.all().order_by('-id')
+    search_fields = ['name', 'email', 'phone', 'bank', 'account_name', 'account_number']  # ?search=
     serializer_class = VendorSerializer
     # Bank details drive payments: everyone can view; Super Admin and Procurement & Store
     # can add, edit and delete; only a Super Admin can bulk import (checked below).
@@ -182,6 +185,7 @@ class VendorViewSet(viewsets.ModelViewSet):
 
 class ClientViewSet(viewsets.ModelViewSet):
     queryset = Client.objects.all().order_by('-id')
+    search_fields = ['name', 'code', 'email', 'phone']  # ?search=
     serializer_class = ClientSerializer
     permission_classes = [IsAuthenticated]
     lookup_field = 'slug'
@@ -192,6 +196,7 @@ class ClientViewSet(viewsets.ModelViewSet):
 
 class CategoryViewSet(viewsets.ModelViewSet):
     queryset = Category.objects.all().order_by('-id')
+    search_fields = ['code', 'title', 'title_en', 'title_fr', 'description', 'problem_type']  # ?search=
     serializer_class = CategorySerializer
     permission_classes = [IsAuthenticated]
     pagination_class = None
@@ -222,6 +227,7 @@ class CategoryViewSet(viewsets.ModelViewSet):
     
 class SubcategoryViewSet(viewsets.ModelViewSet):
     queryset = Subcategory.objects.all().order_by('-id')
+    search_fields = ['title', 'title_en', 'title_fr', 'description', 'category__title']  # ?search=
     serializer_class = SubcategorySerializer
     permission_classes = [IsAuthenticated]
     pagination_class = None
@@ -232,6 +238,7 @@ class SubcategoryViewSet(viewsets.ModelViewSet):
 
 class BankAccountViewSet(viewsets.ModelViewSet):
     queryset = BankAccount.objects.all().order_by('-id')
+    search_fields = ['bank', 'account_name', 'account_number']  # ?search=
     serializer_class = BankAccountSerializer
     permission_classes = [IsAuthenticated]
     lookup_field = 'slug'
@@ -242,6 +249,7 @@ class BankAccountViewSet(viewsets.ModelViewSet):
 
 class DepartmentViewSet(viewsets.ModelViewSet):
     queryset = Department.objects.all().order_by('-id')
+    search_fields = ['code', 'name', 'email']  # ?search=
     serializer_class = DepartmentSerializer
     permission_classes = [IsAuthenticated]
     pagination_class = None
@@ -252,6 +260,7 @@ class DepartmentViewSet(viewsets.ModelViewSet):
 
 class UnitOfMeasurementViewSet(viewsets.ModelViewSet):
     queryset = UnitOfMeasurement.objects.all().order_by('-id')
+    search_fields = ['code', 'symbol', 'description']  # ?search=
     serializer_class = UnitOfMeasurementSerializer
     permission_classes = [IsAuthenticated]
     lookup_field = 'code'
